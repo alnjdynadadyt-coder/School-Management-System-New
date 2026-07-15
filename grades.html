@@ -96,16 +96,16 @@
 
         function calculate(row) {
             const i = row.querySelectorAll('input');
-            // الحسابات: 0=ش1, 1=ش2, 2=م.ش, 3=يومي1, 4=فصل1, 5=ن.سنة, 6=ش1(2), 7=ش2(2), 8=م.ش(2), 9=يومي2, 10=فصل2, 11=السعي
+            // الترتيب: 0=ش1، 1=ش2، 2=م.ش، 3=يومي1، 4=فصل1 | 5=نصف السنة | 6=ش1(2)، 7=ش2(2)، 8=م.ش(2)، 9=يومي2، 10=فصل2 | 11=السعي
             
-            // حساب م.ش للفصل الأول
+            // حساب م.ش الفصل الأول (متوسط ش1 و ش2)
             if (i[0].value !== "" && i[1].value !== "") i[2].value = Math.round((+i[0].value + +i[1].value) / 2);
             
-            // حساب م.ش للفصل الثاني
+            // حساب م.ش الفصل الثاني (متوسط ش1 و ش2 للفصل الثاني)
             if (i[6].value !== "" && i[7].value !== "") i[8].value = Math.round((+i[6].value + +i[7].value) / 2);
             
-            // حساب السعي (المعادلة المطلوبة)
-            if (i[4].value !== "" && i[10].value !== "" && i[5].value !== "") {
+            // حساب السعي النهائي
+            if (i[4].value !== "" && i[5].value !== "" && i[10].value !== "") {
                 i[11].value = Math.round((+i[4].value + +i[5].value + +i[10].value) / 3);
             }
             
@@ -117,12 +117,24 @@
             const cls = document.getElementById('gClass').value;
             const sec = document.getElementById('gSection').value;
             const sub = document.getElementById('subject').value;
+            
             db.collection("students").where("class", "==", cls).get().then(snap => {
                 snap.forEach(s => {
                     if(s.data().section == sec) {
                         body.innerHTML += `<tr>
                             <td>${s.data().name}</td>
-                            ${'<td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>'.repeat(12)}
+                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
                         </tr>`;
                     }
                 });
@@ -143,7 +155,7 @@
 
         function exportExcel() {
             const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
-            const data = [["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "نصف السنة", "ش1", "ش2", "م.ش", "يومي2", "فصل2", "السعي"]];
+            const data = [["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "نصف السنة", "ش1(2)", "ش2(2)", "م.ش(2)", "يومي2", "فصل2", "السعي"]];
             document.querySelectorAll('#gradesBody tr').forEach(row => {
                 const rowData = [row.cells[0].innerText];
                 row.querySelectorAll('input').forEach(i => rowData.push(i.value));
