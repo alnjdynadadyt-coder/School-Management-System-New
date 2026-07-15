@@ -45,19 +45,35 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        function calculate(row) {
-            const inputs = row.querySelectorAll('input');
-            // م.ش 1
-            inputs[2].value = Math.round(((+inputs[0].value || 0) + (+inputs[1].value || 0)) / 2) || "";
-            // فصل 1
-            inputs[5].value = Math.round(((+inputs[2].value || 0) + (+inputs[4].value || 0)) / 2) || "";
-            // م.ش 2
-            inputs[8].value = Math.round(((+inputs[6].value || 0) + (+inputs[7].value || 0)) / 2) || "";
-            // فصل 2
-            inputs[11].value = Math.round(((+inputs[8].value || 0) + (+inputs[10].value || 0)) / 2) || "";
-            // السعي
-            inputs[12].value = Math.round(((+inputs[5].value || 0) + (+inputs[5].value || 0) + (+inputs[11].value || 0)) / 3) || ""; 
-            // ملاحظة: تم ضبط السعي بناء على فصل1 + ن.سنة + فصل2 / 3 كما طلبت
+                function calculate(row) {
+            const i = row.querySelectorAll('input');
+            // i[0]:ش1, i[1]:ش2, i[2]:م.ش, i[3]:يومي1, i[4]:فصل1, i[5]:ن.سنة, 
+            // i[6]:ش1(2), i[7]:ش2(2), i[8]:م.ش(2), i[9]:يومي2, i[10]:فصل2, i[11]:السعي
+
+            // 1. حساب م.ش الأول
+            if (i[0].value !== "" && i[1].value !== "") {
+                i[2].value = Math.round((+i[0].value + +i[1].value) / 2);
+            } else { i[2].value = ""; }
+
+            // 2. حساب فصل 1
+            if (i[2].value !== "" && i[3].value !== "") {
+                i[4].value = Math.round((+i[2].value + +i[3].value) / 2);
+            } else { i[4].value = ""; }
+
+            // 3. حساب م.ش الثاني
+            if (i[6].value !== "" && i[7].value !== "") {
+                i[8].value = Math.round((+i[6].value + +i[7].value) / 2);
+            } else { i[8].value = ""; }
+
+            // 4. حساب فصل 2
+            if (i[8].value !== "" && i[9].value !== "") {
+                i[10].value = Math.round((+i[8].value + +i[9].value) / 2);
+            } else { i[10].value = ""; }
+
+            // 5. حساب السعي
+            if (i[4].value !== "" && i[5].value !== "" && i[10].value !== "") {
+                i[11].value = Math.round((+i[4].value + +i[5].value + +i[10].value) / 3);
+            } else { i[11].value = ""; }
         }
 
         function loadGrades() {
