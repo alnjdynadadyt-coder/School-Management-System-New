@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إدارة النسخ الاحتياطي الشامل</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #f4f4f9; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); text-align: center; }
+        button { padding: 15px; margin: 10px 0; border: none; border-radius: 8px; cursor: pointer; color: white; width: 100%; font-size: 16px; font-weight: bold; }
+        .btn-backup { background: #28a745; }
+        .btn-restore { background: #dc3545; }
+        a { display: block; margin-top: 20px; color: #6c757d; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3>🛡️ النسخ الاحتياطي الشامل</h3>
+        <p>قم بتحميل نسخة من بيانات المدرسة بالكامل، أو استعادة نسخة سابقة.</p>
+        
+        <button class="btn-backup" onclick="fullBackup()">📥 تصدير نسخة احتياطية (JSON)</button>
+        <input type="file" id="restoreInput" style="display:none" onchange="fullRestore(event)">
+        <button class="btn-restore" onclick="document.getElementById('restoreInput').click()">📤 استيراد نسخة احتياطية</button>
+        
+        <a href="index.html">⬅️ العودة للرئيسية</a>
+    </div>
+
+    <script>
+        // إعدادات الاتصال (تأكد أنها تطابق مشروعك)
+        const firebaseConfig = { apiKey: "AIzaSyAu6Lmi46t0eoympoDmHQ9UkMlSCVxxfr8", projectId: "school-manager-d1865" };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // قائمة بجميع المجموعات في نظامك
+        const collections = ['students', 'attendance', 'archived_attendance', 'teachers'];
+
+        async function fullBackup() {
+            let backupData = {};
+            for (let col of collections) {
+                let snap = await db.collection(col).get();
+                backupData[col] = {};
+                snap.forEach(doc => { backupData[col][doc.id] = doc.data(); });
+            }
+            const blob = new Blob([JSON.stringify(backupData)], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "School_Backup_" + new Date().toISOString().slice(0,10) + ".json";
+            a.click();
+            alert("تم تحميل ملف النسخة الاحتياطية بنجاح!");
+        }
+
+        async function fullRestore(event) {
+            if (!confirm("⚠️ تحذير: سيتم مسح البيانات الحالية واستبدالها ببيانات الملف. هل أنت متأكد؟")) return;
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    const batch = db.batch();
+                    for (let col in data) {
+                        for (let id in data[col]) {
+                            batch.set(db.collection(col).doc(id), data[col][id]);
+                        }
+                    }
+                    await batch.commit();
+                    alert("تم استعادة النظام بالكامل بنجاح!");
+                    location.reload();
+                } catch (err) { alert("حدث خطأ أثناء الاستعادة: " + err.message); }
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
