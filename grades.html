@@ -50,13 +50,11 @@
             const sub = document.getElementById('subject').value;
             const rows = document.querySelectorAll('#gradesBody tr');
             const dataToSave = {};
-
             rows.forEach((row) => {
                 const inputs = row.querySelectorAll('input');
                 const studentName = row.cells[0].innerText;
                 dataToSave[studentName] = Array.from(inputs).map(input => input.value);
             });
-
             await db.collection("grades").doc(`${cls}_${sec}_${sub}`).set(dataToSave);
             alert("تم حفظ الدرجات بنجاح!");
         }
@@ -74,6 +72,7 @@
             const body = document.getElementById('gradesBody'); body.innerHTML = "";
             const cls = document.getElementById('gClass').value;
             const sec = document.getElementById('gSection').value;
+            const sub = document.getElementById('subject').value;
             
             db.collection("students").where("class", "==", cls).get().then(snap => {
                 snap.forEach(s => {
@@ -82,6 +81,19 @@
                             <td>${s.data().name}</td>
                             ${'<td><input type="number" oninput="calculate(this.parentElement.parentElement)"></td>'.repeat(12)}
                         </tr>`;
+                    }
+                });
+                // استرجاع الدرجات بعد جلب الطلاب
+                db.collection("grades").doc(`${cls}_${sec}_${sub}`).get().then(doc => {
+                    if (doc.exists) {
+                        const savedData = doc.data();
+                        document.querySelectorAll('#gradesBody tr').forEach(row => {
+                            const name = row.cells[0].innerText;
+                            if (savedData[name]) {
+                                const inputs = row.querySelectorAll('input');
+                                savedData[name].forEach((val, i) => inputs[i].value = val);
+                            }
+                        });
                     }
                 });
             });
