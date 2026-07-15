@@ -141,13 +141,26 @@
         }
 
         function exportExcel() {
-            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
-            const data = [["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "ن.سنة", "ش1(2)", "ش2(2)", "م.ش(2)", "يومي2", "فصل2", "السعي"]];
+            const cls = document.getElementById('gClass').value;
+            const sec = document.getElementById('gSection').value;
+            const sub = document.getElementById('subject').value;
+            const teacher = document.getElementById('teacherName').value;
+            
+            const data = [
+                ["المدرسة / النظام الذهبي"],
+                ["اسم المدرس:", teacher],
+                ["المادة:", sub],
+                ["الصف:", cls, "الشعبة:", sec],
+                [],
+                ["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "ن.سنة", "ش1(2)", "ش2(2)", "م.ش(2)", "يومي2", "فصل2", "السعي"]
+            ];
+            
             document.querySelectorAll('#gradesBody tr').forEach(row => {
                 const rowData = [row.cells[0].innerText];
                 row.querySelectorAll('input').forEach(i => rowData.push(i.value));
                 data.push(rowData);
             });
+            
             const ws = XLSX.utils.aoa_to_sheet(data);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "الدرجات");
