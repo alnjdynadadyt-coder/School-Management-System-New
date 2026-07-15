@@ -16,10 +16,11 @@
         th:first-child, td:first-child { min-width: 130px; text-align: right; }
         input[type="number"] { width: 32px !important; padding: 2px; border: 1px solid #ddd; border-radius: 3px; text-align: center; }
         
-        .c-f1 { background-color: #fff9c4; } 
-        .c-mid { background-color: #e8f5e9; } 
-        .c-f2 { background-color: #e3f2fd; } 
-        .c-final { background-color: #fce4ec; }
+        /* الألوان للطباعة */
+        .c-f1 { background-color: #fff9c4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } 
+        .c-mid { background-color: #e8f5e9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } 
+        .c-f2 { background-color: #e3f2fd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } 
+        .c-final { background-color: #fce4ec !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
         .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
         .fail { color: red; font-weight: bold; }
@@ -29,6 +30,7 @@
             @page { size: A4 landscape; margin: 5mm; }
             body { background: white; font-size: 9px; }
             .btn, button { display: none !important; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
     </style>
 </head>
@@ -74,13 +76,14 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        function checkFail(input) {
-            const val = parseInt(input.value);
-            if (input.value !== "" && val <= 49) { input.classList.add('fail'); input.classList.remove('pass'); }
-            else { input.classList.remove('fail'); input.classList.add('pass'); }
-        }
-
         async function saveGrades() {
+            // طلب كلمة المرور
+            const pass = prompt("أدخل كلمة المرور لتأكيد الحفظ:");
+            if (pass !== "123") { // يمكنك تغيير "123" لأي كلمة مرور تفضلها
+                alert("كلمة مرور خاطئة! تم إلغاء عملية الحفظ.");
+                return;
+            }
+
             const cls = document.getElementById('gClass').value;
             const sec = document.getElementById('gSection').value;
             const sub = document.getElementById('subject').value;
@@ -91,35 +94,28 @@
                 dataToSave[row.cells[0].innerText] = Array.from(inputs).map(input => input.value);
             });
             await db.collection("grades").doc(`${cls}_${sec}_${sub}`).set(dataToSave);
-            alert("تم حفظ الدرجات!");
+            alert("تم حفظ الدرجات بنجاح!");
         }
 
         function calculate(row) {
             const i = row.querySelectorAll('input');
-            // i[0]:ش1, i[1]:ش2, i[2]:م.ش, i[3]:يومي1, i[4]:فصل1, i[5]:ن.سنة, 
-            // i[6]:ش1(2), i[7]:ش2(2), i[8]:م.ش(2), i[9]:يومي2, i[10]:فصل2, i[11]:السعي
-
-            if (i[0].value !== "" && i[1].value !== "") {
-                i[2].value = Math.round((+i[0].value + +i[1].value) / 2);
-            } else { i[2].value = ""; }
-
-            if (i[2].value !== "" && i[3].value !== "") {
-                i[4].value = Math.round((+i[2].value + +i[3].value) / 2);
-            } else { i[4].value = ""; }
-
-            if (i[6].value !== "" && i[7].value !== "") {
-                i[8].value = Math.round((+i[6].value + +i[7].value) / 2);
-            } else { i[8].value = ""; }
-
-            if (i[8].value !== "" && i[9].value !== "") {
-                i[10].value = Math.round((+i[8].value + +i[9].value) / 2);
-            } else { i[10].value = ""; }
-
-            if (i[4].value !== "" && i[5].value !== "" && i[10].value !== "") {
-                i[11].value = Math.round((+i[4].value + +i[5].value + +i[10].value) / 3);
-            } else { i[11].value = ""; }
-            
+            if (i[0].value !== "" && i[1].value !== "") i[2].value = Math.round((+i[0].value + +i[1].value) / 2);
+            else i[2].value = "";
+            if (i[2].value !== "" && i[3].value !== "") i[4].value = Math.round((+i[2].value + +i[3].value) / 2);
+            else i[4].value = "";
+            if (i[6].value !== "" && i[7].value !== "") i[8].value = Math.round((+i[6].value + +i[7].value) / 2);
+            else i[8].value = "";
+            if (i[8].value !== "" && i[9].value !== "") i[10].value = Math.round((+i[8].value + +i[9].value) / 2);
+            else i[10].value = "";
+            if (i[4].value !== "" && i[5].value !== "" && i[10].value !== "") i[11].value = Math.round((+i[4].value + +i[5].value + +i[10].value) / 3);
+            else i[11].value = "";
             i.forEach(input => checkFail(input));
+        }
+
+        function checkFail(input) {
+            const val = parseInt(input.value);
+            if (input.value !== "" && val <= 49) { input.classList.add('fail'); input.classList.remove('pass'); }
+            else { input.classList.remove('fail'); input.classList.add('pass'); }
         }
 
         function loadGrades() {
@@ -127,7 +123,6 @@
             const cls = document.getElementById('gClass').value;
             const sec = document.getElementById('gSection').value;
             const sub = document.getElementById('subject').value;
-            
             db.collection("students").where("class", "==", cls).get().then(snap => {
                 snap.forEach(s => {
                     if(s.data().section == sec) {
