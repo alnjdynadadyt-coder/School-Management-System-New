@@ -2,40 +2,40 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة الدرجات - النظام المتكامل</title>
+    <title>إدارة الدرجات - النسخة الذهبية</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body { font-family: sans-serif; background: #f4f7f6; padding: 10px; }
         .container { max-width: 1200px; margin: auto; background: white; padding: 15px; border-radius: 12px; }
-        .controls { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
-        input, select { padding: 6px; border: 1px solid #ddd; border-radius: 4px; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        th, td { border: 1px solid #ddd; padding: 4px; text-align: center; }
-        .readonly { background: #eee; }
-        .btn { padding: 6px 12px; border: none; border-radius: 4px; color: white; cursor: pointer; }
+        .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; align-items: center; }
+        select, input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+        input[type="number"] { width: 50px; }
+        .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
+        <button class="btn" style="background:#6c757d;" onclick="window.history.back()">🔙 العودة</button>
         <div class="controls">
-            <select id="gClass"><option>الرابع العلمي</option><option>الخامس العلمي</option></select>
-            <select id="gSection"><option>أ</option><option>ب</option></select>
-            <select id="subject" onchange="if(this.value=='other') document.getElementById('otherSub').style.display='inline'; else document.getElementById('otherSub').style.display='none';">
-                <option>الإسلامية</option><option>العربي</option><option>الرياضيات</option><option value="other">أخرى...</option>
-            </select>
-            <input type="text" id="otherSub" placeholder="اكتب المادة" style="display:none; width:80px;">
+            <input type="text" id="teacherName" placeholder="اسم المدرس">
+            <select id="gClass"><option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option><option>الرابع الأدبي</option><option>الخامس الأدبي</option><option>السادس الأدبي</option></select>
+            <select id="gSection"><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option></select>
+            <select id="subject"><option>الإسلامية</option><option>العربي</option><option>الإنكليزي</option><option>الرياضيات</option><option>الفيزياء</option><option>الكيمياء</option><option>الأحياء</option><option>التاريخ</option><option>الجغرافية</option><option>الاقتصاد</option><option>علم النفس</option><option>الحاسوب</option></select>
             <button class="btn" style="background:#007bff;" onclick="loadGrades()">جلب الطلاب</button>
-            <button class="btn" style="background:#28a745;" onclick="exportExcel()">Excel</button>
+            <button class="btn" style="background:#28a745;" onclick="exportExcel()">تصدير Excel</button>
+            <button class="btn" style="background:#dc3545;" onclick="window.print()">طباعة PDF</button>
         </div>
         <table id="gradesTable">
             <thead>
-                <tr><th>الطالب</th><th>ش1</th><th>ش2</th><th>م.ش</th><th>يومي</th><th>فصل1</th><th>ن.سنة</th><th>ش1</th><th>ش2</th><th>م.ش</th><th>يومي2</th><th>فصل2</th><th>السعي</th></tr>
+                <tr><th>الطالب</th><th>ش1</th><th>ش2</th><th>م.ش</th><th>يومي1</th><th>فصل1</th><th>ن.سنة</th><th>ش1</th><th>ش2</th><th>م.ش</th><th>يومي2</th><th>فصل2</th><th>السعي</th></tr>
             </thead>
             <tbody id="gradesBody"></tbody>
         </table>
-        <button class="btn" style="width:100%; background:#007bff; margin-top:10px;" onclick="alert('تم الحفظ')">حفظ الدرجات</button>
+        <button class="btn" style="width:100%; background:#007bff; margin-top:15px;" onclick="alert('تم حفظ البيانات')">حفظ الدرجات</button>
     </div>
 
     <script>
@@ -48,11 +48,17 @@
             const cls = document.getElementById('gClass').value;
             const sec = document.getElementById('gSection').value;
             
-            // الاستعلام الآن يعتمد على الصف فقط لضمان العمل، ثم نصفي الشعبة برمجياً
+            // استخدام الطريقة القديمة الموثوقة: جلب الصف فقط ثم التصفية برمجياً
             db.collection("students").where("class", "==", cls).get().then(snap => {
                 snap.forEach(s => {
                     if(s.data().section == sec) {
-                        body.innerHTML += `<tr><td>${s.data().name}</td>${'<td><input type="number"></td>'.repeat(12)}</tr>`;
+                        body.innerHTML += `<tr>
+                            <td>${s.data().name}</td>
+                            <td><input type="number"></td><td><input type="number"></td><td><input type="number"></td>
+                            <td><input type="number"></td><td><input type="number"></td><td><input type="number"></td>
+                            <td><input type="number"></td><td><input type="number"></td><td><input type="number"></td>
+                            <td><input type="number"></td><td><input type="number"></td><td><input type="number"></td>
+                        </tr>`;
                     }
                 });
             });
