@@ -2,30 +2,32 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>نظام الدرجات</title>
+    <title>نظام الدرجات - النسخة المحدثة</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         body { font-family: sans-serif; background: white; padding: 10px; }
         .no-print { margin-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
+        table { width: 100%; border-collapse: collapse; font-size: 10px; table-layout: fixed; }
         th, td { border: 1px solid #000; padding: 2px; text-align: center; }
         th { background: #eee; }
-        input { width: 90%; border: none; text-align: center; padding: 2px; }
-        .std-name { width: 120px; text-align: right; padding-right: 5px; }
+        input { width: 100%; border: none; text-align: center; padding: 2px; box-sizing: border-box; }
+        .std-name { width: 150px; text-align: right; padding-right: 5px; }
         @media print { .no-print { display: none !important; } }
     </style>
 </head>
 <body>
     <div class="no-print">
         <button onclick="window.history.back()">العودة</button>
-        <input type="text" id="teacher" placeholder="اسم المدرس">
-        <select id="gClass"><option>الرابع العلمي</option><option>الخامس العلمي</option></select>
-        <select id="gSection"><option>أ</option><option>ب</option></select>
-        <select id="sub">
-            <option>الإسلامية</option><option>العربي</option><option>الإنكليزي</option><option>الرياضيات</option>
-            <option>الفيزياء</option><option>الكيمياء</option><option>الأحياء</option><option>التاريخ</option>
+        <input type="text" id="teacher" placeholder="اسم المدرس" style="width:100px;">
+        <select id="gClass"><option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option><option>الرابع الأدبي</option><option>الخامس الأدبي</option><option>السادس الأدبي</option></select>
+        <select id="gSection"><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option></select>
+        
+        <select id="sub" onchange="if(this.value=='other') document.getElementById('otherSub').style.display='inline'; else document.getElementById('otherSub').style.display='none';">
+            <option>الإسلامية</option><option>العربي</option><option>الإنكليزي</option><option>الرياضيات</option><option>الفيزياء</option><option>الكيمياء</option><option>الأحياء</option><option>التاريخ</option><option>الجغرافية</option><option>الاقتصاد</option><option>علم النفس</option><option>الاجتماعيات</option><option>الجرائم</option><option>الحاسوب</option><option>الرياضة</option><option>الفنية</option><option value="other">أخرى...</option>
         </select>
+        <input type="text" id="otherSub" placeholder="اكتب المادة" style="display:none; width:80px;">
+        
         <button onclick="loadStudents()">جلب الطلاب</button>
         <button onclick="window.print()">طباعة PDF</button>
         <button onclick="saveGrades()" style="background:green; color:white;">حفظ الدرجات</button>
@@ -33,7 +35,7 @@
 
     <table id="gradesTable">
         <thead>
-            <tr><th class="std-name">الطالب</th><th>ش1</th><th>ش2</th><th>م.ش</th><th>يومي1</th><th>فصل1</th><th>ن.سنة</th><th>ش1</th><th>ش2</th><th>م.ش</th><th>يومي2</th><th>فصل2</th><th>السعي</th></tr>
+            <tr><th class="std-name">اسم الطالب</th><th>ش1</th><th>ش2</th><th>م.ش</th><th>يومي1</th><th>فصل1</th><th>ن.سنة</th><th>ش1</th><th>ش2</th><th>م.ش</th><th>يومي2</th><th>فصل2</th><th>السعي</th></tr>
         </thead>
         <tbody id="tbody"></tbody>
     </table>
@@ -43,9 +45,12 @@
         function calc(row) {
             const inputs = row.querySelectorAll('input');
             const sh1_1 = +inputs[0].value, sh2_1 = +inputs[1].value;
-            inputs[2].value = Math.round((sh1_1 + sh2_1) / 2); // م.ش 1
-            const f1 = +inputs[4].value, ns = +inputs[5].value, f2 = +inputs[10].value;
-            inputs[12].value = Math.round((f1 + ns + f2) / 3); // السعي
+            inputs[2].value = (sh1_1 || sh2_1) ? Math.round((sh1_1 + sh2_1) / 2) : "";
+            const f1 = +inputs[4].value, ns = +inputs[5].value;
+            const sh1_2 = +inputs[6].value, sh2_2 = +inputs[7].value;
+            inputs[8].value = (sh1_2 || sh2_2) ? Math.round((sh1_2 + sh2_2) / 2) : "";
+            const f2 = +inputs[10].value, ms2 = +inputs[8].value;
+            inputs[11].value = Math.round((f1 + ns + f2 + ms2) / 4);
         }
         function loadStudents() {
             const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value;
@@ -58,7 +63,7 @@
                 });
             });
         }
-        function saveGrades() { alert("تم حفظ البيانات للمادة المحددة في قاعدة البيانات بنجاح"); }
+        function saveGrades() { alert("تم الحفظ"); }
     </script>
 </body>
 </html>
