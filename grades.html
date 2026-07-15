@@ -14,14 +14,12 @@
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
         th, td { border: 1px solid #ddd; padding: 3px; text-align: center; }
         th:first-child, td:first-child { min-width: 130px; text-align: right; }
-        
         input[type="number"] { width: 32px !important; padding: 2px; border: 1px solid #ddd; border-radius: 3px; text-align: center; }
         
-        /* تلوين الأعمدة المخصص */
-        .c-f1 { background-color: #fff9c4; } /* أصفر فاتح للفصل الأول */
-        .c-mid { background-color: #e8f5e9; } /* أخضر فاتح لنصف السنة */
-        .c-f2 { background-color: #e3f2fd; } /* أزرق فاتح للفصل الثاني */
-        .c-final { background-color: #fce4ec; } /* وردي فاتح للسعي */
+        .c-f1 { background-color: #fff9c4; } 
+        .c-mid { background-color: #e8f5e9; } 
+        .c-f2 { background-color: #e3f2fd; } 
+        .c-final { background-color: #fce4ec; }
 
         .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
         .fail { color: red; font-weight: bold; }
@@ -31,8 +29,6 @@
             @page { size: A4 landscape; margin: 5mm; }
             body { background: white; font-size: 9px; }
             .btn, button { display: none !important; }
-            .controls { border-bottom: 2px solid #333; padding-bottom: 5px; margin-bottom: 10px; }
-            input[type="number"] { border: none !important; background: transparent !important; }
         }
     </style>
 </head>
@@ -43,8 +39,7 @@
             <input type="text" id="teacherName" placeholder="اسم المدرس">
             <select id="gClass"><option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option><option>الرابع الأدبي</option><option>الخامس الأدبي</option><option>السادس الأدبي</option></select>
             <select id="gSection"><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option></select>
-            <!-- حقل المادة الحر -->
-            <input type="text" id="subject" placeholder="اسم المادة (اكتب هنا)" list="subs">
+            <input type="text" id="subject" placeholder="اسم المادة" list="subs">
             <datalist id="subs">
                 <option value="الإسلامية"><option value="العربي"><option value="الإنكليزي"><option value="الرياضيات"><option value="الفيزياء"><option value="الكيمياء"><option value="الأحياء"><option value="التاريخ"><option value="الجغرافية"><option value="الاقتصاد"><option value="علم النفس"><option value="الحاسوب"><option value="الاجتماع"><option value="الجرائم"><option value="الرياضة"><option value="الفنية">
             </datalist>
@@ -81,13 +76,8 @@
 
         function checkFail(input) {
             const val = parseInt(input.value);
-            if (input.value !== "" && val <= 49) {
-                input.classList.add('fail');
-                input.classList.remove('pass');
-            } else {
-                input.classList.remove('fail');
-                input.classList.add('pass');
-            }
+            if (input.value !== "" && val <= 49) { input.classList.add('fail'); input.classList.remove('pass'); }
+            else { input.classList.remove('fail'); input.classList.add('pass'); }
         }
 
         async function saveGrades() {
@@ -98,20 +88,26 @@
             const dataToSave = {};
             rows.forEach((row) => {
                 const inputs = row.querySelectorAll('input');
-                const studentName = row.cells[0].innerText;
-                dataToSave[studentName] = Array.from(inputs).map(input => input.value);
+                dataToSave[row.cells[0].innerText] = Array.from(inputs).map(input => input.value);
             });
             await db.collection("grades").doc(`${cls}_${sec}_${sub}`).set(dataToSave);
-            alert("تم حفظ الدرجات بنجاح!");
+            alert("تم حفظ الدرجات!");
         }
 
         function calculate(row) {
             const i = row.querySelectorAll('input');
-            // الحسابات المحدثة
-            if (i[0].value !== "" && i[1].value !== "") { i[2].value = Math.round((+i[0].value + +i[1].value) / 2); }
-            if (i[2].value !== "" && i[3].value !== "" && i[4].value !== "") { i[5].value = Math.round((+i[2].value + +i[3].value + +i[4].value) / 3); }
-            if (i[6].value !== "" && i[7].value !== "") { i[8].value = Math.round((+i[6].value + +i[7].value) / 2); }
-            if (i[5].value !== "" && i[8].value !== "" && i[9].value !== "" && i[10].value !== "") { i[11].value = Math.round((+i[5].value + +i[8].value + +i[9].value + +i[10].value) / 4); }
+            // الحسابات: 0=ش1, 1=ش2, 2=م.ش, 3=يومي1, 4=فصل1, 5=ن.سنة, 6=ش1(2), 7=ش2(2), 8=م.ش(2), 9=يومي2, 10=فصل2, 11=السعي
+            
+            // حساب م.ش للفصل الأول
+            if (i[0].value !== "" && i[1].value !== "") i[2].value = Math.round((+i[0].value + +i[1].value) / 2);
+            
+            // حساب م.ش للفصل الثاني
+            if (i[6].value !== "" && i[7].value !== "") i[8].value = Math.round((+i[6].value + +i[7].value) / 2);
+            
+            // حساب السعي (المعادلة المطلوبة)
+            if (i[4].value !== "" && i[10].value !== "" && i[5].value !== "") {
+                i[11].value = Math.round((+i[4].value + +i[5].value + +i[10].value) / 3);
+            }
             
             i.forEach(input => checkFail(input));
         }
@@ -121,38 +117,23 @@
             const cls = document.getElementById('gClass').value;
             const sec = document.getElementById('gSection').value;
             const sub = document.getElementById('subject').value;
-            
             db.collection("students").where("class", "==", cls).get().then(snap => {
                 snap.forEach(s => {
                     if(s.data().section == sec) {
                         body.innerHTML += `<tr>
                             <td>${s.data().name}</td>
-                            <td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" class="c-mid" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" class="c-final" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            ${'<td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>'.repeat(12)}
                         </tr>`;
                     }
                 });
                 db.collection("grades").doc(`${cls}_${sec}_${sub}`).get().then(doc => {
                     if (doc.exists) {
-                        const savedData = doc.data();
+                        const data = doc.data();
                         document.querySelectorAll('#gradesBody tr').forEach(row => {
                             const name = row.cells[0].innerText;
-                            if (savedData[name]) {
+                            if (data[name]) {
                                 const inputs = row.querySelectorAll('input');
-                                savedData[name].forEach((val, i) => { 
-                                    inputs[i].value = val; 
-                                    checkFail(inputs[i]); 
-                                });
+                                data[name].forEach((val, i) => { inputs[i].value = val; checkFail(inputs[i]); });
                             }
                         });
                     }
@@ -161,27 +142,17 @@
         }
 
         function exportExcel() {
-            const cls = document.getElementById('gClass').value;
-            const sec = document.getElementById('gSection').value;
-            const sub = document.getElementById('subject').value;
-            const teacher = document.getElementById('teacherName').value || "غير محدد";
-            const data = [
-                ["اسم المدرس:", teacher, "الصف:", cls, "الشعبة:", sec, "المادة:", sub],
-                [],
-                ["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "نصف السنة", "ش1", "ش2", "م.ش", "يومي2", "فصل2", "السعي"]
-            ];
-            const rows = document.querySelectorAll('#gradesBody tr');
-            rows.forEach(row => {
-                const studentName = row.cells[0].innerText;
-                const inputs = row.querySelectorAll('input');
-                const studentRow = [studentName];
-                inputs.forEach(input => studentRow.push(input.value));
-                data.push(studentRow);
+            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
+            const data = [["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "نصف السنة", "ش1", "ش2", "م.ش", "يومي2", "فصل2", "السعي"]];
+            document.querySelectorAll('#gradesBody tr').forEach(row => {
+                const rowData = [row.cells[0].innerText];
+                row.querySelectorAll('input').forEach(i => rowData.push(i.value));
+                data.push(rowData);
             });
             const ws = XLSX.utils.aoa_to_sheet(data);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "الدرجات");
-            XLSX.writeFile(wb, `${cls}_الشعبة_${sec}_${sub}.xlsx`);
+            XLSX.writeFile(wb, `الدرجات_${cls}_${sec}_${sub}.xlsx`);
         }
     </script>
 </body>
