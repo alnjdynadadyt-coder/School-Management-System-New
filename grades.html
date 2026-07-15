@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إدارة الدرجات</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        select, input { padding: 10px; border: 1px solid #ddd; border-radius: 8px; width: 100%; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 13px; }
+        .readonly { background: #e9ecef; border: none; font-weight: bold; width: 50px; }
+        .btn { padding: 10px; border-radius: 8px; border: none; color: white; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3>نظام إدخال الدرجات</h3>
+        <div class="controls">
+            <select id="gClass"><option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option></select>
+            <select id="gSection"><option>أ</option><option>ب</option><option>ج</option></select>
+            <button class="btn" style="background:#007bff;" onclick="loadGrades()">جلب قائمة الطلاب</button>
+        </div>
+        <table>
+            <thead><tr><th>اسم الطالب</th><th>ش1</th><th>ش2</th><th>يومي</th><th>نصف س</th><th>م.شهري</th><th>م.فصل</th><th>سعي</th></tr></thead>
+            <tbody id="gradesBody"></tbody>
+        </table>
+        <button class="btn" style="margin-top:20px; width:100%; background:#28a745;" onclick="saveGrades()">حفظ الدرجات</button>
+    </div>
+
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
+        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        function calculateGrades(row) {
+            const sh1 = parseFloat(row.querySelector('.sh1').value) || 0;
+            const sh2 = parseFloat(row.querySelector('.sh2').value) || 0;
+            const day = parseFloat(row.querySelector('.day').value) || 0;
+            const mid = parseFloat(row.querySelector('.mid').value) || 0;
+
+            // المحرك الحسابي مع التقريب للأعلى Math.ceil
+            const avgMonthly = Math.ceil((sh1 + sh2) / 2);
+            const avgTerm = Math.ceil((avgMonthly + day) / 2);
+            const yearly = Math.ceil((avgTerm + mid) / 2);
+
+            row.querySelector('.avgMonthly').value = avgMonthly;
+            row.querySelector('.avgTerm').value = avgTerm;
+            row.querySelector('.yearly').value = yearly;
+        }
+
+        function loadGrades() {
+            const body = document.getElementById('gradesBody'); body.innerHTML = "";
+            db.collection("students").where("class", "==", document.getElementById('gClass').value)
+                                     .where("section", "==", document.getElementById('gSection').value).get().then(snap => {
+                snap.forEach(s => {
+                    body.innerHTML += `<tr>
+                        <td>${s.data().name}</td>
+                        <td><input type="number" class="sh1" oninput="calculateGrades(this.parentElement.parentElement)"></td>
+                        <td><input type="number" class="sh2" oninput="calculateGrades(this.parentElement.parentElement)"></td>
+                        <td><input type="number" class="day" oninput="calculateGrades(this.parentElement.parentElement)"></td>
+                        <td><input type="number" class="mid" oninput="calculateGrades(this.parentElement.parentElement)"></td>
+                        <td><input type="number" class="avgMonthly readonly" readonly></td>
+                        <td><input type="number" class="avgTerm readonly" readonly></td>
+                        <td><input type="number" class="yearly readonly" readonly></td>
+                    </tr>`;
+                });
+            });
+        }
+
+        function saveGrades() {
+            const docId = `${document.getElementById('gClass').value}_${document.getElementById('gSection').value}`;
+            const data = {};
+            document.querySelectorAll('#gradesBody tr').forEach(row => {
+                data[row.cells[0].innerText] = { 
+                    sh1: row.querySelector('.sh1').value, 
+                    yearly: row.querySelector('.yearly').value 
+                };
+            });
+            db.collection("grades").doc(docId).set({ data }).then(() => alert("✅ تم حفظ الدرجات"));
+        }
+    </script>
+</body>
+</html>
