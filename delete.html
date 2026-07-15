@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>حذف وأرشفة السجلات</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #f4f4f9; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        select, input { padding: 10px; margin: 10px 0; width: 100%; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { padding: 12px; width: 100%; border: none; border-radius: 8px; background: #dc3545; color: white; cursor: pointer; font-weight: bold; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" style="display: block; margin-bottom: 20px; color: #6c757d; text-decoration: none;">⬅️ العودة للرئيسية</a>
+        <h3>🗑️ حذف وأرشفة سجلات الحضور</h3>
+        
+        <select id="classSelect"><option value="">اختر الصف</option></select>
+        <select id="sectionSelect"><option value="">اختر الشعبة</option></select>
+        <select id="studentSelect"><option value="all">الكل</option></select>
+        <input type="date" id="dateFrom">
+        <input type="date" id="dateTo">
+        <input type="password" id="adminPass" placeholder="أدخل كلمة مرور الإدارة">
+        
+        <button onclick="archiveAndDelete()">أرشفة وحذف السجلات المحددة</button>
+    </div>
+
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyAu6Lmi46t0eoympoDmHQ9UkMlSCVxxfr8", projectId: "school-manager-d1865" };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            db.collection("students").get().then(snap => {
+                let classes = new Set();
+                snap.forEach(doc => { if(doc.data().class) classes.add(doc.data().class); });
+                const classSelect = document.getElementById('classSelect');
+                classes.forEach(c => classSelect.innerHTML += `<option value="${c}">${c}</option>`);
+            });
+        });
+
+        document.getElementById('classSelect').addEventListener('change', function() {
+            const secSelect = document.getElementById('sectionSelect');
+            secSelect.innerHTML = '<option value="">اختر الشعبة</option>';
+            db.collection("students").where("class", "==", this.value).get().then(snap => {
+                let sections = new Set();
+                snap.forEach(doc => { if(doc.data().section) sections.add(doc.data().section); });
+                sections.forEach(s => secSelect.innerHTML += `<option value="${s}">${s}</option>`);
+            });
+        });
+
+        document.getElementById('sectionSelect').addEventListener('change', function() {
+            const c = document.getElementById('classSelect').value;
+            const stuSelect = document.getElementById('studentSelect');
+            stuSelect.innerHTML = '<option value="all">الكل</option>';
+            db.collection("students").where("class", "==", c).where("section", "==", this.value).get().then(snap => {
+                snap.forEach(doc => stuSelect.innerHTML += `<option value="${doc.id}">${doc.data().name}</option>`);
+            });
+        });
+
+        async function archiveAndDelete() {
+            if (document.getElementById('adminPass').value !== "12345") { alert("كلمة المرور غير صحيحة!"); return; }
+            
+            const dFrom = document.getElementById('dateFrom').value;
+            const dTo = document.getElementById('dateTo').value;
+            const c = document.getElementById('classSelect').value;
+            const s = document.getElementById('sectionSelect').value;
+            const stuId = document.getElementById('studentSelect').value;
+            
+            if(!c || !s || !dFrom || !dTo) { alert("يرجى ملء جميع الحقول!"); return; }
+
+            const studentsSnap = await db.collection("students").where("class", "==", c).where("section", "==", s).get();
+            const targetIds = studentsSnap.docs.map(doc => doc.id);
+            const attendanceSnap = await db.collection("attendance").get();
+            const batch = db.batch();
+            let count = 0;
+
+            attendanceSnap.forEach(doc => {
+                const date = doc.id.split('_')[0];
+                if (date >= dFrom && date <= dTo) {
+                    let data = doc.data().data || {};
+                    let updated = false;
+                    let archivedData = {};
+
+                    if (stuId === "all") {
+                        targetIds.forEach(id => {
+                            if (data[id]) { 
+                                archivedData[id] = data[id];
+                                delete data[id]; 
+                                updated = true; 
+                            }
+                        });
+                    } else if (data[stuId]) {
+                        archivedData[stuId] = data[stuId];
+                        delete data[stuId];
+                        updated = true;
+                    }
+
+                    if (updated) {
+                        // 1. أرشفة السجلات
+                        batch.set(db.collection("archived_attendance").doc(doc.id + "_" + Date.now()), {
+                            data: archivedData,
+                            originalDate: doc.id,
+                            archivedAt: new Date().toISOString()
+                        });
+                        // 2. تحديث السجل الأصلي
+                        batch.update(doc.ref, { data: data });
+                        count++;
+                    }
+                }
+            });
+
+            if (count === 0) { alert("لا توجد سجلات مطابقة للأرشفة."); return; }
+            if (!confirm("⚠️ سيتم أرشفة " + count + " سجل. هل أنت متأكد؟")) return;
+
+            await batch.commit();
+            alert("تمت الأرشفة بنجاح!");
+            location.reload();
+        }
+    </script>
+</body>
+</html>
