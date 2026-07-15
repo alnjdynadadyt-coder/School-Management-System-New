@@ -13,7 +13,6 @@
         select, input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
         th, td { border: 1px solid #ddd; padding: 4px; text-align: center; }
-        /* تعديل العروض */
         th:first-child, td:first-child { min-width: 150px; text-align: right; }
         input[type="number"] { width: 40px; padding: 4px; }
         .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
@@ -45,35 +44,30 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        async function saveGrades() {
+            const cls = document.getElementById('gClass').value;
+            const sec = document.getElementById('gSection').value;
+            const sub = document.getElementById('subject').value;
+            const rows = document.querySelectorAll('#gradesBody tr');
+            const dataToSave = {};
+
+            rows.forEach((row) => {
+                const inputs = row.querySelectorAll('input');
+                const studentName = row.cells[0].innerText;
+                dataToSave[studentName] = Array.from(inputs).map(input => input.value);
+            });
+
+            await db.collection("grades").doc(`${cls}_${sec}_${sub}`).set(dataToSave);
+            alert("تم حفظ الدرجات بنجاح!");
+        }
+
         function calculate(row) {
             const i = row.querySelectorAll('input');
-            // i[0]:ش1, i[1]:ش2, i[2]:م.ش, i[3]:يومي1, i[4]:فصل1, i[5]:ن.سنة, 
-            // i[6]:ش1(2), i[7]:ش2(2), i[8]:م.ش(2), i[9]:يومي2, i[10]:فصل2, i[11]:السعي
-
-            // 1. حساب م.ش الأول
-            if (i[0].value !== "" && i[1].value !== "") {
-                i[2].value = Math.round((+i[0].value + +i[1].value) / 2);
-            } else { i[2].value = ""; }
-
-            // 2. حساب فصل 1
-            if (i[2].value !== "" && i[3].value !== "") {
-                i[4].value = Math.round((+i[2].value + +i[3].value) / 2);
-            } else { i[4].value = ""; }
-
-            // 3. حساب م.ش الثاني
-            if (i[6].value !== "" && i[7].value !== "") {
-                i[8].value = Math.round((+i[6].value + +i[7].value) / 2);
-            } else { i[8].value = ""; }
-
-            // 4. حساب فصل 2
-            if (i[8].value !== "" && i[9].value !== "") {
-                i[10].value = Math.round((+i[8].value + +i[9].value) / 2);
-            } else { i[10].value = ""; }
-
-            // 5. حساب السعي
-            if (i[4].value !== "" && i[5].value !== "" && i[10].value !== "") {
-                i[11].value = Math.round((+i[4].value + +i[5].value + +i[10].value) / 3);
-            } else { i[11].value = ""; }
+            if (i[0].value !== "" && i[1].value !== "") { i[2].value = Math.round((+i[0].value + +i[1].value) / 2); } else { i[2].value = ""; }
+            if (i[2].value !== "" && i[3].value !== "") { i[4].value = Math.round((+i[2].value + +i[3].value) / 2); } else { i[4].value = ""; }
+            if (i[6].value !== "" && i[7].value !== "") { i[8].value = Math.round((+i[6].value + +i[7].value) / 2); } else { i[8].value = ""; }
+            if (i[8].value !== "" && i[9].value !== "") { i[10].value = Math.round((+i[8].value + +i[9].value) / 2); } else { i[10].value = ""; }
+            if (i[4].value !== "" && i[5].value !== "" && i[10].value !== "") { i[11].value = Math.round((+i[4].value + +i[5].value + +i[10].value) / 3); } else { i[11].value = ""; }
         }
 
         function loadGrades() {
