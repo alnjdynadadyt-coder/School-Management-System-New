@@ -16,6 +16,12 @@
         th:first-child, td:first-child { min-width: 150px; text-align: right; }
         input[type="number"] { width: 40px; padding: 4px; }
         .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
+        
+        @media print {
+            .controls, .btn { display: none !important; }
+            body { background: white; }
+            .container { width: 100%; padding: 0; }
+        }
     </style>
 </head>
 <body>
@@ -83,7 +89,6 @@
                         </tr>`;
                     }
                 });
-                // استرجاع الدرجات بعد جلب الطلاب
                 db.collection("grades").doc(`${cls}_${sec}_${sub}`).get().then(doc => {
                     if (doc.exists) {
                         const savedData = doc.data();
@@ -98,7 +103,20 @@
                 });
             });
         }
-        function exportExcel() { XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById('gradesTable')), "الدرجات.xlsx"); }
+        function exportExcel() {
+            const rows = document.querySelectorAll('#gradesBody tr');
+            rows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const tds = row.querySelectorAll('td');
+                for (let i = 0; i < inputs.length; i++) {
+                    tds[i + 1].innerText = inputs[i].value;
+                }
+            });
+            const cls = document.getElementById('gClass').value;
+            const sub = document.getElementById('subject').value;
+            XLSX.writeFile(XLSX.utils.table_to_book(document.getElementById('gradesTable')), `${cls}_${sub}.xlsx`);
+            loadGrades();
+        }
     </script>
 </body>
 </html>
