@@ -38,13 +38,14 @@
             <tbody id="gradesBody"></tbody>
         </table>
         <button class="btn" style="width:100%; background:#007bff; margin-top:15px;" onclick="saveGrades()">حفظ الدرجات</button>
+    </div>
 
     <script>
         const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-                function calculate(row) {
+        function calculate(row) {
             const i = row.querySelectorAll('input');
             // i[0]:ش1, i[1]:ش2, i[2]:م.ش, i[3]:يومي1, i[4]:فصل1, i[5]:ن.سنة, 
             // i[6]:ش1(2), i[7]:ش2(2), i[8]:م.ش(2), i[9]:يومي2, i[10]:فصل2, i[11]:السعي
