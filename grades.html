@@ -16,11 +16,11 @@
         th:first-child, td:first-child { min-width: 130px; text-align: right; }
         input[type="number"] { width: 32px !important; padding: 2px; border: 1px solid #ddd; border-radius: 3px; text-align: center; }
         
-        /* الألوان الفاتحة جداً للأعمدة */
-        .c1 { background-color: #fff9c4; } /* أصفر فاتح */
-        .c2 { background-color: #e8f5e9; } /* أخضر فاتح */
-        .c3 { background-color: #e3f2fd; } /* أزرق فاتح */
-        .c4 { background-color: #fce4ec; } /* وردي فاتح */
+        /* تلوين الأعمدة بألوان فاتحة جداً */
+        .c-f1 { background-color: #fff9c4; } /* أصفر فاتح للفصل الأول */
+        .c-mid { background-color: #e8f5e9; } /* أخضر فاتح لنصف السنة */
+        .c-f2 { background-color: #e3f2fd; } /* أزرق فاتح للفصل الثاني */
+        .c-final { background-color: #fce4ec; } /* وردي فاتح للسعي */
 
         .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
         .fail { color: red; font-weight: bold; }
@@ -50,7 +50,20 @@
         </div>
         <table id="gradesTable">
             <thead>
-                <tr><th>الطالب</th><th class="c1">ش1</th><th class="c1">ش2</th><th class="c1">م.ش</th><th class="c2">يومي1</th><th class="c2">فصل1</th><th class="c3">ن.سنة</th><th class="c3">ش1</th><th class="c4">ش2</th><th class="c4">م.ش</th><th class="c4">يومي2</th><th class="c4">فصل2</th><th>السعي</th></tr>
+                <tr>
+                    <th>الطالب</th>
+                    <th colspan="5" class="c-f1">الفصل الدراسي الأول</th>
+                    <th class="c-mid">نصف السنة</th>
+                    <th colspan="5" class="c-f2">الفصل الدراسي الثاني</th>
+                    <th class="c-final">السعي</th>
+                </tr>
+                <tr>
+                    <th></th>
+                    <th class="c-f1">ش1</th><th class="c-f1">ش2</th><th class="c-f1">م.ش</th><th class="c-f1">يومي1</th><th class="c-f1">فصل1</th>
+                    <th class="c-mid">الدرجة</th>
+                    <th class="c-f2">ش1</th><th class="c-f2">ش2</th><th class="c-f2">م.ش</th><th class="c-f2">يومي2</th><th class="c-f2">فصل2</th>
+                    <th class="c-final">النهائي</th>
+                </tr>
             </thead>
             <tbody id="gradesBody"></tbody>
         </table>
@@ -79,16 +92,16 @@
                 dataToSave[row.cells[0].innerText] = Array.from(inputs).map(input => input.value);
             });
             await db.collection("grades").doc(`${cls}_${sec}_${sub}`).set(dataToSave);
-            alert("تم حفظ الدرجات بنجاح!");
+            alert("تم حفظ البيانات بنجاح!");
         }
 
         function calculate(row) {
             const i = row.querySelectorAll('input');
+            // الحسابات: 0=ش1، 1=ش2، 2=م.ش، 3=يومي1، 4=فصل1، 5=ن.سنة، 6=ش1(2)، 7=ش2(2)، 8=م.ش(2)، 9=يومي2، 10=فصل2، 11=السعي
             if (i[0].value !== "" && i[1].value !== "") i[2].value = Math.round((+i[0].value + +i[1].value) / 2);
-            if (i[2].value !== "" && i[3].value !== "") i[4].value = Math.round((+i[2].value + +i[3].value) / 2);
+            if (i[2].value !== "" && i[3].value !== "" && i[4].value !== "") i[5].value = Math.round((+i[2].value + +i[3].value + +i[4].value) / 3);
             if (i[6].value !== "" && i[7].value !== "") i[8].value = Math.round((+i[6].value + +i[7].value) / 2);
-            if (i[8].value !== "" && i[9].value !== "") i[10].value = Math.round((+i[8].value + +i[9].value) / 2);
-            if (i[4].value !== "" && i[5].value !== "" && i[10].value !== "") i[11].value = Math.round((+i[4].value + +i[5].value + +i[10].value) / 3);
+            if (i[8].value !== "" && i[9].value !== "" && i[10].value !== "") i[11].value = Math.round((+i[5].value + +i[8].value + +i[9].value + +i[10].value) / 4);
             i.forEach(input => checkFail(input));
         }
 
@@ -121,8 +134,8 @@
         }
 
         function exportExcel() {
-            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subjectInput').value, teacher = document.getElementById('teacherName').value;
-            const data = [["اسم المدرس:", teacher, "الصف:", cls, "الشعبة:", sec, "المادة:", sub], [], ["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "ن.سنة", "ش1", "ش2", "م.ش", "يومي2", "فصل2", "السعي"]];
+            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subjectInput').value;
+            const data = [["الطالب", "ش1(1)", "ش2(1)", "م.ش(1)", "يومي(1)", "فصل(1)", "نصف السنة", "ش1(2)", "ش2(2)", "م.ش(2)", "يومي(2)", "فصل(2)", "السعي"]];
             document.querySelectorAll('#gradesBody tr').forEach(row => {
                 const rowData = [row.cells[0].innerText];
                 row.querySelectorAll('input').forEach(i => rowData.push(i.value));
@@ -131,7 +144,7 @@
             const ws = XLSX.utils.aoa_to_sheet(data);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "الدرجات");
-            XLSX.writeFile(wb, `${cls}_${sec}_${sub}.xlsx`);
+            XLSX.writeFile(wb, `الدرجات_${cls}_${sec}.xlsx`);
         }
     </script>
 </body>
