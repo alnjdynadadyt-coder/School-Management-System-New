@@ -2,82 +2,91 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>نظام إدارة الدرجات - النسخة المعتمدة</title>
+    <title>نظام إدارة الدرجات المطور</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        body { font-family: sans-serif; background: white; margin: 0; padding: 10px; }
-        .no-print { margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
-        th, td { border: 1px solid #000; padding: 3px; text-align: center; }
-        th { background: #eee; }
-        /* تصغير حقول الدرجات وإعطاء مساحة للاسم */
-        input { width: 100%; border: none; text-align: center; padding: 2px; }
-        .name-col { width: 180px; text-align: right; padding-right: 5px; }
-        @media print { 
-            .no-print { display: none !important; }
-            body { padding: 0; }
-            table { font-size: 9px; }
-        }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; padding: 20px; }
+        .no-print { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background: #007bff; color: white; font-size: 13px; }
+        input { width: 40px; border: 1px solid #ddd; text-align: center; border-radius: 3px; }
+        .std-name { text-align: right; width: 150px; font-weight: bold; }
+        @media print { .no-print { display: none; } table { font-size: 10px; } }
     </style>
 </head>
 <body>
     <div class="no-print">
-        <button onclick="window.history.back()">العودة</button>
-        <input type="text" id="teacherName" placeholder="اسم المدرس" style="width:120px;">
-        <select id="gClass"><option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option><option>الرابع الأدبي</option><option>الخامس الأدبي</option><option>السادس الأدبي</option></select>
-        <select id="gSection"><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option></select>
-        <select id="subject">
-            <option>الإسلامية</option><option>العربي</option><option>الإنكليزي</option><option>الرياضيات</option><option>الفيزياء</option><option>الكيمياء</option><option>الأحياء</option><option>التاريخ</option><option>الجغرافية</option><option>الاقتصاد</option><option>علم النفس</option><option>الاجتماعيات</option><option>الجرائم</option><option>الحاسوب</option><option>الرياضة</option><option>الفنية</option><option value="other">أخرى</option>
-        </select>
-        <button onclick="loadGrades()">جلب الطلاب</button>
+        <input type="text" id="teacher" placeholder="اسم المدرس">
+        <select id="gClass"><option>الرابع العلمي</option><option>الخامس العلمي</option></select>
+        <select id="gSection"><option>أ</option><option>ز</option></select>
+        <select id="sub"><option>الإسلامية</option><option>العربي</option></select>
+        <button onclick="loadData()">جلب الطلاب</button>
         <button onclick="window.print()">طباعة PDF</button>
-        <button onclick="saveGrades()" style="background:green; color:white;">حفظ الدرجات</button>
+        <button onclick="exportExcel()">تصدير Excel</button>
+        <button onclick="saveData()" style="background:green; color:white;">حفظ الدرجات</button>
     </div>
 
-    <table id="gradesTable">
+    <table id="tbl">
         <thead>
-            <tr><th class="name-col">الطالب</th><th>ش1</th><th>ش2</th><th>م.ش</th><th>يومي1</th><th>فصل1</th><th>ن.سنة</th><th>ش1</th><th>ش2</th><th>م.ش</th><th>يومي2</th><th>فصل2</th><th>السعي</th></tr>
+            <tr><th class="std-name">الطالب</th><th>ش1</th><th>ش2</th><th>م.ش1</th><th>يومي1</th><th>فصل1</th><th>ن.سنة</th><th>ش1</th><th>ش2</th><th>م.ش2</th><th>يومي2</th><th>فصل2</th><th>السعي</th></tr>
         </thead>
-        <tbody id="gradesBody"></tbody>
+        <tbody id="tbody"></tbody>
     </table>
 
     <script>
-        const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
-        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-
-        // المعادلات الحسابية المباشرة
-        function calculate(row) {
-            const inputs = row.querySelectorAll('input');
-            const sh1_1 = parseFloat(inputs[0].value) || 0, sh2_1 = parseFloat(inputs[1].value) || 0;
-            inputs[2].value = Math.round((sh1_1 + sh2_1) / 2); // م.ش 1
-
-            const f1 = parseFloat(inputs[4].value) || 0, ns = parseFloat(inputs[5].value) || 0;
-            const sh1_2 = parseFloat(inputs[6].value) || 0, sh2_2 = parseFloat(inputs[7].value) || 0;
-            inputs[8].value = Math.round((sh1_2 + sh2_2) / 2); // م.ش 2
-            
-            const f2 = parseFloat(inputs[10].value) || 0;
-            inputs[12].value = Math.round((f1 + ns + f2) / 3); // السعي
+        // معادلة الحساب الدقيقة
+        function calc(row) {
+            const i = row.querySelectorAll('input');
+            const ms1 = Math.round((+i[0].value + +i[1].value) / 2) || 0;
+            i[2].value = ms1;
+            const ms2 = Math.round((+i[6].value + +i[7].value) / 2) || 0;
+            i[8].value = ms2;
+            const sa = Math.round((+i[4].value + +i[5].value + +i[10].value + ms2) / 4) || 0;
+            i[11].value = sa;
         }
 
-        function loadGrades() {
-            const body = document.getElementById('gradesBody'); body.innerHTML = "";
+        async function loadData() {
+            const sub = document.getElementById('sub').value;
             const cls = document.getElementById('gClass').value;
             const sec = document.getElementById('gSection').value;
-            const sub = document.getElementById('subject').value;
             const docId = `${cls}_${sec}_${sub}`;
+            
+            const tbody = document.getElementById('tbody'); tbody.innerHTML = "";
+            const students = await db.collection("students").where("class", "==", cls).get();
+            const saved = await db.collection("grades").doc(docId).get();
+            const data = saved.exists ? saved.data() : {};
 
-            db.collection("students").where("class", "==", cls).get().then(snap => {
-                snap.forEach(s => {
-                    if(s.data().section == sec) {
-                        body.innerHTML += `<tr data-id="${s.id}"><td class="name-col">${s.data().name}</td>${'<td><input type="number" oninput="calculate(this.parentElement.parentElement)"></td>'.repeat(12)}</tr>`;
+            students.forEach(s => {
+                if(s.data().section == sec) {
+                    const row = tbody.insertRow();
+                    row.insertCell().innerText = s.data().name;
+                    for(let j=0; j<12; j++) {
+                        const cell = row.insertCell();
+                        cell.innerHTML = `<input type="number" oninput="calc(this.parentElement.parentElement)" value="${data[s.id] ? data[s.id][j] : ''}">`;
                     }
-                });
+                }
             });
         }
-        
-        function saveGrades() { alert("تم حفظ الدرجات في قاعدة البيانات لهذا الصف والمادة."); }
+
+        async function saveData() {
+            const rows = document.querySelectorAll('#tbody tr');
+            const data = {};
+            rows.forEach(r => {
+                const inputs = r.querySelectorAll('input');
+                data[r.cells[0].innerText] = Array.from(inputs).map(i => i.value);
+            });
+            await db.collection("grades").doc(`${document.getElementById('gClass').value}_${document.getElementById('gSection').value}_${document.getElementById('sub').value}`).set(data);
+            alert("تم حفظ الدرجات بنجاح");
+        }
+
+        function exportExcel() {
+            const wb = XLSX.utils.table_to_book(document.getElementById('tbl'));
+            XLSX.writeFile(wb, "الدرجات.xlsx");
+        }
     </script>
 </body>
 </html>
