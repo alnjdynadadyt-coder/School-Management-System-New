@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تقرير الطالب التفصيلي</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f4f9; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        select, input, button { padding: 12px; border-radius: 8px; border: 1px solid #ccc; width: 100%; box-sizing: border-box; }
+        .back-btn { display: inline-block; background: #6c757d; color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; margin-bottom: 15px; }
+        
+        /* إخفاء العناصر التي تحمل كلاس btn-only فقط */
+        @media print {
+            .btn-only { display: none !important; }
+        }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+        th { background: #6f42c1; color: white; }
+
+        .status-absent { color: red; font-weight: bold; }
+        .status-leave { color: orange; font-weight: bold; }
+        .summary-total { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-btn btn-only">⬅️ العودة للرئيسية</a>
+        <h3>تقرير الطالب التفصيلي</h3>
+        <div class="controls">
+            <select id="classSelect" onchange="loadSections()"><option value="">اختر الصف</option></select>
+            <select id="sectionSelect" onchange="loadStudents()"><option value="">اختر الشعبة</option></select>
+            <select id="studentSelect" style="grid-column: span 2;"><option value="">اختر الطالب</option></select>
+            <input type="date" id="dateFrom">
+            <input type="date" id="dateTo">
+            <button class="btn-only" onclick="generateReport()" style="background: #6f42c1; color: white; border: none; cursor: pointer;">عرض التقرير</button>
+            <button class="btn-only" onclick="exportPDF()" style="background: #28a745; color: white; border: none; cursor: pointer;">تصدير PDF 📄</button>
+        </div>
+        <div id="summary" style="margin-bottom: 15px; font-weight: bold; color: #6f42c1;"></div>
+        <table>
+            <thead><tr><th>التاريخ</th><th>الدروس</th><th>الحالة</th></tr></thead>
+            <tbody id="reportBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        // ... (نفس كود السكريبت السابق) ...
+        const firebaseConfig = { apiKey: "AIzaSyAu6Lmi46t0eoympoDmHQ9UkMlSCVxxfr8", projectId: "school-manager-d1865" };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        db.collection("students").get().then(snap => {
+            let classes = new Set();
+            snap.forEach(doc => { if(doc.data().class) classes.add(doc.data().class); });
+            const classSelect = document.getElementById('classSelect');
+            classes.forEach(c => classSelect.innerHTML += `<option value="${c}">${c}</option>`);
+        });
+
+        function loadSections() {
+            const c = document.getElementById('classSelect').value;
+            const secSelect = document.getElementById('sectionSelect');
+            secSelect.innerHTML = '<option value="">اختر الشعبة</option>';
+            db.collection("students").where("class", "==", c).get().then(snap => {
+                let sections = new Set();
+                snap.forEach(doc => { if(doc.data().section) sections.add(doc.data().section); });
+                sections.forEach(s => secSelect.innerHTML += `<option value="${s}">${s}</option>`);
+            });
+        }
+
+        function loadStudents() {
+            const c = document.getElementById('classSelect').value;
+            const s = document.getElementById('sectionSelect').value;
+            const stuSelect = document.getElementById('studentSelect');
+            stuSelect.innerHTML = '<option value="">اختر الطالب</option>';
+            db.collection("students").where("class", "==", c).where("section", "==", s).get().then(snap => {
+                snap.forEach(doc => stuSelect.innerHTML += `<option value="${doc.id}">${doc.data().name}</option>`);
+            });
+        }
+
+        async function generateReport() {
+            const sId = document.getElementById('studentSelect').value;
+            const dFrom = document.getElementById('dateFrom').value;
+            const dTo = document.getElementById('dateTo').value;
+            if(!sId || !dFrom || !dTo) { alert("يرجى اختيار البيانات"); return; }
+            
+            const attendSnap = await db.collection("attendance").get();
+            let absCount = 0, leaveCount = 0;
+            let grouped = {}; 
+            
+            attendSnap.forEach(doc => {
+                const parts = doc.id.split('_');
+                const d = parts[0];
+                if(d >= dFrom && d <= dTo) {
+                    const data = doc.data().data || {};
+                    if(data[sId] && data[sId] !== "حاضر") {
+                        if(!grouped[d]) grouped[d] = {absent: [], leave: []};
+                        if(data[sId] === "غائب") { grouped[d].absent.push(parts[3] || 'درس'); absCount++; }
+                        if(data[sId] === "مجاز") { grouped[d].leave.push(parts[3] || 'درس'); leaveCount++; }
+                    }
+                }
+            });
+
+            let html = "";
+            Object.keys(grouped).sort().forEach(date => {
+                if(grouped[date].absent.length > 0) 
+                    html += `<tr><td>${date}</td><td>${grouped[date].absent.join('، ')}</td><td class="status-absent">غائب</td></tr>`;
+                if(grouped[date].leave.length > 0) 
+                    html += `<tr><td>${date}</td><td>${grouped[date].leave.join('، ')}</td><td class="status-leave">مجاز</td></tr>`;
+            });
+            
+            document.getElementById('reportBody').innerHTML = html || "<tr><td colspan='3'>لا توجد سجلات</td></tr>";
+            document.getElementById('summary').innerHTML = `<span class="summary-total">إجمالي الغياب: ${(absCount/4).toFixed(1)} يوم</span> | الإجازات: ${(leaveCount/4).toFixed(1)} يوم`;
+        }
+
+        function exportPDF() {
+            const elementsToHide = document.querySelectorAll('.btn-only');
+            elementsToHide.forEach(el => el.style.display = 'none');
+
+            const element = document.querySelector('.container');
+            html2pdf().from(element).set({
+                margin: 5,
+                filename: 'تقرير_الطالب.pdf',
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            }).save().then(() => {
+                elementsToHide.forEach(el => el.style.display = '');
+            });
+        }
+    </script>
+</body>
+</html>
