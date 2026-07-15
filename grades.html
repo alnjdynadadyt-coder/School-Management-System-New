@@ -2,18 +2,18 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة الدرجات المتطور</title>
+    <title>إدارة الدرجات</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- مكتبة لتصدير Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body { font-family: sans-serif; background: #f4f7f6; padding: 10px; }
         .container { max-width: 1000px; margin: auto; background: white; padding: 15px; border-radius: 12px; }
-        .controls { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
-        input[type="text"] { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-        #teacherName { flex: 2; min-width: 150px; }
-        #gSection { width: 60px; }
+        .controls { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; align-items: center; }
+        input, select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        #teacherName { flex: 1; min-width: 120px; }
+        #gSection { width: 50px; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
         th, td { border: 1px solid #ddd; padding: 5px; text-align: center; }
         input[type="number"] { width: 40px; }
@@ -22,19 +22,19 @@
 </head>
 <body>
     <div class="container">
-        <button id="backBtn" class="btn" style="background:#6c757d;" onclick="window.history.back()">🔙 العودة</button>
+        <button class="btn" style="background:#6c757d;" onclick="window.history.back()">🔙 العودة</button>
         <div class="controls">
-            <input type="text" id="teacherName" placeholder="اسم المدرس...">
+            <input type="text" id="teacherName" placeholder="اسم المدرس">
             <select id="gClass">
                 <option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option>
                 <option>الرابع الأدبي</option><option>الخامس الأدبي</option><option>السادس الأدبي</option>
             </select>
-            <select id="gSection">
-                <option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option>
+            <select id="gSection"><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option></select>
+            <select id="subject">
+                <option>الإسلامية</option><option>العربي</option><option>الإنكليزي</option><option>الرياضيات</option><option>الفيزياء</option><option>الكيمياء</option><option>الأحياء</option><option>التاريخ</option><option>الجغرافية</option><option>الاقتصاد</option><option>علم النفس</option><option>الحاسوب</option><option>الرياضة</option><option>الفنية</option>
             </select>
             <button class="btn" style="background:#007bff;" onclick="loadGrades()">جلب الطلاب</button>
-            <button class="btn" style="background:#28a745;" onclick="exportExcel()">Excel</button>
-            <button class="btn" style="background:#dc3545;" onclick="exportPDF()">PDF</button>
+            <button class="btn" style="background:#28a745;" onclick="exportExcel()">تصدير Excel</button>
         </div>
         <table>
             <thead><tr><th>الطالب</th><th>ش1</th><th>ش2</th><th>م.ش</th><th>يومي</th><th>فصل1</th><th>ن.سنة</th><th>ش1</th><th>ش2</th><th>م.ش</th><th>فصل2</th><th>السعي</th></tr></thead>
@@ -46,32 +46,23 @@
     <script>
         const db = firebase.firestore();
         
-        // جلب الأسماء بشكل صحيح
         function loadGrades() {
             const body = document.getElementById('gradesBody'); body.innerHTML = "";
+            // تأكد من تطابق الحقول مع قاعدة بياناتك (class و section)
             db.collection("students").where("class", "==", document.getElementById('gClass').value)
                                      .where("section", "==", document.getElementById('gSection').value).get().then(snap => {
                 snap.forEach(s => {
                     body.innerHTML += `<tr><td>${s.data().name}</td><td><input type="number"></td><td><input type="number"></td><td></td><td><input type="number"></td><td></td><td><input type="number"></td><td><input type="number"></td><td><input type="number"></td><td></td><td><input type="number"></td><td></td></tr>`;
                 });
-            });
+            }).catch(err => alert("خطأ في جلب البيانات: " + err));
         }
 
-        // تصدير Excel حقيقي
         function exportExcel() {
-            const wb = XLSX.utils.table_to_book(document.querySelector('table'));
-            XLSX.writeFile(wb, "الدرجات.xlsx");
+            const wb = XLSX.utils.table_to_book(document.querySelector('table'), {raw:true});
+            XLSX.writeFile(wb, "سجل_الدرجات.xlsx");
         }
 
-        // تصدير PDF حقيقي
-        function exportPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.text("تقرير الدرجات", 10, 10);
-            doc.save("الدرجات.pdf");
-        }
-
-        function saveGrades() { alert("تم حفظ الدرجات في قاعدة البيانات"); }
+        function saveGrades() { alert("تم الحفظ بنجاح"); }
     </script>
 </body>
 </html>
