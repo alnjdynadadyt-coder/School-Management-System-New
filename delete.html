@@ -28,7 +28,17 @@
     </div>
 
     <script>
-        const firebaseConfig = { apiKey: "AIzaSyAu6Lmi46t0eoympoDmHQ9UkMlSCVxxfr8", projectId: "school-manager-d1865" };
+        // إعدادات الربط للمشروع الجديد (School 2 2026)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw",
+            authDomain: "school-2-2026.firebaseapp.com",
+            projectId: "school-2-2026",
+            storageBucket: "school-2-2026.firebasestorage.app",
+            messagingSenderId: "283472829932",
+            appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9",
+            measurementId: "G-74F1K1HBE4"
+        };
+        
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
