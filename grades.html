@@ -11,48 +11,29 @@
         .container { max-width: 1200px; margin: auto; background: white; padding: 15px; border-radius: 12px; }
         .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; align-items: center; }
         select, input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th, td { border: 1px solid #ddd; padding: 4px; text-align: center; }
-        th:first-child, td:first-child { min-width: 150px; text-align: right; }
-        input[type="number"] { width: 40px; padding: 4px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th, td { border: 1px solid #ddd; padding: 3px; text-align: center; }
+        th:first-child, td:first-child { min-width: 130px; text-align: right; }
+        
+        /* تقليص حقل الدرجة */
+        input[type="number"] { width: 32px !important; padding: 2px; border: 1px solid #ddd; border-radius: 3px; text-align: center; }
+        
+        /* تلوين الأعمدة بألوان فاتحة جداً */
+        th:nth-child(even), td:nth-child(even) { background-color: #f9f9f9; }
+        th:nth-child(odd), td:nth-child(odd) { background-color: #ffffff; }
+
         .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
         
-        /* تحسينات الطباعة لظهور كافة الأعمدة والمعلومات */
+        /* تنسيق الدرجة الراسبة */
+        .fail { color: red; font-weight: bold; }
+        .pass { color: black; }
+
         @media print {
-            @page {
-                size: A4 landscape; /* فرض الطباعة بالعرض لتتسع الـ 12 حقل */
-                margin: 5mm;
-            }
-            body { background: white; padding: 0; margin: 0; font-size: 10px; }
-            .container { width: 100%; padding: 0; max-width: 100%; }
-            
-            /* إخفاء الأزرار تماماً */
-            .btn, button, input[type="button"] { display: none !important; }
-            
-            /* تحويل حقول الاختيار والنصوص لتبدو كعنوان عادي بدون صناديق إدخال تفاعلية */
-            .controls { display: block; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
-            .controls select, .controls input {
-                border: none !important;
-                background: transparent !important;
-                appearance: none !important;
-                -webkit-appearance: none !important;
-                padding: 0px 5px !important;
-                font-weight: bold;
-                font-size: 14px;
-                display: inline-block;
-                width: auto !important;
-            }
-            
-            /* تصغير حجم حقول إدخال الدرجات لتلائم الصفحة تماماً */
-            table { font-size: 10px; width: 100%; }
-            th, td { padding: 2px !important; }
-            input[type="number"] {
-                border: none !important;
-                background: transparent !important;
-                width: 30px !important;
-                text-align: center;
-                box-shadow: none !important;
-            }
+            @page { size: A4 landscape; margin: 5mm; }
+            body { background: white; font-size: 9px; }
+            .btn, button { display: none !important; }
+            .controls { border-bottom: 2px solid #333; padding-bottom: 5px; margin-bottom: 10px; }
+            input[type="number"] { border: none !important; background: transparent !important; }
         }
     </style>
 </head>
@@ -82,6 +63,17 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        function checkFail(input) {
+            const val = parseInt(input.value);
+            if (input.value !== "" && val <= 49) {
+                input.classList.add('fail');
+                input.classList.remove('pass');
+            } else {
+                input.classList.remove('fail');
+                input.classList.add('pass');
+            }
+        }
+
         async function saveGrades() {
             const cls = document.getElementById('gClass').value;
             const sec = document.getElementById('gSection').value;
@@ -104,6 +96,8 @@
             if (i[6].value !== "" && i[7].value !== "") { i[8].value = Math.round((+i[6].value + +i[7].value) / 2); } else { i[8].value = ""; }
             if (i[8].value !== "" && i[9].value !== "") { i[10].value = Math.round((+i[8].value + +i[9].value) / 2); } else { i[10].value = ""; }
             if (i[4].value !== "" && i[5].value !== "" && i[10].value !== "") { i[11].value = Math.round((+i[4].value + +i[5].value + +i[10].value) / 3); } else { i[11].value = ""; }
+            
+            i.forEach(input => checkFail(input));
         }
 
         function loadGrades() {
@@ -117,7 +111,7 @@
                     if(s.data().section == sec) {
                         body.innerHTML += `<tr>
                             <td>${s.data().name}</td>
-                            ${'<td><input type="number" oninput="calculate(this.parentElement.parentElement)"></td>'.repeat(12)}
+                            ${'<td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>'.repeat(12)}
                         </tr>`;
                     }
                 });
@@ -128,7 +122,10 @@
                             const name = row.cells[0].innerText;
                             if (savedData[name]) {
                                 const inputs = row.querySelectorAll('input');
-                                savedData[name].forEach((val, i) => inputs[i].value = val);
+                                savedData[name].forEach((val, i) => { 
+                                    inputs[i].value = val; 
+                                    checkFail(inputs[i]); 
+                                });
                             }
                         });
                     }
@@ -141,15 +138,11 @@
             const sec = document.getElementById('gSection').value;
             const sub = document.getElementById('subject').value;
             const teacher = document.getElementById('teacherName').value || "غير محدد";
-
-            // تحضير مصفوفة البيانات لملف الإكسل
             const data = [
                 ["اسم المدرس:", teacher, "الصف:", cls, "الشعبة:", sec, "المادة:", sub],
-                [], // سطر فارغ للفصل
-                ["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "ن.سنة", "ش1(2)", "ش2(2)", "م.ش(2)", "يومي2", "فصل2", "السعي"] // عناوين الأعمدة
+                [],
+                ["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "ن.سنة", "ش1(2)", "ش2(2)", "م.ش(2)", "يومي2", "فصل2", "السعي"]
             ];
-
-            // إضافة بيانات الطلاب والدرجات
             const rows = document.querySelectorAll('#gradesBody tr');
             rows.forEach(row => {
                 const studentName = row.cells[0].innerText;
@@ -158,13 +151,9 @@
                 inputs.forEach(input => studentRow.push(input.value));
                 data.push(studentRow);
             });
-
-            // إنشاء ورقة عمل إكسل من مصفوفة البيانات مباشرة لتجنب تشويه الجدول الأصلي
             const ws = XLSX.utils.aoa_to_sheet(data);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "الدرجات");
-
-            // حفظ الملف بالاسم المناسب
             XLSX.writeFile(wb, `${cls}_الشعبة_${sec}_${sub}.xlsx`);
         }
     </script>
