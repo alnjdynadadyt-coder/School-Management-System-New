@@ -59,9 +59,9 @@
                 <tr>
                     <th></th>
                     <th class="c-f1">ش1</th><th class="c-f1">ش2</th><th class="c-f1">م.ش</th><th class="c-f1">يومي1</th><th class="c-f1">فصل1</th>
-                    <th class="c-mid">الدرجة</th>
+                    <th class="c-mid">ن.سنة</th>
                     <th class="c-f2">ش1</th><th class="c-f2">ش2</th><th class="c-f2">م.ش</th><th class="c-f2">يومي2</th><th class="c-f2">فصل2</th>
-                    <th class="c-final">النهائي</th>
+                    <th class="c-final">النتيجة</th>
                 </tr>
             </thead>
             <tbody id="gradesBody"></tbody>
@@ -96,18 +96,28 @@
 
         function calculate(row) {
             const i = row.querySelectorAll('input');
-            // الترتيب: 0=ش1، 1=ش2، 2=م.ش، 3=يومي1، 4=فصل1 | 5=نصف السنة | 6=ش1(2)، 7=ش2(2)، 8=م.ش(2)، 9=يومي2، 10=فصل2 | 11=السعي
-            
-            // حساب م.ش الفصل الأول (متوسط ش1 و ش2)
-            if (i[0].value !== "" && i[1].value !== "") i[2].value = Math.round((+i[0].value + +i[1].value) / 2);
-            
-            // حساب م.ش الفصل الثاني (متوسط ش1 و ش2 للفصل الثاني)
-            if (i[6].value !== "" && i[7].value !== "") i[8].value = Math.round((+i[6].value + +i[7].value) / 2);
-            
-            // حساب السعي النهائي
+            // i[0]:ش1, i[1]:ش2, i[2]:م.ش, i[3]:يومي1, i[4]:فصل1, i[5]:ن.سنة, 
+            // i[6]:ش1(2), i[7]:ش2(2), i[8]:م.ش(2), i[9]:يومي2, i[10]:فصل2, i[11]:السعي
+
+            if (i[0].value !== "" && i[1].value !== "") {
+                i[2].value = Math.round((+i[0].value + +i[1].value) / 2);
+            } else { i[2].value = ""; }
+
+            if (i[2].value !== "" && i[3].value !== "") {
+                i[4].value = Math.round((+i[2].value + +i[3].value) / 2);
+            } else { i[4].value = ""; }
+
+            if (i[6].value !== "" && i[7].value !== "") {
+                i[8].value = Math.round((+i[6].value + +i[7].value) / 2);
+            } else { i[8].value = ""; }
+
+            if (i[8].value !== "" && i[9].value !== "") {
+                i[10].value = Math.round((+i[8].value + +i[9].value) / 2);
+            } else { i[10].value = ""; }
+
             if (i[4].value !== "" && i[5].value !== "" && i[10].value !== "") {
                 i[11].value = Math.round((+i[4].value + +i[5].value + +i[10].value) / 3);
-            }
+            } else { i[11].value = ""; }
             
             i.forEach(input => checkFail(input));
         }
@@ -123,18 +133,18 @@
                     if(s.data().section == sec) {
                         body.innerHTML += `<tr>
                             <td>${s.data().name}</td>
-                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
-                            <td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" class="c-mid" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                            <td><input type="number" class="c-final" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
                         </tr>`;
                     }
                 });
@@ -155,7 +165,7 @@
 
         function exportExcel() {
             const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
-            const data = [["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "نصف السنة", "ش1(2)", "ش2(2)", "م.ش(2)", "يومي2", "فصل2", "السعي"]];
+            const data = [["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "ن.سنة", "ش1(2)", "ش2(2)", "م.ش(2)", "يومي2", "فصل2", "السعي"]];
             document.querySelectorAll('#gradesBody tr').forEach(row => {
                 const rowData = [row.cells[0].innerText];
                 row.querySelectorAll('input').forEach(i => rowData.push(i.value));
