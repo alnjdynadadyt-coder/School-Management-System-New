@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تسجيل الحضور</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        select, input, textarea { padding: 10px; border: 1px solid #ddd; border-radius: 8px; width: 100%; }
+        .status-btn { width: 100%; padding: 10px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+        .btn-save { background: #007bff; color: white; padding: 15px; border: none; border-radius: 8px; width: 100%; margin-top: 20px; cursor: pointer; }
+        #backBtn { display: none; margin-bottom: 15px; padding: 10px; background: #6c757d; color: white; text-decoration: none; border-radius: 8px; }
+        .print-only { display: none; margin-bottom: 15px; font-weight: bold; font-size: 16px; }
+
+        @media print {
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            #backBtn, .controls, .btn-save, #pdfBtn, #saveBtn, textarea { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; }
+            .container { box-shadow: none; width: 100%; }
+            tr.is-present { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" id="backBtn">⬅️ العودة للرئيسية</a>
+        <div class="print-only" id="printHeader"></div>
+        <h3 id="pageTitle">تسجيل الحضور</h3>
+        <div class="controls">
+            <input type="date" id="datePicker" onchange="updateDayName()">
+            <input type="text" id="teacherName" placeholder="اسم المدرس">
+            <select id="classSelect"><option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option><option>الرابع الادبي</option><option>الخامس الادبي</option><option>السادس الادبي</option></select>
+            <select id="sectionSelect"><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option></select>
+            <select id="subjectSelect"><option>إسلامية</option><option>عربي</option><option>إنجليزي</option><option>رياضيات</option><option>فيزياء</option><option>كيمياء</option><option>أحياء</option><option>حاسوب</option><option>جغرافية</option><option>تاريخ</option><option>اجتماعيات</option><option>فلسفة</option><option>اقتصاد</option><option>جرائم</option><option>رياضة</option><option>فنية</option><option>أخرى</option></select>
+            <select id="lessonSelect"><option>الدرس الأول</option><option>الدرس الثاني</option><option>الدرس الثالث</option><option>الدرس الرابع</option><option>الدرس الخامس</option><option>الدرس السادس</option></select>
+            <button onclick="loadStudents()" style="grid-column: span 2; background:#28a745; color:white; border:none; padding:10px; border-radius:8px;">جلب الأسماء</button>
+        </div>
+        <table>
+            <thead><tr><th>اسم الطالب</th><th>الحالة</th></tr></thead>
+            <tbody id="attendanceBody"></tbody>
+        </table>
+        <textarea id="notes" placeholder="ملاحظات إضافية..." style="margin-top:10px; width:100%;"></textarea>
+        <button id="saveBtn" class="btn-save" style="display:none;" onclick="saveAttendance()">إرسال الحضور</button>
+        <button id="pdfBtn" class="btn-save" style="display:none; background:#dc3545;" onclick="preparePrint()">تصدير تقرير الغيابات (PDF)</button>
+    </div>
+
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyAu6Lmi46t0eoympoDmHQ9UkMlSCVxxfr8", projectId: "school-manager-d1865" };
+        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        function updateDayName() {
+            const dateValue = document.getElementById('datePicker').value;
+            if(!dateValue) return;
+            const date = new Date(dateValue);
+            const days = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+            document.getElementById('pageTitle').innerText = `تسجيل الحضور (${days[date.getDay()]})`;
+        }
+
+        function preparePrint() {
+            const date = document.getElementById('datePicker').value;
+            const sub = document.getElementById('subjectSelect').value;
+            const tea = document.getElementById('teacherName').value;
+            document.getElementById('printHeader').innerHTML = `تقرير غيابات/إجازات ${document.getElementById('pageTitle').innerText}<br>التاريخ: ${date} | المادة: ${sub} | المدرس: ${tea}`;
+            window.print();
+        }
+
+        window.onload = () => {
+            const isAdmin = sessionStorage.getItem("isAdmin") === "true";
+            if (isAdmin) document.getElementById('backBtn').style.display = "inline-block";
+            else if(!sessionStorage.getItem("teacherLoggedIn")) {
+                const pass = prompt("🔐 كلمة مرور المدرس:");
+                if (pass !== "Teacher123") { document.body.innerHTML = "<h1>❌ دخول مرفوض</h1>"; return; }
+                sessionStorage.setItem("teacherLoggedIn", "true");
+            }
+            document.getElementById('datePicker').valueAsDate = new Date();
+            updateDayName();
+        };
+
+        window.loadStudents = () => {
+            const isAdmin = sessionStorage.getItem("isAdmin") === "true";
+            const docId = `${datePicker.value}_${classSelect.value}_${sectionSelect.value}_${lessonSelect.value}`;
+            db.collection("attendance").doc(docId).get().then(doc => {
+                const isSubmitted = doc.exists;
+                const savedData = isSubmitted ? doc.data().data : {};
+                if(isSubmitted) {
+                    document.getElementById('notes').value = doc.data().notes || "";
+                    document.getElementById('teacherName').value = doc.data().teacher || "";
+                    document.getElementById('subjectSelect').value = doc.data().subject || "إسلامية";
+                }
+                db.collection("students").where("class", "==", classSelect.value).where("section", "==", sectionSelect.value).get().then(snap => {
+                    const body = document.getElementById('attendanceBody'); body.innerHTML = "";
+                    snap.forEach(s => {
+                        const status = isSubmitted ? (savedData[s.id] || "حاضر") : "حاضر";
+                        const color = status === "حاضر" ? "#28a745" : (status === "غائب" ? "#dc3545" : "#ffc107");
+                        const presentClass = status === "حاضر" ? "is-present" : "";
+                        body.innerHTML += `<tr class="${presentClass}"><td>${s.data().name}</td><td><button class="status-btn" style="background:${color}" ${(isSubmitted && !isAdmin) ? 'disabled' : ''} onclick="toggleStatus(this)" data-id="${s.id}">${status}</button></td></tr>`;
+                    });
+                    document.getElementById('saveBtn').style.display = (isSubmitted && !isAdmin) ? "none" : "block";
+                    document.getElementById('pdfBtn').style.display = isSubmitted ? "block" : "none";
+                });
+            });
+        };
+
+        window.toggleStatus = (btn) => {
+            const states = ["حاضر", "غائب", "مجاز"];
+            const colors = ["#28a745", "#dc3545", "#ffc107"];
+            let idx = states.indexOf(btn.innerText);
+            let next = (idx + 1) % 3;
+            btn.innerText = states[next];
+            btn.style.backgroundColor = colors[next];
+        };
+
+        window.saveAttendance = () => {
+            const docId = `${datePicker.value}_${classSelect.value}_${sectionSelect.value}_${lessonSelect.value}`;
+            const data = {};
+            document.querySelectorAll('.status-btn').forEach(btn => data[btn.getAttribute('data-id')] = btn.innerText);
+            db.collection("attendance").doc(docId).set({ data, teacher: teacherName.value, subject: subjectSelect.value, notes: notes.value }).then(() => {
+                alert("✅ تم الحفظ بنجاح!");
+                // بدلاً من reload، نستدعي loadStudents لتحديث الواجهة للحالة الجديدة
+                loadStudents();
+            });
+        };
+    </script>
+</body>
+  </html>
