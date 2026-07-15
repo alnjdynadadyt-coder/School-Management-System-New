@@ -1,4 +1,4 @@
-الكود <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -12,8 +12,10 @@
         .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; align-items: center; }
         select, input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
-        input[type="number"] { width: 50px; }
+        th, td { border: 1px solid #ddd; padding: 4px; text-align: center; }
+        /* تعديل العروض */
+        th:first-child, td:first-child { min-width: 150px; text-align: right; }
+        input[type="number"] { width: 40px; padding: 4px; }
         .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
     </style>
 </head>
@@ -43,21 +45,32 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        function calculate(row) {
+            const inputs = row.querySelectorAll('input');
+            // م.ش 1
+            inputs[2].value = Math.round(((+inputs[0].value || 0) + (+inputs[1].value || 0)) / 2) || "";
+            // فصل 1
+            inputs[5].value = Math.round(((+inputs[2].value || 0) + (+inputs[4].value || 0)) / 2) || "";
+            // م.ش 2
+            inputs[8].value = Math.round(((+inputs[6].value || 0) + (+inputs[7].value || 0)) / 2) || "";
+            // فصل 2
+            inputs[11].value = Math.round(((+inputs[8].value || 0) + (+inputs[10].value || 0)) / 2) || "";
+            // السعي
+            inputs[12].value = Math.round(((+inputs[5].value || 0) + (+inputs[5].value || 0) + (+inputs[11].value || 0)) / 3) || ""; 
+            // ملاحظة: تم ضبط السعي بناء على فصل1 + ن.سنة + فصل2 / 3 كما طلبت
+        }
+
         function loadGrades() {
             const body = document.getElementById('gradesBody'); body.innerHTML = "";
             const cls = document.getElementById('gClass').value;
             const sec = document.getElementById('gSection').value;
             
-            // استخدام الطريقة القديمة الموثوقة: جلب الصف فقط ثم التصفية برمجياً
             db.collection("students").where("class", "==", cls).get().then(snap => {
                 snap.forEach(s => {
                     if(s.data().section == sec) {
                         body.innerHTML += `<tr>
                             <td>${s.data().name}</td>
-                            <td><input type="number"></td><td><input type="number"></td><td><input type="number"></td>
-                            <td><input type="number"></td><td><input type="number"></td><td><input type="number"></td>
-                            <td><input type="number"></td><td><input type="number"></td><td><input type="number"></td>
-                            <td><input type="number"></td><td><input type="number"></td><td><input type="number"></td>
+                            ${'<td><input type="number" oninput="calculate(this.parentElement.parentElement)"></td>'.repeat(12)}
                         </tr>`;
                     }
                 });
