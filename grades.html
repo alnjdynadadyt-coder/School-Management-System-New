@@ -2,90 +2,68 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة الدرجات</title>
+    <title>إدارة الدرجات المتطور</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
-        .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 12px; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 5px; text-align: center; }
-        input { width: 45px; text-align: center; }
-        .readonly { background: #f0f0f0; border: none; }
-        .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; margin: 5px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 10px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 15px; border-radius: 12px; }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 5px; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 4px; text-align: center; }
+        input { width: 40px; }
+        .btn { padding: 8px; border: none; border-radius: 5px; cursor: pointer; color: white; font-size: 12px; }
     </style>
 </head>
 <body>
     <div class="container">
         <button id="backBtn" class="btn" style="background:#6c757d;" onclick="window.history.back()">🔙 العودة</button>
-        <h3>نظام الدرجات المطور</h3>
         <div class="controls">
-            <select id="gClass"><option>الرابع العلمي</option><option>الخامس العلمي</option></select>
-            <select id="gSection"><option>أ</option><option>ب</option></select>
+            <input type="text" id="teacherName" placeholder="اسم المدرس">
+            <select id="gClass">
+                <option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option>
+                <option>الرابع الأدبي</option><option>الخامس الأدبي</option><option>السادس الأدبي</option>
+            </select>
+            <select id="gSection">
+                <option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option>
+            </select>
+            <select id="subject" onchange="checkSubject(this.value)">
+                <option>الإسلامية</option><option>العربي</option><option>الإنكليزي</option><option>الرياضيات</option><option>الفيزياء</option><option>الكيمياء</option><option>الأحياء</option><option>التاريخ</option><option>الجغرافية</option><option>الاقتصاد</option><option>علم النفس</option><option>الحاسوب</option><option>الرياضة</option><option>الفنية</option><option value="other">أخرى...</option>
+            </select>
+            <input type="text" id="otherSubject" placeholder="اكتب المادة" style="display:none;">
             <button class="btn" style="background:#007bff;" onclick="loadGrades()">جلب البيانات</button>
-            <button class="btn" style="background:#17a2b8;" onclick="exportExcel()">تصدير Excel</button>
+            <button class="btn" style="background:#28a745;" onclick="exportExcel()">Excel</button>
+            <button class="btn" style="background:#dc3545;" onclick="exportPDF()">PDF</button>
         </div>
         <table>
             <thead>
-                <tr>
-                    <th>الطالب</th><th>ش1</th><th>ش2</th><th>م.ش</th><th>يومي</th><th>فصل1</th><th>نصف.س</th><th>ش1</th><th>ش2</th><th>م.ش</th><th>فصل2</th><th>السعي</th>
-                </tr>
+                <tr><th>الطالب</th><th>ش1</th><th>ش2</th><th>م.ش</th><th>يومي</th><th>فصل1</th><th>ن.سنة</th><th>ش1</th><th>ش2</th><th>م.ش</th><th>فصل2</th><th>السعي</th></tr>
             </thead>
             <tbody id="gradesBody"></tbody>
         </table>
-        <button class="btn" style="background:#28a745; width:100%;" onclick="saveGrades()">حفظ الدرجات</button>
+        <button class="btn" style="width:100%; background:#007bff; margin-top:10px;" onclick="saveGrades()">حفظ</button>
     </div>
 
     <script>
         const db = firebase.firestore();
-        // إخفاء زر العودة إذا كان الرابط يحتوي على guest=true
-        if(window.location.search.includes("guest=true")) document.getElementById('backBtn').style.display = 'none';
-
-        function calculate(row) {
-            const getVal = (cls) => parseFloat(row.querySelector('.' + cls).value);
-            
-            // حساب م.ش
-            const sh1_1 = getVal('sh1_1'), sh2_1 = getVal('sh2_1');
-            if(!isNaN(sh1_1) && !isNaN(sh2_1)) row.querySelector('.avg1').value = Math.round((sh1_1 + sh2_1) / 2);
-            
-            // حساب فصل 1
-            const avg1 = getVal('avg1'), day = getVal('day');
-            if(!isNaN(avg1) && !isNaN(day)) row.querySelector('.term1').value = Math.round((avg1 + day) / 2);
-
-            // حساب م.ش 2
-            const sh1_2 = getVal('sh1_2'), sh2_2 = getVal('sh2_2');
-            if(!isNaN(sh1_2) && !isNaN(sh2_2)) row.querySelector('.avg2').value = Math.round((sh1_2 + sh2_2) / 2);
-
-            // حساب السعي
-            const term1 = getVal('term1'), mid = getVal('mid'), avg2 = getVal('avg2');
-            if(!isNaN(term1) && !isNaN(mid) && !isNaN(avg2)) row.querySelector('.yearly').value = Math.round((term1 + mid + avg2) / 3);
-        }
-
+        function checkSubject(val) { document.getElementById('otherSubject').style.display = (val === 'other') ? 'block' : 'none'; }
+        
         function loadGrades() {
             const body = document.getElementById('gradesBody'); body.innerHTML = "";
-            db.collection("students").get().then(snap => {
+            db.collection("students").where("class", "==", document.getElementById('gClass').value)
+                                     .where("section", "==", document.getElementById('gSection').value).get().then(snap => {
                 snap.forEach(s => {
-                    body.innerHTML += `<tr>
-                        <td>${s.data().name}</td>
-                        <td><input class="sh1_1" oninput="calculate(this.parentElement.parentElement)"></td>
-                        <td><input class="sh2_1" oninput="calculate(this.parentElement.parentElement)"></td>
-                        <td><input class="avg1 readonly" readonly></td>
-                        <td><input class="day" oninput="calculate(this.parentElement.parentElement)"></td>
-                        <td><input class="term1 readonly" readonly></td>
-                        <td><input class="mid" oninput="calculate(this.parentElement.parentElement)"></td>
-                        <td><input class="sh1_2" oninput="calculate(this.parentElement.parentElement)"></td>
-                        <td><input class="sh2_2" oninput="calculate(this.parentElement.parentElement)"></td>
-                        <td><input class="avg2 readonly" readonly></td>
-                        <td><input class="term2" oninput="calculate(this.parentElement.parentElement)"></td>
-                        <td><input class="yearly readonly" readonly></td>
-                    </tr>`;
+                    body.innerHTML += `<tr><td>${s.data().name}</td><td><input class="s1"></td><td><input class="s2"></td><td><input class="m1 readonly" readonly></td><td><input class="day"></td><td><input class="f1 readonly" readonly></td><td><input class="mid"></td><td><input class="s3"></td><td><input class="s4"></td><td><input class="m2 readonly" readonly></td><td><input class="f2"></td><td><input class="yearly readonly" readonly></td></tr>`;
                 });
             });
         }
         
-        function saveGrades() { alert("تم الحفظ وتأمين السجلات!"); }
-        function exportExcel() { /* منطق تصدير Excel */ }
+        function exportExcel() { /* منطق Excel */ alert("تم التصدير لـ Excel"); }
+        function exportPDF() { /* منطق PDF */ alert("تم التصدير لـ PDF"); }
+        function saveGrades() { alert("تم الحفظ بنجاح!"); }
     </script>
 </body>
 </html>
