@@ -54,7 +54,7 @@
             </datalist>
             <button class="btn" style="background:#007bff;" onclick="loadGrades()">جلب الطلاب</button>
             <button class="btn" style="background:#28a745;" onclick="exportExcel()">تصدير Excel</button>
-            <button class="btn" style="background:#dc3545;" onclick="window.print()">طباعة PDF</button>
+            <button class="btn" style="background:#dc3545;" onclick="printArabic()">طباعة PDF</button>
         </div>
         <table id="gradesTable">
             <thead id="headArea"></thead>
@@ -178,6 +178,24 @@ i[15].value = (i[6].value !== "" && i[7].value !== "" && i[14].value !== "") ? M
                 });
             });
         }
+
+        function printArabic() {
+    const inputs = document.querySelectorAll('#gradesBody input');
+    // تحويل الأرقام للعربية مؤقتاً
+    inputs.forEach(i => {
+        if(i.value) i.dataset.original = i.value; 
+        i.value = i.value.toString().replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);
+    });
+
+    window.print(); // فتح نافذة الطباعة
+
+    // إعادة الأرقام كما كانت بعد إغلاق نافذة الطباعة
+    setTimeout(() => {
+        inputs.forEach(i => {
+            if(i.dataset.original) i.value = i.dataset.original;
+        });
+    }, 1000);
+}
 
                 function exportExcel() {
             const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value, teacher = document.getElementById('teacherName').value;
