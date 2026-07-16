@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة الدرجات - النسخة الذهبية</title>
+    <title>إدارة الدرجات - النسخة الذهبية 2</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -14,16 +14,17 @@
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
         th, td { border: 1px solid #ddd; padding: 3px; text-align: center; }
         th:first-child, td:first-child { min-width: 130px; text-align: right; }
-        input[type="number"] { width: 32px !important; padding: 2px; border: 1px solid #ddd; border-radius: 3px; text-align: center; }
         
         .c-f1 { background-color: #fff9c4 !important; } 
         .c-mid { background-color: #e8f5e9 !important; } 
         .c-f2 { background-color: #e3f2fd !important; } 
         .c-final { background-color: #fce4ec !important; }
 
+        input[type="number"] { width: 32px !important; padding: 2px; border: 1px solid #ddd; border-radius: 3px; text-align: center; background: transparent; }
+        
+        .fail { color: red !important; font-weight: bold; }
+        .pass { color: black !important; }
         .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
-        .fail { color: red; font-weight: bold; }
-        .pass { color: black; }
 
         @media print {
             @page { size: A4 landscape; margin: 5mm; }
@@ -62,32 +63,30 @@
 
         function validateInputs() {
             if(!document.getElementById('teacherName').value || !document.getElementById('subject').value) {
-                alert("يرجى إدخال اسم المدرس واسم المادة أولاً!");
-                return false;
-            }
-            return true;
+                alert("يرجى إدخال اسم المدرس واسم المادة أولاً!"); return false;
+            } return true;
         }
 
         async function saveGrades() {
             if(!validateInputs()) return;
-            const cls = document.getElementById('gClass').value;
-            const sec = document.getElementById('gSection').value;
-            const sub = document.getElementById('subject').value;
+            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
             const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
-            
             const doc = await docRef.get();
-            if (doc.exists) {
-                const pass = prompt("هذا الملف موجود مسبقاً، أدخل كلمة المرور للتعديل:");
-                if (pass !== "123") { alert("كلمة مرور خاطئة!"); return; }
-            }
-
+            if (doc.exists) { const pass = prompt("أدخل كلمة المرور للتعديل:"); if (pass !== "123") { alert("كلمة مرور خاطئة!"); return; } }
             const rows = document.querySelectorAll('#gradesBody tr');
             const dataToSave = { teacher: document.getElementById('teacherName').value };
-            rows.forEach((row) => {
-                dataToSave[row.cells[0].innerText] = Array.from(row.querySelectorAll('input')).map(i => i.value);
-            });
-            await docRef.set(dataToSave);
-            alert("تم الحفظ بنجاح!");
+            rows.forEach((row) => { dataToSave[row.cells[0].innerText] = Array.from(row.querySelectorAll('input')).map(i => i.value); });
+            await docRef.set(dataToSave); alert("تم الحفظ بنجاح!");
+        }
+
+        function checkFail(input, index) {
+            const sub = document.getElementById('subject').value;
+            const val = parseInt(input.value);
+            if (sub === "الإنكليزي" || sub === "الحاسوب") {
+                const excluded = [0, 1, 2, 3, 8, 9, 10, 11]; 
+                if (excluded.includes(index)) { input.classList.remove('fail'); return; }
+            }
+            if (input.value !== "" && val <= 49) { input.classList.add('fail'); } else { input.classList.remove('fail'); }
         }
 
         function calculate(row) {
@@ -102,24 +101,13 @@
                 i[14].value = (i[12].value && i[13].value) ? Math.round((+i[12].value + +i[13].value) / 2) : "";
                 i[15].value = (i[6].value !== "" && i[7].value !== "" && i[14].value !== "") ? Math.round((+i[6].value + +i[7].value + +i[14].value) / 3) : "";
             } else {
-                if (i[0].value !== "" && i[1].value !== "") i[2].value = Math.round((+i[0].value + +i[1].value) / 2);
-                else i[2].value = "";
-                if (i[2].value !== "" && i[3].value !== "") i[4].value = Math.round((+i[2].value + +i[3].value) / 2);
-                else i[4].value = "";
-                if (i[6].value !== "" && i[7].value !== "") i[8].value = Math.round((+i[6].value + +i[7].value) / 2);
-                else i[8].value = "";
-                if (i[8].value !== "" && i[9].value !== "") i[10].value = Math.round((+i[8].value + +i[9].value) / 2);
-                else i[10].value = "";
-                if (i[4].value !== "" && i[5].value !== "" && i[10].value !== "") i[11].value = Math.round((+i[4].value + +i[5].value + +i[10].value) / 3);
-                else i[11].value = "";
+                if (i[0].value !== "" && i[1].value !== "") i[2].value = Math.round((+i[0].value + +i[1].value) / 2); else i[2].value = "";
+                if (i[2].value !== "" && i[3].value !== "") i[4].value = Math.round((+i[2].value + +i[3].value) / 2); else i[4].value = "";
+                if (i[6].value !== "" && i[7].value !== "") i[8].value = Math.round((+i[6].value + +i[7].value) / 2); else i[8].value = "";
+                if (i[8].value !== "" && i[9].value !== "") i[10].value = Math.round((+i[8].value + +i[9].value) / 2); else i[10].value = "";
+                if (i[4].value !== "" && i[5].value !== "" && i[10].value !== "") i[11].value = Math.round((+i[4].value + +i[5].value + +i[10].value) / 3); else i[11].value = "";
             }
-            i.forEach(input => checkFail(input));
-        }
-
-        function checkFail(input) {
-            const val = parseInt(input.value);
-            if (input.value !== "" && val <= 49) { input.classList.add('fail'); input.classList.remove('pass'); }
-            else { input.classList.remove('fail'); input.classList.add('pass'); }
+            i.forEach((input, idx) => checkFail(input, idx));
         }
 
         function loadGrades() {
@@ -138,22 +126,20 @@
             db.collection("students").where("class", "==", cls).get().then(snap => {
                 snap.forEach(s => {
                     if(s.data().section == sec) {
-                        const count = (sub === "الإنكليزي" || sub === "الحاسوب") ? 16 : 12;
+                        const classes = (sub === "الإنكليزي" || sub === "الحاسوب") 
+                            ? ["c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"]
+                            : ["c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"];
                         let row = `<tr><td>${s.data().name}</td>`;
-                        for(let k=0; k<count; k++) row += `<td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>`;
+                        classes.forEach((c, idx) => { row += `<td class="${c}"><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this, ${idx})"></td>`; });
                         body.innerHTML += row + "</tr>";
                     }
                 });
                 db.collection("grades").doc(`${cls}_${sec}_${sub}`).get().then(doc => {
                     if (doc.exists) {
-                        const data = doc.data();
-                        document.getElementById('teacherName').value = data.teacher;
+                        const data = doc.data(); document.getElementById('teacherName').value = data.teacher;
                         document.querySelectorAll('#gradesBody tr').forEach(row => {
                             const name = row.cells[0].innerText;
-                            if (data[name]) {
-                                const inputs = row.querySelectorAll('input');
-                                data[name].forEach((val, i) => { inputs[i].value = val; checkFail(inputs[i]); });
-                            }
+                            if (data[name]) { const inputs = row.querySelectorAll('input'); data[name].forEach((val, i) => { inputs[i].value = val; checkFail(inputs[i], i); }); }
                         });
                     }
                 });
