@@ -79,6 +79,13 @@
             await docRef.set(dataToSave); alert("تم الحفظ بنجاح!");
         }
 
+                // دالة معالجة القيم لدعم الغياب والأرقام
+        function getVal(v) { 
+            if (v === "غ" || v === "G" || v === "٠" || v === "0") return 0;
+            let clean = v.toString().replace(/[٠-٩]/g, d => "0123456789".indexOf(d));
+            return parseFloat(clean) || 0; 
+        }
+
         function checkFail(input, index) {
             const sub = document.getElementById('subject').value;
             const val = parseInt(input.value);
