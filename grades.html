@@ -49,7 +49,10 @@
             <button class="btn" style="background:#dc3545;" onclick="window.print()">طباعة PDF</button>
         </div>
         <table id="gradesTable">
-            <thead id="headArea"></thead>
+            <thead>
+                <tr><th>الطالب</th><th colspan="7" class="c-f1">الفصل الأول</th><th class="c-mid">نصف السنة</th><th colspan="7" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr>
+                <tr><th></th><th class="c-f1">ش1</th><th class="c-f1">يومي</th><th class="c-f1">مج.ش1</th><th class="c-f1">ش2</th><th class="c-f1">يومي</th><th class="c-f1">مج.ش2</th><th class="c-f1">فصل1</th><th class="c-mid">ن.سنة</th><th class="c-f2">ش1</th><th class="c-f2">يومي</th><th class="c-f2">مج.ش1</th><th class="c-f2">ش2</th><th class="c-f2">يومي</th><th class="c-f2">مج.ش2</th><th class="c-f2">فصل2</th><th class="c-final">السعي</th></tr>
+            </thead>
             <tbody id="gradesBody"></tbody>
         </table>
         <button class="btn" style="width:100%; background:#007bff; margin-top:15px;" onclick="saveGrades()">حفظ الدرجات</button>
@@ -59,47 +62,6 @@
         const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-
-        function getTableHead() {
-            const sub = document.getElementById('subject').value;
-            if(sub === "الإنكليزي" || sub === "الحاسوب") {
-                return `<tr><th>الطالب</th><th colspan="5" class="c-f1">الفصل الأول</th><th class="c-mid">ن.سنة</th><th colspan="5" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr>
-                <tr><th></th><th class="c-f1">ش1+ي</th><th class="c-f1">ش2+ي</th><th class="c-f1">مج.ش1</th><th class="c-f1">مج.ش2</th><th class="c-f1">فصل1</th><th class="c-mid">ن.سنة</th><th class="c-f2">ش1+ي</th><th class="c-f2">ش2+ي</th><th class="c-f2">مج.ش1</th><th class="c-f2">مج.ش2</th><th class="c-f2">فصل2</th><th class="c-final">السعي</th></tr>`;
-            }
-            return `<tr><th>الطالب</th><th colspan="5" class="c-f1">الفصل الأول</th><th class="c-mid">نصف السنة</th><th colspan="5" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr>
-                <tr><th></th><th class="c-f1">ش1</th><th class="c-f1">ش2</th><th class="c-f1">م.ش</th><th class="c-f1">يومي1</th><th class="c-f1">فصل1</th><th class="c-mid">ن.سنة</th><th class="c-f2">ش1</th><th class="c-f2">ش2</th><th class="c-f2">م.ش</th><th class="c-f2">يومي2</th><th class="c-f2">فصل2</th><th class="c-final">النتيجة</th></tr>`;
-        }
-
-        function calculate(row) {
-            const sub = document.getElementById('subject').value;
-            const i = row.querySelectorAll('input');
-            if(sub === "الإنكليزي" || sub === "الحاسوب") {
-                // الفصل الأول: (ش1+ي) و (ش2+ي) مدخلات، نحسب مج.ش1 ومج.ش2 وفصل1
-                i[2].value = (i[0].value && i[1].value) ? (+i[0].value + +i[1].value) : "";
-                i[3].value = (i[0].value && i[1].value) ? (+i[0].value + +i[1].value) : ""; // المثال
-                i[4].value = (i[2].value && i[3].value) ? Math.round((+i[2].value + +i[3].value) / 2) : "";
-                // الفصل الثاني
-                i[8].value = (i[6].value && i[7].value) ? (+i[6].value + +i[7].value) : "";
-                i[9].value = (i[6].value && i[7].value) ? (+i[6].value + +i[7].value) : "";
-                i[10].value = (i[8].value && i[9].value) ? Math.round((+i[8].value + +i[9].value) / 2) : "";
-                // السعي: (فصل1 + نصف سنة + فصل2) / 3
-                i[11].value = (i[4].value && i[5].value && i[10].value) ? Math.round((+i[4].value + +i[5].value + +i[10].value) / 3) : "";
-            } else {
-                // المنطق الأصلي لباقي المواد
-                if (i[0].value !== "" && i[1].value !== "") i[2].value = Math.round((+i[0].value + +i[1].value) / 2);
-                if (i[2].value !== "" && i[3].value !== "") i[4].value = Math.round((+i[2].value + +i[3].value) / 2);
-                if (i[6].value !== "" && i[7].value !== "") i[8].value = Math.round((+i[6].value + +i[7].value) / 2);
-                if (i[8].value !== "" && i[9].value !== "") i[10].value = Math.round((+i[8].value + +i[9].value) / 2);
-                if (i[4].value !== "" && i[5].value !== "" && i[10].value !== "") i[11].value = Math.round((+i[4].value + +i[5].value + +i[10].value) / 3);
-            }
-            i.forEach(input => checkFail(input));
-        }
-
-        function checkFail(input) {
-            const val = parseInt(input.value);
-            if (input.value !== "" && val <= 49) { input.classList.add('fail'); input.classList.remove('pass'); }
-            else { input.classList.remove('fail'); input.classList.add('pass'); }
-        }
 
         function validateInputs() {
             if(!document.getElementById('teacherName').value || !document.getElementById('subject').value) {
@@ -111,30 +73,74 @@
 
         async function saveGrades() {
             if(!validateInputs()) return;
-            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
+            const cls = document.getElementById('gClass').value;
+            const sec = document.getElementById('gSection').value;
+            const sub = document.getElementById('subject').value;
             const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
+            
+            const doc = await docRef.get();
+            if (doc.exists) {
+                const pass = prompt("هذا الملف موجود مسبقاً، أدخل كلمة المرور للتعديل:");
+                if (pass !== "123") { alert("كلمة مرور خاطئة!"); return; }
+            }
+
+            const rows = document.querySelectorAll('#gradesBody tr');
             const dataToSave = { teacher: document.getElementById('teacherName').value };
-            document.querySelectorAll('#gradesBody tr').forEach(row => {
+            rows.forEach((row) => {
                 dataToSave[row.cells[0].innerText] = Array.from(row.querySelectorAll('input')).map(i => i.value);
             });
             await docRef.set(dataToSave);
             alert("تم الحفظ بنجاح!");
         }
 
+        function calculate(row) {
+            const i = row.querySelectorAll('input');
+            // الفصل الأول: (ش1+ي=مج1)، (ش2+ي=مج2)، (مج1+مج2/2=فصل1)
+            if (i[0].value !== "" && i[1].value !== "") i[2].value = +i[0].value + +i[1].value; else i[2].value = "";
+            if (i[3].value !== "" && i[4].value !== "") i[5].value = +i[3].value + +i[4].value; else i[5].value = "";
+            if (i[2].value !== "" && i[5].value !== "") i[6].value = Math.round((+i[2].value + +i[5].value) / 2); else i[6].value = "";
+            
+            // الفصل الثاني: (ش1+ي=مج1)، (ش2+ي=مج2)، (مج1+مج2/2=فصل2)
+            if (i[8].value !== "" && i[9].value !== "") i[10].value = +i[8].value + +i[9].value; else i[10].value = "";
+            if (i[11].value !== "" && i[12].value !== "") i[13].value = +i[11].value + +i[12].value; else i[13].value = "";
+            if (i[10].value !== "" && i[13].value !== "") i[14].value = Math.round((+i[10].value + +i[13].value) / 2); else i[14].value = "";
+            
+            // السعي: (فصل1 + ن.سنة + فصل2) / 3
+            if (i[6].value !== "" && i[7].value !== "" && i[14].value !== "") i[15].value = Math.round((+i[6].value + +i[7].value + +i[14].value) / 3); else i[15].value = "";
+            
+            i.forEach(input => checkFail(input));
+        }
+
+        function checkFail(input) {
+            const val = parseInt(input.value);
+            if (input.value !== "" && val <= 49) { input.classList.add('fail'); input.classList.remove('pass'); }
+            else { input.classList.remove('fail'); input.classList.add('pass'); }
+        }
+
         function loadGrades() {
             if(!validateInputs()) return;
-            const sub = document.getElementById('subject').value;
-            document.getElementById('headArea').innerHTML = getTableHead();
             const body = document.getElementById('gradesBody'); body.innerHTML = "";
-            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value;
-            
+            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
             db.collection("students").where("class", "==", cls).get().then(snap => {
                 snap.forEach(s => {
                     if(s.data().section == sec) {
-                        const inputsCount = (sub === "الإنكليزي" || sub === "الحاسوب") ? 12 : 13;
-                        let row = `<tr><td>${s.data().name}</td>`;
-                        for(let k=0; k<inputsCount; k++) row += `<td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>`;
-                        body.innerHTML += row + `</tr>`;
+                        body.innerHTML += `<tr><td>${s.data().name}</td>
+                        <td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                        <td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                        <td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                        <td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                        <td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                        <td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                        <td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                        <td><input type="number" class="c-mid" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                        <td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                        <td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                        <td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                        <td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                        <td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                        <td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                        <td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td>
+                        <td><input type="number" class="c-final" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td></tr>`;
                     }
                 });
                 db.collection("grades").doc(`${cls}_${sec}_${sub}`).get().then(doc => {
@@ -145,7 +151,7 @@
                             const name = row.cells[0].innerText;
                             if (data[name]) {
                                 const inputs = row.querySelectorAll('input');
-                                data[name].forEach((val, i) => { if(inputs[i]) { inputs[i].value = val; checkFail(inputs[i]); } });
+                                data[name].forEach((val, i) => { inputs[i].value = val; checkFail(inputs[i]); });
                             }
                         });
                     }
@@ -154,14 +160,26 @@
         }
 
         function exportExcel() {
-            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value, teacher = document.getElementById('teacherName').value;
-            const data = [["نظام إدارة الدرجات"], ["اسم المدرس:", teacher], ["المادة:", sub], ["الصف:", cls, "الشعبة:", sec], []];
-            data.push(["الطالب", "ش1+ي", "ش2+ي", "مج.ش1", "مج.ش2", "فصل1", "ن.سنة", "ش1+ي(2)", "ش2+ي(2)", "مج.ش1(2)", "مج.ش2(2)", "فصل2", "السعي"]);
+            const cls = document.getElementById('gClass').value;
+            const sec = document.getElementById('gSection').value;
+            const sub = document.getElementById('subject').value;
+            const teacher = document.getElementById('teacherName').value;
+            
+            const data = [
+                ["نظام إدارة الدرجات"],
+                ["اسم المدرس:", teacher],
+                ["المادة:", sub],
+                ["الصف:", cls, "الشعبة:", sec],
+                [],
+                ["الطالب", "ش1", "يومي", "مج.ش1", "ش2", "يومي", "مج.ش2", "فصل1", "ن.سنة", "ش1", "يومي", "مج.ش1", "ش2", "يومي", "مج.ش2", "فصل2", "السعي"]
+            ];
+            
             document.querySelectorAll('#gradesBody tr').forEach(row => {
                 const rowData = [row.cells[0].innerText];
                 row.querySelectorAll('input').forEach(i => rowData.push(i.value));
                 data.push(rowData);
             });
+            
             const ws = XLSX.utils.aoa_to_sheet(data);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "الدرجات");
