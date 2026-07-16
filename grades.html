@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة الدرجات - النسخة الذهبية 2</title>
+    <title>إدارة الدرجات - النسخة الذهبية 2 (محدثة)</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -20,18 +20,10 @@
         .c-f2 { background-color: #e3f2fd !important; } 
         .c-final { background-color: #fce4ec !important; }
 
-        input[type="number"] { width: 32px !important; padding: 2px; border: 1px solid #ddd; border-radius: 3px; text-align: center; background: transparent; }
+        input[type="text"] { width: 32px !important; padding: 2px; border: 1px solid #ddd; border-radius: 3px; text-align: center; background: transparent; }
         
         .fail { color: red !important; font-weight: bold; }
-        .pass { color: black !important; }
         .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
-
-        @media print {
-            @page { size: A4 landscape; margin: 5mm; }
-            body { background: white; font-size: 9px; }
-            .btn, button { display: none !important; }
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        }
     </style>
 </head>
 <body>
@@ -47,12 +39,8 @@
             </datalist>
             <button class="btn" style="background:#007bff;" onclick="loadGrades()">جلب الطلاب</button>
             <button class="btn" style="background:#28a745;" onclick="exportExcel()">تصدير Excel</button>
-            <button class="btn" style="background:#dc3545;" onclick="window.print()">طباعة PDF</button>
         </div>
-        <table id="gradesTable">
-            <thead id="headArea"></thead>
-            <tbody id="gradesBody"></tbody>
-        </table>
+        <table id="gradesTable"><thead id="headArea"></thead><tbody id="gradesBody"></tbody></table>
         <button class="btn" style="width:100%; background:#007bff; margin-top:15px;" onclick="saveGrades()">حفظ الدرجات</button>
     </div>
 
@@ -61,97 +49,64 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        function validateInputs() {
-            if(!document.getElementById('teacherName').value || !document.getElementById('subject').value) {
-                alert("يرجى إدخال اسم المدرس واسم المادة أولاً!"); return false;
-            } return true;
-        }
+        function getVal(v) { return (v === "غ" || v === "G" || v === "٠" || v === "0") ? 0 : parseFloat(v.toString().replace(/[٠-٩]/g, d => "0123456789".indexOf(d))) || 0; }
 
-        async function saveGrades() {
-            if(!validateInputs()) return;
-            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
-            const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
-            const doc = await docRef.get();
-            if (doc.exists) { const pass = prompt("أدخل كلمة المرور للتعديل:"); if (pass !== "123") { alert("كلمة مرور خاطئة!"); return; } }
-            const rows = document.querySelectorAll('#gradesBody tr');
-            const dataToSave = { teacher: document.getElementById('teacherName').value };
-            rows.forEach((row) => { dataToSave[row.cells[0].innerText] = Array.from(row.querySelectorAll('input')).map(i => i.value); });
-            await docRef.set(dataToSave); alert("تم الحفظ بنجاح!");
-        }
-
-        function checkFail(input, index) {
+        function formatInput(input) {
             const sub = document.getElementById('subject').value;
-            const val = parseInt(input.value);
-            if (sub === "الإنكليزي" || sub === "الحاسوب") {
-                const excluded = [0, 1, 2, 3, 8, 9, 10, 11]; 
-                if (excluded.includes(index)) { input.classList.remove('fail'); return; }
-            }
-            if (input.value !== "" && val <= 49) { input.classList.add('fail'); } else { input.classList.remove('fail'); }
+            let val = input.value;
+            if (val === "غ" || val === "G") return;
+            if (sub === "الإنكليزي") val = val.replace(/[٠-٩]/g, d => "0123456789".indexOf(d));
+            else val = val.replace(/[0-9]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+            if (val.length === 1 && (val >= "1" && val <= "9" || val >= "١" && val <= "٩")) val = (sub === "الإنكليزي") ? "0" + val : "٠" + val;
+            input.value = val;
+        }
+
+        async function loadGrades() {
+            const sub = document.getElementById('subject').value, cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value;
+            const head = document.getElementById('headArea'), body = document.getElementById('gradesBody');
+            body.innerHTML = "";
+            head.innerHTML = (sub === "الإنكليزي" || sub === "الحاسوب") ? `<tr><th>الطالب</th><th colspan="7" class="c-f1">الفصل الأول</th><th class="c-mid">ن.سنة</th><th colspan="7" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr>` : `<tr><th>الطالب</th><th colspan="5" class="c-f1">الفصل الأول</th><th class="c-mid">نصف السنة</th><th colspan="5" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr>`;
+
+            let students = [];
+            const snap = await db.collection("students").where("class", "==", cls).get();
+            snap.forEach(s => { if(s.data().section == sec) students.push(s.data().name); });
+            students.sort((a, b) => a.localeCompare(b, 'ar'));
+
+            const doc = await db.collection("grades").doc(`${cls}_${sec}_${sub}`).get();
+            const data = doc.exists ? doc.data() : {};
+            students.forEach(name => {
+                let row = `<tr><td>${name}</td>`;
+                const len = (sub === "الإنكليزي" || sub === "الحاسوب") ? 16 : 12;
+                for(let i=0; i<len; i++) row += `<td><input type="text" value="${data[name] && data[name][i] ? data[name][i] : ""}" oninput="formatInput(this); calculate(this.parentElement.parentElement)"></td>`;
+                body.innerHTML += row + "</tr>";
+            });
         }
 
         function calculate(row) {
             const sub = document.getElementById('subject').value;
             const i = row.querySelectorAll('input');
             if (sub === "الإنكليزي" || sub === "الحاسوب") {
-                i[4].value = (i[0].value && i[1].value) ? (+i[0].value + +i[1].value) : "";
-                i[5].value = (i[2].value && i[3].value) ? (+i[2].value + +i[3].value) : "";
-                i[6].value = (i[4].value && i[5].value) ? Math.round((+i[4].value + +i[5].value) / 2) : "";
-                i[12].value = (i[8].value && i[9].value) ? (+i[8].value + +i[9].value) : "";
-                i[13].value = (i[10].value && i[11].value) ? (+i[10].value + +i[11].value) : "";
-                i[14].value = (i[12].value && i[13].value) ? Math.round((+i[12].value + +i[13].value) / 2) : "";
-                i[15].value = (i[6].value !== "" && i[7].value !== "" && i[14].value !== "") ? Math.round((+i[6].value + +i[7].value + +i[14].value) / 3) : "";
+                i[4].value = (i[0].value && i[1].value) ? getVal(i[0].value) + getVal(i[1].value) : "";
+                i[5].value = (i[2].value && i[3].value) ? getVal(i[2].value) + getVal(i[3].value) : "";
+                i[6].value = (i[4].value !== "" && i[5].value !== "") ? Math.round((getVal(i[4].value) + getVal(i[5].value)) / 2) : "";
+                i[12].value = (i[8].value && i[9].value) ? getVal(i[8].value) + getVal(i[9].value) : "";
+                i[13].value = (i[10].value && i[11].value) ? getVal(i[10].value) + getVal(i[11].value) : "";
+                i[14].value = (i[12].value !== "" && i[13].value !== "") ? Math.round((getVal(i[12].value) + getVal(i[13].value)) / 2) : "";
+                i[15].value = (i[6].value !== "" && i[14].value !== "") ? Math.round((getVal(i[6].value) + getVal(i[7].value) + getVal(i[14].value)) / 3) : "";
             } else {
-                if (i[0].value !== "" && i[1].value !== "") i[2].value = Math.round((+i[0].value + +i[1].value) / 2); else i[2].value = "";
-                if (i[2].value !== "" && i[3].value !== "") i[4].value = Math.round((+i[2].value + +i[3].value) / 2); else i[4].value = "";
-                if (i[6].value !== "" && i[7].value !== "") i[8].value = Math.round((+i[6].value + +i[7].value) / 2); else i[8].value = "";
-                if (i[8].value !== "" && i[9].value !== "") i[10].value = Math.round((+i[8].value + +i[9].value) / 2); else i[10].value = "";
-                if (i[4].value !== "" && i[5].value !== "" && i[10].value !== "") i[11].value = Math.round((+i[4].value + +i[5].value + +i[10].value) / 3); else i[11].value = "";
+                if (i[0].value && i[1].value) i[2].value = Math.round((getVal(i[0].value) + getVal(i[1].value)) / 2);
+                if (i[2].value && i[3].value) i[4].value = Math.round((getVal(i[2].value) + getVal(i[3].value)) / 2);
+                if (i[6].value && i[7].value) i[8].value = Math.round((getVal(i[6].value) + getVal(i[7].value)) / 2);
+                if (i[8].value && i[9].value) i[10].value = Math.round((getVal(i[8].value) + getVal(i[9].value)) / 2);
+                if (i[4].value && i[5].value && i[10].value) i[11].value = Math.round((getVal(i[4].value) + getVal(i[5].value) + getVal(i[10].value)) / 3);
             }
-            i.forEach((input, idx) => checkFail(input, idx));
         }
 
-        function loadGrades() {
-            if(!validateInputs()) return;
-            const sub = document.getElementById('subject').value;
-            const head = document.getElementById('headArea');
-            const body = document.getElementById('gradesBody'); body.innerHTML = "";
-            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value;
-
-            if (sub === "الإنكليزي" || sub === "الحاسوب") {
-                head.innerHTML = `<tr><th>الطالب</th><th colspan="7" class="c-f1">الفصل الأول</th><th class="c-mid">ن.سنة</th><th colspan="7" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr><tr><th></th><th>ش1</th><th>يومي</th><th>ش2</th><th>يومي</th><th>مج.ش1</th><th>مج.ش2</th><th>فصل1</th><th>ن.سنة</th><th>ش1</th><th>يومي</th><th>ش2</th><th>يومي</th><th>مج.ش1</th><th>مج.ش2</th><th>فصل2</th><th>السعي</th></tr>`;
-            } else {
-                head.innerHTML = `<tr><th>الطالب</th><th colspan="5" class="c-f1">الفصل الأول</th><th class="c-mid">نصف السنة</th><th colspan="5" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr><tr><th></th><th class="c-f1">ش1</th><th class="c-f1">ش2</th><th class="c-f1">م.ش</th><th class="c-f1">يومي1</th><th class="c-f1">فصل1</th><th class="c-mid">ن.سنة</th><th class="c-f2">ش1</th><th class="c-f2">ش2</th><th class="c-f2">م.ش</th><th class="c-f2">يومي2</th><th class="c-f2">فصل2</th><th class="c-final">النتيجة</th></tr>`;
-            }
-
-            db.collection("students").where("class", "==", cls).get().then(snap => {
-                snap.forEach(s => {
-                    if(s.data().section == sec) {
-                        const classes = (sub === "الإنكليزي" || sub === "الحاسوب") 
-                            ? ["c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"]
-                            : ["c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"];
-                        let row = `<tr><td>${s.data().name}</td>`;
-                        classes.forEach((c, idx) => { row += `<td class="${c}"><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this, ${idx})"></td>`; });
-                        body.innerHTML += row + "</tr>";
-                    }
-                });
-                db.collection("grades").doc(`${cls}_${sec}_${sub}`).get().then(doc => {
-                    if (doc.exists) {
-                        const data = doc.data(); document.getElementById('teacherName').value = data.teacher;
-                        document.querySelectorAll('#gradesBody tr').forEach(row => {
-                            const name = row.cells[0].innerText;
-                            if (data[name]) { const inputs = row.querySelectorAll('input'); data[name].forEach((val, i) => { inputs[i].value = val; checkFail(inputs[i], i); }); }
-                        });
-                    }
-                });
-            });
-        }
-
-        function exportExcel() {
-            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value, teacher = document.getElementById('teacherName').value;
-            const headers = (sub === "الإنكليزي" || sub === "الحاسوب") ? ["الطالب", "ش1", "يومي", "ش2", "يومي", "مج.ش1", "مج.ش2", "فصل1", "ن.سنة", "ش1", "يومي", "ش2", "يومي", "مج.ش1", "مج.ش2", "فصل2", "السعي"] : ["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "ن.سنة", "ش1", "ش2", "م.ش", "يومي2", "فصل2", "السعي"];
-            const data = [["نظام إدارة الدرجات"],["اسم المدرس:", teacher],["المادة:", sub],["الصف:", cls, "الشعبة:", sec],[], headers];
-            document.querySelectorAll('#gradesBody tr').forEach(row => { const rowData = [row.cells[0].innerText]; row.querySelectorAll('input').forEach(i => rowData.push(i.value)); data.push(rowData); });
-            const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "الدرجات"); XLSX.writeFile(wb, `الدرجات_${cls}_${sec}_${sub}.xlsx`);
+        async function saveGrades() {
+            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
+            const dataToSave = { teacher: document.getElementById('teacherName').value };
+            document.querySelectorAll('#gradesBody tr').forEach(row => { dataToSave[row.cells[0].innerText] = Array.from(row.querySelectorAll('input')).map(i => i.value); });
+            await db.collection("grades").doc(`${cls}_${sec}_${sub}`).set(dataToSave); alert("تم الحفظ!");
         }
     </script>
 </body>
