@@ -88,7 +88,7 @@
 
         function checkFail(input, index) {
             const sub = document.getElementById('subject').value;
-            const val = parseInt(input.value);
+            const val = getVal(input.value);
             if (sub === "الإنكليزي" || sub === "الحاسوب") {
                 const excluded = [0, 1, 2, 3, 8, 9, 10, 11]; 
                 if (excluded.includes(index)) { input.classList.remove('fail'); return; }
@@ -99,14 +99,13 @@
         function calculate(row) {
             const sub = document.getElementById('subject').value;
             const i = row.querySelectorAll('input');
-            if (sub === "الإنكليزي" || sub === "الحاسوب") {
-                i[4].value = (i[0].value && i[1].value) ? (+i[0].value + +i[1].value) : "";
-                i[5].value = (i[2].value && i[3].value) ? (+i[2].value + +i[3].value) : "";
-                i[6].value = (i[4].value && i[5].value) ? Math.round((+i[4].value + +i[5].value) / 2) : "";
-                i[12].value = (i[8].value && i[9].value) ? (+i[8].value + +i[9].value) : "";
-                i[13].value = (i[10].value && i[11].value) ? (+i[10].value + +i[11].value) : "";
-                i[14].value = (i[12].value && i[13].value) ? Math.round((+i[12].value + +i[13].value) / 2) : "";
-                i[15].value = (i[6].value !== "" && i[7].value !== "" && i[14].value !== "") ? Math.round((+i[6].value + +i[7].value + +i[14].value) / 3) : "";
+            if (sub === "الإنكليزي" || sub === "الحاسوب") {i[4].value = (i[0].value && i[1].value) ? (getVal(i[0].value) + getVal(i[1].value)) : "";
+i[5].value = (i[2].value && i[3].value) ? (getVal(i[2].value) + getVal(i[3].value)) : "";
+i[6].value = (i[4].value !== "" && i[5].value !== "") ? Math.round((getVal(i[4].value) + getVal(i[5].value)) / 2) : "";
+i[12].value = (i[8].value && i[9].value) ? (getVal(i[8].value) + getVal(i[9].value)) : "";
+i[13].value = (i[10].value && i[11].value) ? (getVal(i[10].value) + getVal(i[11].value)) : "";
+i[14].value = (i[12].value !== "" && i[13].value !== "") ? Math.round((getVal(i[12].value) + getVal(i[13].value)) / 2) : "";
+i[15].value = (i[6].value !== "" && i[7].value !== "" && i[14].value !== "") ? Math.round((getVal(i[6].value) + getVal(i[7].value) + getVal(i[14].value)) / 3) : "";
             } else {
                 if (i[0].value !== "" && i[1].value !== "") i[2].value = Math.round((+i[0].value + +i[1].value) / 2); else i[2].value = "";
                 if (i[2].value !== "" && i[3].value !== "") i[4].value = Math.round((+i[2].value + +i[3].value) / 2); else i[4].value = "";
