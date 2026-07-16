@@ -49,10 +49,7 @@
             <button class="btn" style="background:#dc3545;" onclick="window.print()">طباعة PDF</button>
         </div>
         <table id="gradesTable">
-            <thead>
-                <tr><th>الطالب</th><th colspan="5" class="c-f1">الفصل الأول</th><th class="c-mid">نصف السنة</th><th colspan="5" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr>
-                <tr><th></th><th class="c-f1">ش1</th><th class="c-f1">ش2</th><th class="c-f1">م.ش</th><th class="c-f1">يومي1</th><th class="c-f1">فصل1</th><th class="c-mid">ن.سنة</th><th class="c-f2">ش1</th><th class="c-f2">ش2</th><th class="c-f2">م.ش</th><th class="c-f2">يومي2</th><th class="c-f2">فصل2</th><th class="c-final">النتيجة</th></tr>
-            </thead>
+            <thead id="headArea"></thead>
             <tbody id="gradesBody"></tbody>
         </table>
         <button class="btn" style="width:100%; background:#007bff; margin-top:15px;" onclick="saveGrades()">حفظ الدرجات</button>
@@ -62,6 +59,16 @@
         const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+
+        function getTableHead() {
+            const sub = document.getElementById('subject').value;
+            if(sub === "الإنكليزي" || sub === "الحاسوب") {
+                return `<tr><th>الطالب</th><th colspan="3" class="c-f1">الفصل الأول</th><th rowspan="2" class="c-mid">ن.سنة</th><th colspan="3" class="c-f2">الفصل الثاني</th><th rowspan="2" class="c-final">السعي</th></tr>
+                        <tr><th></th><th>ش١</th><th>يومي</th><th>مج.ش١</th><th>ش٢</th><th>يومي</th><th>مج.ش٢</th></tr>`;
+            }
+            return `<tr><th>الطالب</th><th colspan="5" class="c-f1">الفصل الأول</th><th class="c-mid">نصف السنة</th><th colspan="5" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr>
+                    <tr><th></th><th class="c-f1">ش1</th><th class="c-f1">ش2</th><th class="c-f1">م.ش</th><th class="c-f1">يومي1</th><th class="c-f1">فصل1</th><th class="c-mid">ن.سنة</th><th class="c-f2">ش1</th><th class="c-f2">ش2</th><th class="c-f2">م.ش</th><th class="c-f2">يومي2</th><th class="c-f2">فصل2</th><th class="c-final">النتيجة</th></tr>`;
+        }
 
         function validateInputs() {
             if(!document.getElementById('teacherName').value || !document.getElementById('subject').value) {
@@ -96,12 +103,10 @@
         function calculate(row) {
             const sub = document.getElementById('subject').value;
             const i = row.querySelectorAll('input');
-            if (sub === "الإنكليزي" || sub === "الحاسوب") {
-                i[2].value = (i[0].value !== "" && i[1].value !== "") ? (+i[0].value + +i[1].value) : "";
-                i[5].value = (i[3].value !== "" && i[4].value !== "") ? (+i[3].value + +i[4].value) : "";
-                i[6].value = (i[2].value !== "" && i[5].value !== "") ? Math.round((+i[2].value + +i[5].value) / 2) : "";
-                i[9].value = (i[6].value !== "" && i[7].value !== "" && i[8].value !== "") ? Math.round((+i[6].value + +i[7].value + +i[8].value) / 3) : "";
-                [i[2], i[5], i[6], i[9]].forEach(input => checkFail(input));
+            if(sub === "الإنكليزي" || sub === "الحاسوب") {
+                if(i[0].value !== "" && i[1].value !== "") i[2].value = Math.round((+i[0].value + +i[1].value) / 2);
+                if(i[3].value !== "" && i[4].value !== "") i[5].value = Math.round((+i[3].value + +i[4].value) / 2);
+                if(i[2].value !== "" && i[5].value !== "" && i[6].value !== "") i[7].value = Math.round((+i[2].value + +i[5].value + +i[6].value) / 3);
             } else {
                 if (i[0].value !== "" && i[1].value !== "") i[2].value = Math.round((+i[0].value + +i[1].value) / 2);
                 else i[2].value = "";
@@ -113,8 +118,8 @@
                 else i[10].value = "";
                 if (i[4].value !== "" && i[5].value !== "" && i[10].value !== "") i[11].value = Math.round((+i[4].value + +i[5].value + +i[10].value) / 3);
                 else i[11].value = "";
-                i.forEach(input => checkFail(input));
             }
+            i.forEach(input => checkFail(input));
         }
 
         function checkFail(input) {
@@ -125,13 +130,16 @@
 
         function loadGrades() {
             if(!validateInputs()) return;
+            const sub = document.getElementById('subject').value;
+            document.getElementById('headArea').innerHTML = getTableHead();
             const body = document.getElementById('gradesBody'); body.innerHTML = "";
-            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
+            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value;
+            
             db.collection("students").where("class", "==", cls).get().then(snap => {
                 snap.forEach(s => {
                     if(s.data().section == sec) {
-                        if (sub === "الإنكليزي" || sub === "الحاسوب") {
-                            body.innerHTML += `<tr><td>${s.data().name}</td><td><input type="number" oninput="calculate(this.parentElement.parentElement)"></td><td><input type="number" oninput="calculate(this.parentElement.parentElement)"></td><td><input type="number" readonly></td><td><input type="number" oninput="calculate(this.parentElement.parentElement)"></td><td><input type="number" oninput="calculate(this.parentElement.parentElement)"></td><td><input type="number" readonly></td><td><input type="number" readonly></td><td><input type="number" oninput="calculate(this.parentElement.parentElement)"></td><td><input type="number" oninput="calculate(this.parentElement.parentElement)"></td><td><input type="number" readonly></td></tr>`;
+                        if(sub === "الإنكليزي" || sub === "الحاسوب") {
+                            body.innerHTML += `<tr><td>${s.data().name}</td><td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td><td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td><td><input type="number" readonly></td><td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td><td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td><td><input type="number" readonly></td><td><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td></tr>`;
                         } else {
                             body.innerHTML += `<tr><td>${s.data().name}</td><td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td><td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td><td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td><td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td><td><input type="number" class="c-f1" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td><td><input type="number" class="c-mid" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td><td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td><td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td><td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td><td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td><td><input type="number" class="c-f2" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td><td><input type="number" class="c-final" oninput="calculate(this.parentElement.parentElement); checkFail(this)"></td></tr>`;
                         }
@@ -145,7 +153,7 @@
                             const name = row.cells[0].innerText;
                             if (data[name]) {
                                 const inputs = row.querySelectorAll('input');
-                                data[name].forEach((val, i) => { inputs[i].value = val; checkFail(inputs[i]); });
+                                data[name].forEach((val, i) => { if(inputs[i]) { inputs[i].value = val; checkFail(inputs[i]); } });
                             }
                         });
                     }
@@ -154,26 +162,17 @@
         }
 
         function exportExcel() {
-            const cls = document.getElementById('gClass').value;
-            const sec = document.getElementById('gSection').value;
-            const sub = document.getElementById('subject').value;
-            const teacher = document.getElementById('teacherName').value;
-            
-            const data = [
-                ["نظام إدارة الدرجات"],
-                ["اسم المدرس:", teacher],
-                ["المادة:", sub],
-                ["الصف:", cls, "الشعبة:", sec],
-                [],
-                ["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "ن.سنة", "ش1(2)", "ش2(2)", "م.ش(2)", "يومي2", "فصل2", "السعي"]
-            ];
+            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value, teacher = document.getElementById('teacherName').value;
+            const data = [["نظام إدارة الدرجات"], ["اسم المدرس:", teacher], ["المادة:", sub], ["الصف:", cls, "الشعبة:", sec], []];
+            // إضافة العناوين بناءً على المادة
+            if(sub === "الإنكليزي" || sub === "الحاسوب") data.push(["الطالب", "ش١", "يومي", "مج.ش١", "ن.سنة", "ش٢", "يومي", "مج.ش٢", "السعي"]);
+            else data.push(["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "ن.سنة", "ش1(2)", "ش2(2)", "م.ش(2)", "يومي2", "فصل2", "السعي"]);
             
             document.querySelectorAll('#gradesBody tr').forEach(row => {
                 const rowData = [row.cells[0].innerText];
                 row.querySelectorAll('input').forEach(i => rowData.push(i.value));
                 data.push(rowData);
             });
-            
             const ws = XLSX.utils.aoa_to_sheet(data);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "الدرجات");
