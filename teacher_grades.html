@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>صفحة إدخال درجات المدرس</title>
+    <style>
+        body { font-family: sans-serif; padding: 15px; background: #f4f7f6; }
+        .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+        input[readonly] { background: #e9ecef; color: #555; font-weight: bold; border: 1px solid #ccc; }
+        input { padding: 5px; width: 50px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
+        th, td { border: 1px solid #ddd; padding: 5px; text-align: center; }
+        .btn { padding: 8px 15px; cursor: pointer; border: none; border-radius: 5px; color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <input type="text" id="teacherName" placeholder="اسم المدرس">
+        <select id="gClass"></select>
+        <select id="gSection"></select>
+        <input type="text" id="subject" placeholder="المادة">
+        <button class="btn" style="background:#007bff;" onclick="loadTeacherGrades()">جلب الطلاب</button>
+    </div>
+
+    <table id="gradesTable">
+        <thead><tr id="headArea"></tr></thead>
+        <tbody id="gradesBody"></tbody>
+    </table>
+
+    <button class="btn" style="background:#28a745; margin-top:15px;" onclick="savePartialGrades()">حفظ الدرجات الجديدة</button>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script>
+        // إعدادات Firebase (استخدم نفس الإعدادات الموجودة في الصفحة الأم)
+        const firebaseConfig = { /* انسخ نفس كود الإعدادات من index.html */ };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        async function loadTeacherGrades() {
+            const cls = document.getElementById('gClass').value;
+            const sec = document.getElementById('gSection').value;
+            const sub = document.getElementById('subject').value;
+            const body = document.getElementById('gradesBody');
+            body.innerHTML = "";
+
+            const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
+            const doc = await docRef.get();
+            const existingData = doc.exists ? doc.data() : {};
+
+            // جلب الطلاب وعرضهم
+            db.collection("students").where("class", "==", cls).get().then(snap => {
+                snap.forEach(s => {
+                    if (s.data().section == sec) {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `<td>${s.data().name}</td><td><input type="text" data-name="${s.data().name}"></td>`;
+                        const input = row.querySelector('input');
+                        
+                        // منطق القراءة فقط (ReadOnly Logic)
+                        if (existingData[s.data().name]) {
+                            input.value = existingData[s.data().name];
+                            input.readOnly = true; // تحويل الحقل لقراءة فقط
+                        }
+                        body.appendChild(row);
+                    }
+                });
+            });
+        }
+
+        async function savePartialGrades() {
+            const cls = document.getElementById('gClass').value;
+            const sec = document.getElementById('gSection').value;
+            const sub = document.getElementById('subject').value;
+            const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
+            
+            const doc = await docRef.get();
+            let dataToSave = doc.exists ? doc.data() : {};
+
+            // الحفظ الجزئي: فقط الحقول التي لم تكن موجودة أو تم تحديثها
+            document.querySelectorAll('#gradesBody input').forEach(input => {
+                if (input.value && !input.readOnly) {
+                    dataToSave[input.dataset.name] = input.value;
+                }
+            });
+
+            await docRef.set(dataToSave);
+            alert("تم حفظ الدرجات الجديدة بنجاح!");
+            loadTeacherGrades(); // إعادة تحميل الصفحة لتحديث حالة الحقول
+        }
+    </script>
+</body>
+</html>
