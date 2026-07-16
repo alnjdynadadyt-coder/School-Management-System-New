@@ -139,7 +139,7 @@ i[15].value = (i[6].value !== "" && i[7].value !== "" && i[14].value !== "") ? M
                         ? ["c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"]
                         : ["c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"];
                     let row = `<tr><td>${s.name}</td>`;
-                    classes.forEach((c, idx) => { row += `<td class="${c}"><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this, ${idx})"></td>`; });
+                    classes.forEach((c, idx) => { row += `<td class="${c}"><input type="text" inputmode="decimal" oninput="calculate(this.parentElement.parentElement); checkFail(this, ${idx})"></td>`; });
                     body.innerHTML += row + "</tr>";
                 });
                 db.collection("grades").doc(`${cls}_${sec}_${sub}`).get().then(doc => {
