@@ -129,16 +129,18 @@ i[15].value = (i[6].value !== "" && i[7].value !== "" && i[14].value !== "") ? M
                 head.innerHTML = `<tr><th>الطالب</th><th colspan="5" class="c-f1">الفصل الأول</th><th class="c-mid">نصف السنة</th><th colspan="5" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr><tr><th></th><th class="c-f1">ش1</th><th class="c-f1">ش2</th><th class="c-f1">م.ش</th><th class="c-f1">يومي1</th><th class="c-f1">فصل1</th><th class="c-mid">ن.سنة</th><th class="c-f2">ش1</th><th class="c-f2">ش2</th><th class="c-f2">م.ش</th><th class="c-f2">يومي2</th><th class="c-f2">فصل2</th><th class="c-final">النتيجة</th></tr>`;
             }
 
-            db.collection("students").where("class", "==", cls).get().then(snap => {
-                snap.forEach(s => {
-                    if(s.data().section == sec) {
-                        const classes = (sub === "الإنكليزي" || sub === "الحاسوب") 
-                            ? ["c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"]
-                            : ["c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"];
-                        let row = `<tr><td>${s.data().name}</td>`;
-                        classes.forEach((c, idx) => { row += `<td class="${c}"><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this, ${idx})"></td>`; });
-                        body.innerHTML += row + "</tr>";
-                    }
+                        db.collection("students").where("class", "==", cls).get().then(snap => {
+                let students = [];
+                snap.forEach(s => { if(s.data().section == sec) students.push(s.data()); });
+                students.sort((a, b) => a.name.localeCompare(b.name, 'ar')); // الترتيب الأبجدي
+
+                students.forEach(s => {
+                    const classes = (sub === "الإنكليزي" || sub === "الحاسوب") 
+                        ? ["c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"]
+                        : ["c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"];
+                    let row = `<tr><td>${s.name}</td>`;
+                    classes.forEach((c, idx) => { row += `<td class="${c}"><input type="number" oninput="calculate(this.parentElement.parentElement); checkFail(this, ${idx})"></td>`; });
+                    body.innerHTML += row + "</tr>";
                 });
                 db.collection("grades").doc(`${cls}_${sec}_${sub}`).get().then(doc => {
                     if (doc.exists) {
