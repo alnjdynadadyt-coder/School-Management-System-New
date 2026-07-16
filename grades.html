@@ -94,14 +94,31 @@
         }
 
         function checkFail(input, index) {
-            const sub = document.getElementById('subject').value;
-            const val = getVal(input.value);
-            if (sub === "الإنكليزي" || sub === "الحاسوب") {
-                const excluded = [0, 1, 2, 3, 8, 9, 10, 11]; 
-                if (excluded.includes(index)) { input.classList.remove('fail'); return; }
-            }
-            if (input.value !== "" && val <= 49) { input.classList.add('fail'); } else { input.classList.remove('fail'); }
-        }
+    const sub = document.getElementById('subject').value;
+    const val = getVal(input.value);
+
+    // تلوين "غ" باللون الأحمر دائماً
+    if (input.value === "غ") {
+        input.style.color = "red";
+        input.style.fontWeight = "bold";
+    } else {
+        input.style.color = "";
+        input.style.fontWeight = "";
+    }
+
+    // منطق تلوين الرسوب (للأرقام فقط)
+    if (sub === "الإنكليزي" || sub === "الحاسوب") {
+        const excluded = [0, 1, 2, 3, 8, 9, 10, 11]; 
+        if (excluded.includes(index)) { input.classList.remove('fail'); return; }
+    }
+    
+    if (input.value !== "" && input.value !== "غ" && val <= 49) { 
+        input.classList.add('fail'); 
+    } else { 
+        input.classList.remove('fail'); 
+    }
+}
+
 
         function calculate(row) {
             const sub = document.getElementById('subject').value;
