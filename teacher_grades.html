@@ -2,11 +2,11 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة الدرجات - النظام المطور</title>
+    <title>بوابة المدرس - إدخال الدرجات</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
+        /* نفس التنسيق الأصلي تماماً */
         body { font-family: sans-serif; background: #f4f7f6; padding: 10px; }
         .container { max-width: 1200px; margin: auto; background: white; padding: 15px; border-radius: 12px; }
         .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; align-items: center; }
@@ -19,66 +19,63 @@
         .c-f2 { background-color: #e3f2fd !important; } 
         .c-final { background-color: #fce4ec !important; }
         .c-f1 input, .c-mid input, .c-f2 input, .c-final input { width: 32px !important; padding: 2px; border: 1px solid #ddd; border-radius: 3px; text-align: center; background: transparent; }
-        .fail { color: red !important; font-weight: bold; }
+        .readonly-cell { background-color: #f0f0f0 !important; cursor: not-allowed; }
         .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
-        <button id="backBtn" class="btn" style="background:#6c757d;" onclick="window.history.back()">🔙 العودة</button>
         <div class="controls">
-            <input type="text" id="teacherName" placeholder="اسم المدرس" required>
+            <input type="text" id="teacherName" placeholder="اسم المدرس">
             <select id="gClass"><option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option><option>الرابع الأدبي</option><option>الخامس الأدبي</option><option>السادس الأدبي</option></select>
             <select id="gSection"><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option></select>
-            <input type="text" id="subject" placeholder="اسم المادة" list="subs" required>
-            <datalist id="subs"><option value="الإسلامية"><option value="العربي"><option value="الإنكليزي"><option value="الرياضيات"><option value="الفيزياء"><option value="الكيمياء"><option value="الأحياء"><option value="التاريخ"><option value="الجغرافية"><option value="الاقتصاد"><option value="علم النفس"><option value="الحاسوب"><option value="الاجتماع"><option value="الجرائم"><option value="الرياضة"><option value="الفنية"></datalist>
-            <button class="btn" style="background:#007bff;" onclick="loadGrades()">جلب الطلاب</button>
+            <input type="text" id="subject" placeholder="المادة">
+            <button class="btn" style="background:#28a745;" onclick="loadData()">جلب البيانات</button>
         </div>
         <table id="gradesTable"><thead id="headArea"></thead><tbody id="gradesBody"></tbody></table>
-        <button class="btn" style="width:100%; background:#007bff; margin-top:15px;" onclick="saveGrades()">حفظ الدرجات</button>
+        <button class="btn" style="width:100%; background:#007bff; margin-top:15px;" onclick="saveMyGrades()">حفظ الدرجات الجديدة</button>
     </div>
 
     <script>
-        const isTeacher = window.location.search.includes("mode=teacher");
-        if(isTeacher) { document.getElementById('backBtn').style.display = 'none'; }
-
         const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
-        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        async function loadGrades() {
-            const sub = document.getElementById('subject').value, cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value;
+        async function loadData() {
+            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
             const body = document.getElementById('gradesBody'); body.innerHTML = "";
-            const head = document.getElementById('headArea');
-            head.innerHTML = (sub === "الإنكليزي" || sub === "الحاسوب") ? `<tr><th>الطالب</th><th colspan="7" class="c-f1">الفصل الأول</th><th class="c-mid">ن.سنة</th><th colspan="7" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr>` : `<tr><th>الطالب</th><th colspan="5" class="c-f1">الفصل الأول</th><th class="c-mid">نصف السنة</th><th colspan="5" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr>`;
-
-            const snap = await db.collection("students").where("class", "==", cls).get();
-            let students = []; snap.forEach(s => { if(s.data().section == sec) students.push(s.data()); });
-            students.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
-
             const doc = await db.collection("grades").doc(`${cls}_${sec}_${sub}`).get();
             const savedData = doc.exists ? doc.data() : {};
-
-            students.forEach(s => {
-                let row = `<tr><td>${s.name}</td>`;
-                for(let i=0; i<16; i++) {
-                    let val = savedData[s.name] ? (savedData[s.name][i] || "") : "";
-                    let readOnly = isTeacher && val !== "" ? "readonly style='background:#f0f0f0'" : "";
-                    row += `<td><input type="text" value="${val}" ${readOnly} oninput="calculate(this.parentElement.parentElement)"></td>`;
+            
+            const snap = await db.collection("students").where("class", "==", cls).get();
+            snap.forEach(s => {
+                if(s.data().section == sec) {
+                    let row = `<tr><td>${s.name}</td>`;
+                    for(let i=0; i<16; i++) {
+                        let val = savedData[s.name] ? (savedData[s.name][i] || "") : "";
+                        let isReadOnly = (val !== "" && val !== "0" && val !== 0) ? "readonly class='readonly-cell'" : "";
+                        row += `<td><input type="text" value="${val}" ${isReadOnly}></td>`;
+                    }
+                    body.innerHTML += row + "</tr>";
                 }
-                body.innerHTML += row + "</tr>";
             });
         }
 
-        async function saveGrades() {
+        async function saveMyGrades() {
             const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
-            if(!isTeacher) { const pass = prompt("أدخل كلمة المرور للتعديل:"); if(pass !== "123") return alert("كلمة مرور خاطئة!"); }
-            const dataToSave = { teacher: document.getElementById('teacherName').value };
-            document.querySelectorAll('#gradesBody tr').forEach(row => { dataToSave[row.cells[0].innerText] = Array.from(row.querySelectorAll('input')).map(i => i.value); });
-            await db.collection("grades").doc(`${cls}_${sec}_${sub}`).set(dataToSave); alert("تم الحفظ!");
+            const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
+            const currentDoc = await docRef.get();
+            let dataToSave = currentDoc.exists ? currentDoc.data() : {};
+            
+            document.querySelectorAll('#gradesBody tr').forEach(row => {
+                const name = row.cells[0].innerText;
+                const rowInputs = Array.from(row.querySelectorAll('input'));
+                // نقوم بتحديث القيم فقط للحقول غير المقفلة (أو إضافة الجديدة)
+                dataToSave[name] = rowInputs.map((input, i) => input.value);
+            });
+            await docRef.set(dataToSave);
+            alert("تم حفظ الدرجات الجديدة بنجاح!");
         }
-
-        function calculate(row) { /* منطق الحسابات الأصلي يبقى هنا */ }
     </script>
 </body>
 </html>
