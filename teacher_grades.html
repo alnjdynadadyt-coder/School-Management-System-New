@@ -2,75 +2,82 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>نظام الدرجات - النسخة الكاملة</title>
+    <title>إدارة الدرجات - النسخة النهائية</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f7f6; }
+        body { font-family: sans-serif; background: #f4f7f6; padding: 10px; }
         #mainContent { display: none; }
-        .auth-container { text-align: center; margin-top: 100px; background: white; padding: 50px; border-radius: 15px; }
-        .controls { margin-bottom: 20px; }
+        .controls { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { border: 1px solid #ddd; padding: 5px; text-align: center; }
     </style>
 </head>
 <body>
 
     <!-- بوابة الدخول -->
-    <div id="authScreen" class="auth-container">
+    <div id="authScreen" style="text-align:center; padding-top:100px;">
         <h2>تسجيل دخول المدرس</h2>
         <input type="text" id="teacherInput" placeholder="أدخل اسم المدرس">
         <button id="loginBtn">دخول</button>
     </div>
 
-    <!-- المحتوى الذي كان في صفحتك سابقاً -->
+    <!-- الصفحة الرئيسية -->
     <div id="mainContent">
         <div class="controls">
-            <!-- هنا ستظهر القائمة المنسدلة للصلاحيات -->
-            <input type="text" id="teacherName" readonly placeholder="اسم المدرس">
-            <select id="gClass"><option>الرابع العلمي</option></select>
-            <select id="gSection"><option>أ</option></select>
-            <input type="text" id="subject" placeholder="المادة">
-            <button onclick="loadGrades()">جلب البيانات</button>
+            <input type="text" id="teacherName" readonly style="font-weight:bold; border:none; background:none;">
+            <select id="permSelect"></select>
+            <button onclick="triggerLoad()">جلب البيانات</button>
         </div>
-        <table id="gradesTable" border="1"><tbody id="gradesBody"></tbody></table>
+        <table id="gradesTable">
+            <thead id="headArea"></thead>
+            <tbody id="gradesBody"></tbody>
+        </table>
     </div>
 
     <script>
         const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
-        firebase.initializeApp(firebaseConfig);
+        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
         document.getElementById('loginBtn').onclick = async function() {
             const name = document.getElementById('teacherInput').value.trim();
             const snap = await db.collection("teachers_permissions").where("name", "==", name).get();
-            
             if (snap.empty) { alert("اسم غير مسجل!"); return; }
 
-            // إخفاء البوابة وإظهار محتوى الصفحة
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('teacherName').value = "المدرس: " + name;
 
-            // إنشاء قائمة الصلاحيات
-            const selectBox = document.createElement('select');
+            const permSelect = document.getElementById('permSelect');
             snap.forEach(doc => {
                 let d = doc.data();
                 let opt = document.createElement('option');
                 opt.value = JSON.stringify(d);
                 opt.innerText = `${d.class} - ${d.section} - ${d.subject}`;
-                selectBox.appendChild(opt);
+                permSelect.appendChild(opt);
             });
-            selectBox.onchange = function() {
-                let d = JSON.parse(this.value);
-                document.getElementById('gClass').value = d.class;
-                document.getElementById('gSection').value = d.section;
-                document.getElementById('subject').value = d.subject;
-                loadGrades();
-            };
-            document.querySelector('.controls').prepend(selectBox);
         };
 
-        // ضع هنا كل الدوال الأصلية التي كانت في صفحتك (loadGrades, saveGrades...)
-        function loadGrades() { alert("جاري تحميل بيانات المادة المختارة..."); }
+        function triggerLoad() {
+            const data = JSON.parse(document.getElementById('permSelect').value);
+            loadGrades(data.class, data.section, data.subject);
+        }
+
+        // هنا تضع دالتك الأصلية loadGrades مع تعديل بسيط لتستقبل القيم من المعاملات
+        function loadGrades(cls, sec, sub) {
+            alert("جاري جلب بيانات: " + sub + " للصف " + cls);
+            // ضع هنا كود جلب الطلاب من Firebase الخاص بك
+            const body = document.getElementById('gradesBody');
+            body.innerHTML = ""; // تنظيف الجدول
+            db.collection("students").where("class", "==", cls).get().then(snap => {
+                snap.forEach(s => {
+                    if(s.data().section == sec) {
+                        body.innerHTML += `<tr><td>${s.data().name}</td><td><input type="text"></td></tr>`;
+                    }
+                });
+            });
+        }
     </script>
 </body>
 </html>
