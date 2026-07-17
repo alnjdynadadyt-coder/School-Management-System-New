@@ -12,20 +12,21 @@
         th, td { border: 1px solid #ddd; padding: 3px; text-align: center; }
         .c-f1 { background-color: #fff9c4 !important; } .c-mid { background-color: #e8f5e9 !important; } 
         .c-f2 { background-color: #e3f2fd !important; } .c-final { background-color: #fce4ec !important; }
-        input { width: 32px; padding: 2px; border: 1px solid #ddd; text-align: center; background: transparent; }
+        /* تم تكبير حقل اسم المدرس هنا */
+        #teacherName { width: 80%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; text-align: center; }
         .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; color: white; background: #007bff; }
         .back-btn { background: #6c757d; margin-bottom: 15px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- زر العودة يظهر دائماً -->
         <button class="btn back-btn" onclick="window.history.back()">🔙 العودة للوحة الرئيسية</button>
 
         <div id="loginArea">
             <h2>دخول المدرس</h2>
             <input type="text" id="teacherName" placeholder="اسم المدرس">
-            <button class="btn" onclick="checkPermissions()">دخول</button>
+            <br>
+            <button class="btn" style="width: 80%; padding: 12px; font-size: 16px;" onclick="checkPermissions()">دخول</button>
         </div>
         
         <div id="gradesArea" style="display:none;">
