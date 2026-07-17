@@ -2,11 +2,10 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>بوابة المدرس - إدخال الدرجات</title>
+    <title>بوابة المدرس</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* نفس التنسيق الأصلي تماماً */
         body { font-family: sans-serif; background: #f4f7f6; padding: 10px; }
         .container { max-width: 1200px; margin: auto; background: white; padding: 15px; border-radius: 12px; }
         .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; align-items: center; }
@@ -14,12 +13,10 @@
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
         th, td { border: 1px solid #ddd; padding: 3px; text-align: center; }
         th:first-child, td:first-child { min-width: 130px; text-align: right; }
-        .c-f1 { background-color: #fff9c4 !important; } 
-        .c-mid { background-color: #e8f5e9 !important; } 
-        .c-f2 { background-color: #e3f2fd !important; } 
-        .c-final { background-color: #fce4ec !important; }
+        .c-f1 { background-color: #fff9c4 !important; } .c-mid { background-color: #e8f5e9 !important; } 
+        .c-f2 { background-color: #e3f2fd !important; } .c-final { background-color: #fce4ec !important; }
         .c-f1 input, .c-mid input, .c-f2 input, .c-final input { width: 32px !important; padding: 2px; border: 1px solid #ddd; border-radius: 3px; text-align: center; background: transparent; }
-        .readonly-cell { background-color: #f0f0f0 !important; cursor: not-allowed; }
+        .readonly { background-color: #e9ecef !important; cursor: not-allowed; }
         .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
     </style>
 </head>
@@ -33,13 +30,17 @@
             <button class="btn" style="background:#28a745;" onclick="loadData()">جلب البيانات</button>
         </div>
         <table id="gradesTable"><thead id="headArea"></thead><tbody id="gradesBody"></tbody></table>
-        <button class="btn" style="width:100%; background:#007bff; margin-top:15px;" onclick="saveMyGrades()">حفظ الدرجات الجديدة</button>
+        <button class="btn" style="width:100%; background:#007bff; margin-top:15px;" onclick="saveData()">حفظ التعديلات الجديدة</button>
     </div>
 
     <script>
         const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+
+        // 1. التحقق الفوري من كلمة المرور
+        const pass = prompt("يرجى إدخال كلمة المرور:");
+        if (pass !== "123") { alert("كلمة مرور خاطئة!"); window.location.href = "about:blank"; }
 
         async function loadData() {
             const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
@@ -53,28 +54,22 @@
                     let row = `<tr><td>${s.name}</td>`;
                     for(let i=0; i<16; i++) {
                         let val = savedData[s.name] ? (savedData[s.name][i] || "") : "";
-                        let isReadOnly = (val !== "" && val !== "0" && val !== 0) ? "readonly class='readonly-cell'" : "";
-                        row += `<td><input type="text" value="${val}" ${isReadOnly}></td>`;
+                        let ro = (val !== "" && val !== "0") ? "readonly class='readonly'" : "";
+                        row += `<td><input type="text" value="${val}" ${ro}></td>`;
                     }
                     body.innerHTML += row + "</tr>";
                 }
             });
         }
 
-        async function saveMyGrades() {
+        async function saveData() {
             const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
-            const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
-            const currentDoc = await docRef.get();
-            let dataToSave = currentDoc.exists ? currentDoc.data() : {};
-            
+            const data = {}; 
             document.querySelectorAll('#gradesBody tr').forEach(row => {
-                const name = row.cells[0].innerText;
-                const rowInputs = Array.from(row.querySelectorAll('input'));
-                // نقوم بتحديث القيم فقط للحقول غير المقفلة (أو إضافة الجديدة)
-                dataToSave[name] = rowInputs.map((input, i) => input.value);
+                data[row.cells[0].innerText] = Array.from(row.querySelectorAll('input')).map(i => i.value);
             });
-            await docRef.set(dataToSave);
-            alert("تم حفظ الدرجات الجديدة بنجاح!");
+            await db.collection("grades").doc(`${cls}_${sec}_${sub}`).set(data, {merge: true});
+            alert("تم الحفظ!");
         }
     </script>
 </body>
