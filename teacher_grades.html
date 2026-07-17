@@ -2,47 +2,75 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة الدرجات</title>
+    <title>نظام الدرجات - النسخة الكاملة</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f7f6; }
         #mainContent { display: none; }
-        body { font-family: sans-serif; text-align: center; padding: 20px; }
-        .auth-container { margin-top: 100px; }
+        .auth-container { text-align: center; margin-top: 100px; background: white; padding: 50px; border-radius: 15px; }
+        .controls { margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
-    <!-- واجهة الدخول -->
+    <!-- بوابة الدخول -->
     <div id="authScreen" class="auth-container">
         <h2>تسجيل دخول المدرس</h2>
         <input type="text" id="teacherInput" placeholder="أدخل اسم المدرس">
-        <button onclick="checkAccess()">دخول</button>
+        <button id="loginBtn">دخول</button>
     </div>
 
-    <!-- الصفحة الرئيسية -->
+    <!-- المحتوى الذي كان في صفحتك سابقاً -->
     <div id="mainContent">
-        <h1>أهلاً بك في نظام الدرجات</h1>
-        <!-- هنا سيعمل كودك الأصلي كما هو -->
+        <div class="controls">
+            <!-- هنا ستظهر القائمة المنسدلة للصلاحيات -->
+            <input type="text" id="teacherName" readonly placeholder="اسم المدرس">
+            <select id="gClass"><option>الرابع العلمي</option></select>
+            <select id="gSection"><option>أ</option></select>
+            <input type="text" id="subject" placeholder="المادة">
+            <button onclick="loadGrades()">جلب البيانات</button>
+        </div>
+        <table id="gradesTable" border="1"><tbody id="gradesBody"></tbody></table>
     </div>
 
     <script>
         const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        async function checkAccess() {
+        document.getElementById('loginBtn').onclick = async function() {
             const name = document.getElementById('teacherInput').value.trim();
             const snap = await db.collection("teachers_permissions").where("name", "==", name).get();
             
-            if (!snap.empty) {
-                document.getElementById('authScreen').style.display = 'none';
-                document.getElementById('mainContent').style.display = 'block';
-                alert("تم الدخول بنجاح");
-            } else {
-                alert("اسم غير مصرح به!");
-            }
-        }
+            if (snap.empty) { alert("اسم غير مسجل!"); return; }
+
+            // إخفاء البوابة وإظهار محتوى الصفحة
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+
+            // إنشاء قائمة الصلاحيات
+            const selectBox = document.createElement('select');
+            snap.forEach(doc => {
+                let d = doc.data();
+                let opt = document.createElement('option');
+                opt.value = JSON.stringify(d);
+                opt.innerText = `${d.class} - ${d.section} - ${d.subject}`;
+                selectBox.appendChild(opt);
+            });
+            selectBox.onchange = function() {
+                let d = JSON.parse(this.value);
+                document.getElementById('gClass').value = d.class;
+                document.getElementById('gSection').value = d.section;
+                document.getElementById('subject').value = d.subject;
+                loadGrades();
+            };
+            document.querySelector('.controls').prepend(selectBox);
+        };
+
+        // ضع هنا كل الدوال الأصلية التي كانت في صفحتك (loadGrades, saveGrades...)
+        function loadGrades() { alert("جاري تحميل بيانات المادة المختارة..."); }
     </script>
 </body>
 </html>
