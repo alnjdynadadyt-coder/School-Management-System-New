@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>صفحة المدرس</title>
+    <title>صفحة المدرس - نظام الدرجات</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
@@ -10,7 +10,10 @@
         .container { max-width: 1200px; margin: auto; background: white; padding: 15px; border-radius: 12px; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 15px; }
         th, td { border: 1px solid #ddd; padding: 3px; text-align: center; }
-        .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; background: #007bff; }
+        .c-f1 { background-color: #fff9c4 !important; } .c-mid { background-color: #e8f5e9 !important; } 
+        .c-f2 { background-color: #e3f2fd !important; } .c-final { background-color: #fce4ec !important; }
+        input { width: 32px; padding: 2px; border: 1px solid #ddd; text-align: center; background: transparent; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; color: white; background: #007bff; }
     </style>
 </head>
 <body>
@@ -20,7 +23,6 @@
             <input type="text" id="teacherName" placeholder="اسم المدرس">
             <button class="btn" onclick="checkPermissions()">دخول</button>
         </div>
-
         <div id="gradesArea" style="display:none;">
             <h3 id="welcomeMsg"></h3>
             <select id="allowedClasses" onchange="loadStudentGrades()"></select>
@@ -37,12 +39,10 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // 1. تسجيل الدخول وجلب الصلاحيات
         async function checkPermissions() {
             const name = document.getElementById('teacherName').value;
             const snap = await db.collection("teachers_permissions").where("name", "==", name).get();
             if (snap.empty) return alert("اسم غير مصرح له!");
-
             let select = document.getElementById('allowedClasses');
             select.innerHTML = '<option value="">اختر الصف والمادة</option>';
             snap.forEach(doc => {
@@ -57,35 +57,46 @@
             document.getElementById('welcomeMsg').innerText = "مرحباً: " + name;
         }
 
-        // 2. دالة جلب الطلاب (مدمجة من ملفك القديم)
         async function loadStudentGrades() {
             const data = JSON.parse(document.getElementById('allowedClasses').value);
             const head = document.getElementById('headArea');
             const body = document.getElementById('gradesBody');
             body.innerHTML = "";
 
-            if (data.subject === "الإنكليزي" || data.subject === "الحاسوب") {
-                head.innerHTML = `<tr><th>الطالب</th><th colspan="7">الفصل الأول</th><th>ن.سنة</th><th colspan="7">الفصل الثاني</th><th>السعي</th></tr>`;
-            } else {
-                head.innerHTML = `<tr><th>الطالب</th><th colspan="5">الفصل الأول</th><th>نصف السنة</th><th colspan="5">الفصل الثاني</th><th>النتيجة</th></tr>`;
-            }
+            // تحديد التخطيط بناءً على المادة
+            const isEnglishOrComputer = (data.subject === "الإنكليزي" || data.subject === "الحاسوب");
+            head.innerHTML = isEnglishOrComputer 
+                ? `<tr><th>الطالب</th><th colspan="7" class="c-f1">الفصل الأول</th><th class="c-mid">ن.سنة</th><th colspan="7" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr>`
+                : `<tr><th>الطالب</th><th colspan="5" class="c-f1">الفصل الأول</th><th class="c-mid">نصف السنة</th><th colspan="5" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr>`;
+
+            const classes = isEnglishOrComputer 
+                ? ["c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"]
+                : ["c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"];
 
             const snap = await db.collection("students").where("class", "==", data.class).get();
-            snap.forEach(s => {
-                if(s.data().section == data.section) {
-                    body.innerHTML += `<tr><td>${s.data().name}</td>` + '<td><input type="text"></td>'.repeat(16) + `</tr>`;
-                }
+            let students = [];
+            snap.forEach(s => { if(s.data().section == data.section) students.push(s.data()); });
+            students.sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+
+            students.forEach(s => {
+                let row = `<tr><td>${s.name}</td>`;
+                classes.forEach(c => { row += `<td class="${c}"><input type="text"></td>`; });
+                body.innerHTML += row + "</tr>";
             });
-            
-            // جلب الدرجات المحفوظة لنفس المدرس والمادة والصف
+
+            // جلب الدرجات المحفوظة
             const gDoc = await db.collection("grades").doc(`${data.class}_${data.section}_${data.subject}`).get();
             if (gDoc.exists) {
-                // (هنا يمكنك إضافة كود تعبئة الحقول إذا كانت الدرجات موجودة)
+                const gData = gDoc.data();
+                document.querySelectorAll('#gradesBody tr').forEach(row => {
+                    const name = row.cells[0].innerText;
+                    if (gData[name]) {
+                        const inputs = row.querySelectorAll('input');
+                        gData[name].forEach((val, i) => { if(inputs[i]) inputs[i].value = val; });
+                    }
+                });
             }
         }
-        
-        function saveGrades() { alert("تم الربط بنجاح! يمكنك الآن إضافة كود الحفظ الفعلي."); }
     </script>
 </body>
 </html>
- 
