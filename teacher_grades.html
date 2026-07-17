@@ -14,12 +14,13 @@
         .c-f2 { background-color: #e3f2fd !important; } .c-final { background-color: #fce4ec !important; }
         input { width: 32px; padding: 2px; border: 1px solid #ddd; text-align: center; background: transparent; }
         .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; color: white; background: #007bff; }
+        .back-btn { background: #6c757d; margin-bottom: 15px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- زر العودة يظهر فقط للمدير -->
-        <button id="backBtn" class="btn" style="background:#6c757d; display:none; margin-bottom:10px;" onclick="window.history.back()">🔙 العودة للوحة المدير</button>
+        <!-- زر العودة يظهر دائماً -->
+        <button class="btn back-btn" onclick="window.history.back()">🔙 العودة للوحة الرئيسية</button>
 
         <div id="loginArea">
             <h2>دخول المدرس</h2>
@@ -42,12 +43,6 @@
         const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-
-        // منطق إظهار زر العودة
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('admin')) {
-            document.getElementById('backBtn').style.display = 'block';
-        }
 
         async function checkPermissions() {
             const name = document.getElementById('teacherName').value;
