@@ -42,6 +42,38 @@
     </style>
 </head>
 <body>
+        <!-- الحارس: نظام التحقق -->
+    <div id="authOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+        <h2 style="color:#333;">تسجيل دخول المدرس</h2>
+        <input type="text" id="loginName" placeholder="أدخل اسم المدرس" style="padding:10px; width:250px; border:1px solid #ccc; border-radius:5px;">
+        <button onclick="applyAuth()" style="margin-top:10px; padding:10px 30px; background:#007bff; color:white; border:none; border-radius:5px; cursor:pointer;">دخول</button>
+    </div>
+
+    <script>
+    async function applyAuth() {
+        const name = document.getElementById('loginName').value.trim();
+        const snap = await db.collection("teachers_permissions").where("name", "==", name).get();
+        
+        if (snap.empty) {
+            alert("اسم غير مسجل في نظام الصلاحيات!");
+            return;
+        }
+
+        document.getElementById('authOverlay').style.display = 'none';
+        document.getElementById('teacherName').value = name;
+        
+        snap.forEach(doc => {
+            let d = doc.data();
+            document.getElementById('gClass').value = d.class;
+            document.getElementById('gSection').value = d.section;
+            document.getElementById('subject').value = d.subject;
+        });
+        
+        loadGrades();
+    }
+    </script>
+    <!-- نهاية الحارس -->
+
     <div class="container">
         <button class="btn" style="background:#6c757d;" onclick="window.history.back()">🔙 العودة</button>
         <div class="controls">
