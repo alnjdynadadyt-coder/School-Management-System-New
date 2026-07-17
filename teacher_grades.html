@@ -2,74 +2,100 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>بوابة المدرس</title>
+    <title>صفحة المدرس - نظام الدرجات</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         body { font-family: sans-serif; background: #f4f7f6; padding: 10px; }
         .container { max-width: 1200px; margin: auto; background: white; padding: 15px; border-radius: 12px; }
-        .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; align-items: center; }
-        select, input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 15px; }
         th, td { border: 1px solid #ddd; padding: 3px; text-align: center; }
-        th:first-child, td:first-child { min-width: 130px; text-align: right; }
         .c-f1 { background-color: #fff9c4 !important; } .c-mid { background-color: #e8f5e9 !important; } 
         .c-f2 { background-color: #e3f2fd !important; } .c-final { background-color: #fce4ec !important; }
-        .c-f1 input, .c-mid input, .c-f2 input, .c-final input { width: 32px !important; padding: 2px; border: 1px solid #ddd; border-radius: 3px; text-align: center; background: transparent; }
-        .readonly { background-color: #e9ecef !important; cursor: not-allowed; }
-        .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
+        input { width: 32px; padding: 2px; border: 1px solid #ddd; text-align: center; background: transparent; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; color: white; background: #007bff; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="controls">
+        <div id="loginArea">
+            <h2>دخول المدرس</h2>
             <input type="text" id="teacherName" placeholder="اسم المدرس">
-            <select id="gClass"><option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option><option>الرابع الأدبي</option><option>الخامس الأدبي</option><option>السادس الأدبي</option></select>
-            <select id="gSection"><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option></select>
-            <input type="text" id="subject" placeholder="المادة">
-            <button class="btn" style="background:#28a745;" onclick="loadData()">جلب البيانات</button>
+            <button class="btn" onclick="checkPermissions()">دخول</button>
         </div>
-        <table id="gradesTable"><thead id="headArea"></thead><tbody id="gradesBody"></tbody></table>
-        <button class="btn" style="width:100%; background:#007bff; margin-top:15px;" onclick="saveData()">حفظ التعديلات الجديدة</button>
+        <div id="gradesArea" style="display:none;">
+            <h3 id="welcomeMsg"></h3>
+            <select id="allowedClasses" onchange="loadStudentGrades()"></select>
+            <table id="gradesTable">
+                <thead id="headArea"></thead>
+                <tbody id="gradesBody"></tbody>
+            </table>
+            <button class="btn" style="width:100%; margin-top:15px;" onclick="saveGrades()">حفظ الدرجات</button>
+        </div>
     </div>
 
     <script>
         const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
-        firebase.initializeApp(firebaseConfig);
+        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // 1. التحقق الفوري من كلمة المرور
-        const pass = prompt("يرجى إدخال كلمة المرور:");
-        if (pass !== "123") { alert("كلمة مرور خاطئة!"); window.location.href = "about:blank"; }
-
-        async function loadData() {
-            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
-            const body = document.getElementById('gradesBody'); body.innerHTML = "";
-            const doc = await db.collection("grades").doc(`${cls}_${sec}_${sub}`).get();
-            const savedData = doc.exists ? doc.data() : {};
-            
-            const snap = await db.collection("students").where("class", "==", cls).get();
-            snap.forEach(s => {
-                if(s.data().section == sec) {
-                    let row = `<tr><td>${s.name}</td>`;
-                    for(let i=0; i<16; i++) {
-                        let val = savedData[s.name] ? (savedData[s.name][i] || "") : "";
-                        let ro = (val !== "" && val !== "0") ? "readonly class='readonly'" : "";
-                        row += `<td><input type="text" value="${val}" ${ro}></td>`;
-                    }
-                    body.innerHTML += row + "</tr>";
-                }
+        async function checkPermissions() {
+            const name = document.getElementById('teacherName').value;
+            const snap = await db.collection("teachers_permissions").where("name", "==", name).get();
+            if (snap.empty) return alert("اسم غير مصرح له!");
+            let select = document.getElementById('allowedClasses');
+            select.innerHTML = '<option value="">اختر الصف والمادة</option>';
+            snap.forEach(doc => {
+                let d = doc.data();
+                let opt = document.createElement('option');
+                opt.value = JSON.stringify(d);
+                opt.innerHTML = `${d.subject} - ${d.class} - ${d.section}`;
+                select.appendChild(opt);
             });
+            document.getElementById('loginArea').style.display = 'none';
+            document.getElementById('gradesArea').style.display = 'block';
+            document.getElementById('welcomeMsg').innerText = "مرحباً: " + name;
         }
 
-        async function saveData() {
-            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
-            const data = {}; 
-            document.querySelectorAll('#gradesBody tr').forEach(row => {
-                data[row.cells[0].innerText] = Array.from(row.querySelectorAll('input')).map(i => i.value);
+        async function loadStudentGrades() {
+            const data = JSON.parse(document.getElementById('allowedClasses').value);
+            const head = document.getElementById('headArea');
+            const body = document.getElementById('gradesBody');
+            body.innerHTML = "";
+
+            // تحديد التخطيط بناءً على المادة
+            const isEnglishOrComputer = (data.subject === "الإنكليزي" || data.subject === "الحاسوب");
+            head.innerHTML = isEnglishOrComputer 
+                ? `<tr><th>الطالب</th><th colspan="7" class="c-f1">الفصل الأول</th><th class="c-mid">ن.سنة</th><th colspan="7" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr>`
+                : `<tr><th>الطالب</th><th colspan="5" class="c-f1">الفصل الأول</th><th class="c-mid">نصف السنة</th><th colspan="5" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr>`;
+
+            const classes = isEnglishOrComputer 
+                ? ["c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"]
+                : ["c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"];
+
+            const snap = await db.collection("students").where("class", "==", data.class).get();
+            let students = [];
+            snap.forEach(s => { if(s.data().section == data.section) students.push(s.data()); });
+            students.sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+
+            students.forEach(s => {
+                let row = `<tr><td>${s.name}</td>`;
+                classes.forEach(c => { row += `<td class="${c}"><input type="text"></td>`; });
+                body.innerHTML += row + "</tr>";
             });
-            await db.collection("grades").doc(`${cls}_${sec}_${sub}`).set(data, {merge: true});
-            alert("تم الحفظ!");
+
+            // جلب الدرجات المحفوظة
+            const gDoc = await db.collection("grades").doc(`${data.class}_${data.section}_${data.subject}`).get();
+            if (gDoc.exists) {
+                const gData = gDoc.data();
+                document.querySelectorAll('#gradesBody tr').forEach(row => {
+                    const name = row.cells[0].innerText;
+                    if (gData[name]) {
+                        const inputs = row.querySelectorAll('input');
+                        gData[name].forEach((val, i) => { if(inputs[i]) inputs[i].value = val; });
+                    }
+                });
+            }
         }
     </script>
 </body>
