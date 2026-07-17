@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>نظام إدارة الدرجات المباشر</title>
+    <title>إدارة الدرجات</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
@@ -13,32 +13,32 @@
 </head>
 <body>
 
-    <!-- بوابة الدخول المباشرة -->
+    <!-- واجهة الدخول -->
     <div id="authScreen" class="auth-container">
         <h2>تسجيل دخول المدرس</h2>
         <input type="text" id="teacherInput" placeholder="أدخل اسم المدرس">
-        <button onclick="loginAndAccess()">دخول</button>
+        <button onclick="checkAccess()">دخول</button>
     </div>
 
-    <!-- الصفحة الرئيسية (مخفية حتى يتم الدخول) -->
+    <!-- الصفحة الرئيسية -->
     <div id="mainContent">
-        <!-- هنا يوضع محتوى صفحتك الأصلي بالكامل -->
-        <h1>تم الدخول بنجاح</h1>
-        <p>مرحباً بك في صفحة الدرجات.</p>
+        <h1>أهلاً بك في نظام الدرجات</h1>
+        <!-- هنا سيعمل كودك الأصلي كما هو -->
     </div>
 
     <script>
+        const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        async function loginAndAccess() {
+        async function checkAccess() {
             const name = document.getElementById('teacherInput').value.trim();
             const snap = await db.collection("teachers_permissions").where("name", "==", name).get();
             
             if (!snap.empty) {
-                // إخفاء البوابة وإظهار الصفحة مباشرة
                 document.getElementById('authScreen').style.display = 'none';
                 document.getElementById('mainContent').style.display = 'block';
-                // هنا سيتم تفعيل كل دوالك الأصلية تلقائياً
+                alert("تم الدخول بنجاح");
             } else {
                 alert("اسم غير مصرح به!");
             }
