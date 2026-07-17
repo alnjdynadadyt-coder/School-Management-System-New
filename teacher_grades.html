@@ -2,65 +2,33 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة الدرجات - النسخة الذهبية 2</title>
+    <title>بوابة المدرس</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f4f7f6; padding: 10px; }
-        .container { max-width: 1200px; margin: auto; background: white; padding: 15px; border-radius: 12px; }
-        .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; align-items: center; }
-        select, input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        th, td { border: 1px solid #ddd; padding: 3px; text-align: center; }
-        th:first-child, td:first-child { min-width: 130px; text-align: right; }
-        
-        .c-f1 { background-color: #fff9c4 !important; } 
-        .c-mid { background-color: #e8f5e9 !important; } 
-        .c-f2 { background-color: #e3f2fd !important; } 
-        .c-final { background-color: #fce4ec !important; }
-
-        .c-f1 input, .c-mid input, .c-f2 input, .c-final input { 
-    width: 32px !important; 
-    padding: 2px; 
-    border: 1px solid #ddd; 
-    border-radius: 3px; 
-    text-align: center; 
-    background: transparent; 
-}
-        
-        .fail { color: red !important; font-weight: bold; }
-        .pass { color: black !important; }
-        .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
-
-        @media print {
-            @page { size: A4 landscape; margin: 5mm; }
-            body { background: white; font-size: 9px; }
-            .btn, button { display: none !important; }
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        }
+        body { font-family: sans-serif; background: #f4f7f6; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 12px; }
+        .login-box { text-align: center; margin-bottom: 20px; }
+        input, select { padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin: 5px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 5px; text-align: center; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
-        <button class="btn" style="background:#6c757d;" onclick="window.history.back()">🔙 العودة</button>
-        <div class="controls">
-            <input type="text" id="teacherName" placeholder="اسم المدرس" required>
-            <select id="gClass"><option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option><option>الرابع الأدبي</option><option>الخامس الأدبي</option><option>السادس الأدبي</option></select>
-            <select id="gSection"><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option></select>
-            <input type="text" id="subject" placeholder="اسم المادة" list="subs" required>
-            <datalist id="subs">
-                <option value="الإسلامية"><option value="العربي"><option value="الإنكليزي"><option value="الرياضيات"><option value="الفيزياء"><option value="الكيمياء"><option value="الأحياء"><option value="التاريخ"><option value="الجغرافية"><option value="الاقتصاد"><option value="علم النفس"><option value="الحاسوب"><option value="الاجتماع"><option value="الجرائم"><option value="الرياضة"><option value="الفنية">
-            </datalist>
-            <button class="btn" style="background:#007bff;" onclick="loadGrades()">جلب الطلاب</button>
-            <button class="btn" style="background:#28a745;" onclick="exportExcel()">تصدير Excel</button>
-            <button class="btn" style="background:#dc3545;" onclick="printArabic()">طباعة PDF</button>
+        <div class="login-box" id="loginArea">
+            <input type="text" id="teacherName" placeholder="أدخل اسمك الكريم">
+            <button class="btn" style="background:#007bff;" onclick="checkPermissions()">دخول</button>
         </div>
-        <table id="gradesTable">
+        <div id="controlArea" style="display:none;">
+            <select id="permSelect" onchange="loadTeacherGrades()"><option>اختر المادة والصف</option></select>
+        </div>
+        <table id="gradesTable" style="display:none;">
             <thead id="headArea"></thead>
             <tbody id="gradesBody"></tbody>
         </table>
-        <button class="btn" style="width:100%; background:#007bff; margin-top:15px;" onclick="saveGrades()">حفظ الدرجات</button>
+        <button id="saveBtn" class="btn" style="width:100%; background:#28a745; margin-top:15px; display:none;" onclick="saveTeacherGrades()">حفظ التغييرات</button>
     </div>
 
     <script>
@@ -68,157 +36,77 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        function validateInputs() {
-            if(!document.getElementById('teacherName').value || !document.getElementById('subject').value) {
-                alert("يرجى إدخال اسم المدرس واسم المادة أولاً!"); return false;
-            } return true;
-        }
+        let currentSelection = null;
 
-        async function saveGrades() {
-            if(!validateInputs()) return;
-            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
-            const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
-            const doc = await docRef.get();
-            if (doc.exists) { const pass = prompt("أدخل كلمة المرور للتعديل:"); if (pass !== "123") { alert("كلمة مرور خاطئة!"); return; } }
-            const rows = document.querySelectorAll('#gradesBody tr');
-            const dataToSave = { teacher: document.getElementById('teacherName').value };
-            rows.forEach((row) => { dataToSave[row.cells[0].innerText] = Array.from(row.querySelectorAll('input')).map(i => i.value); });
-            await docRef.set(dataToSave); alert("تم الحفظ بنجاح!");
-        }
-
-                // دالة معالجة القيم لدعم الغياب والأرقام
-        function getVal(v) { 
-            if (v === "غ" || v === "G" || v === "٠" || v === "0") return 0;
-            let clean = v.toString().replace(/[٠-٩]/g, d => "0123456789".indexOf(d));
-            return parseFloat(clean) || 0; 
-        }
-
-        function checkFail(input, index) {
-    const sub = document.getElementById('subject').value;
-    const val = getVal(input.value);
-
-    // تلوين "غ" باللون الأحمر دائماً
-    if (input.value === "غ") {
-        input.style.color = "red";
-        input.style.fontWeight = "bold";
-    } else {
-        input.style.color = "";
-        input.style.fontWeight = "";
-    }
-
-    // منطق تلوين الرسوب (للأرقام فقط)
-    if (sub === "الإنكليزي" || sub === "الحاسوب") {
-        const excluded = [0, 1, 2, 3, 8, 9, 10, 11]; 
-        if (excluded.includes(index)) { input.classList.remove('fail'); return; }
-    }
-    
-    if (input.value !== "" && input.value !== "غ" && val <= 49) { 
-        input.classList.add('fail'); 
-    } else { 
-        input.classList.remove('fail'); 
-    }
-}
-
-
-        function calculate(row) {
-            const sub = document.getElementById('subject').value;
-            const i = row.querySelectorAll('input');
-            if (sub === "الإنكليزي" || sub === "الحاسوب") {i[4].value = (i[0].value && i[1].value) ? (getVal(i[0].value) + getVal(i[1].value)) : "";
-i[5].value = (i[2].value && i[3].value) ? (getVal(i[2].value) + getVal(i[3].value)) : "";
-i[6].value = (i[4].value !== "" && i[5].value !== "") ? Math.round((getVal(i[4].value) + getVal(i[5].value)) / 2) : "";
-i[12].value = (i[8].value && i[9].value) ? (getVal(i[8].value) + getVal(i[9].value)) : "";
-i[13].value = (i[10].value && i[11].value) ? (getVal(i[10].value) + getVal(i[11].value)) : "";
-i[14].value = (i[12].value !== "" && i[13].value !== "") ? Math.round((getVal(i[12].value) + getVal(i[13].value)) / 2) : "";
-i[15].value = (i[6].value !== "" && i[7].value !== "" && i[14].value !== "") ? Math.round((getVal(i[6].value) + getVal(i[7].value) + getVal(i[14].value)) / 3) : "";
-            } else {
-                                if (i[0].value !== "" && i[1].value !== "") i[2].value = Math.round((getVal(i[0].value) + getVal(i[1].value)) / 2); else i[2].value = "";
-                if (i[2].value !== "" && i[3].value !== "") i[4].value = Math.round((getVal(i[2].value) + getVal(i[3].value)) / 2); else i[4].value = "";
-                if (i[6].value !== "" && i[7].value !== "") i[8].value = Math.round((getVal(i[6].value) + getVal(i[7].value)) / 2); else i[8].value = "";
-                if (i[8].value !== "" && i[9].value !== "") i[10].value = Math.round((getVal(i[8].value) + getVal(i[9].value)) / 2); else i[10].value = "";
-                if (i[4].value !== "" && i[5].value !== "" && i[10].value !== "") i[11].value = Math.round((getVal(i[4].value) + getVal(i[5].value) + getVal(i[10].value)) / 3); else i[11].value = "";
-            }
-            i.forEach((input, idx) => checkFail(input, idx));
-        }
-
-        function loadGrades() {
-            if(!validateInputs()) return;
-            const sub = document.getElementById('subject').value;
-            const head = document.getElementById('headArea');
-            const body = document.getElementById('gradesBody'); body.innerHTML = "";
-            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value;
-
-            if (sub === "الإنكليزي" || sub === "الحاسوب") {
-                head.innerHTML = `<tr><th>الطالب</th><th colspan="7" class="c-f1">الفصل الأول</th><th class="c-mid">ن.سنة</th><th colspan="7" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr><tr><th></th><th>ش1</th><th>يومي</th><th>ش2</th><th>يومي</th><th>مج.ش1</th><th>مج.ش2</th><th>فصل1</th><th>ن.سنة</th><th>ش1</th><th>يومي</th><th>ش2</th><th>يومي</th><th>مج.ش1</th><th>مج.ش2</th><th>فصل2</th><th>السعي</th></tr>`;
-            } else {
-                head.innerHTML = `<tr><th>الطالب</th><th colspan="5" class="c-f1">الفصل الأول</th><th class="c-mid">نصف السنة</th><th colspan="5" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr><tr><th></th><th class="c-f1">ش1</th><th class="c-f1">ش2</th><th class="c-f1">م.ش</th><th class="c-f1">يومي1</th><th class="c-f1">فصل1</th><th class="c-mid">ن.سنة</th><th class="c-f2">ش1</th><th class="c-f2">ش2</th><th class="c-f2">م.ش</th><th class="c-f2">يومي2</th><th class="c-f2">فصل2</th><th class="c-final">النتيجة</th></tr>`;
-            }
-
-                        db.collection("students").where("class", "==", cls).get().then(snap => {
-                let students = [];
-                snap.forEach(s => { if(s.data().section == sec) students.push(s.data()); });
-                students.sort((a, b) => a.name.localeCompare(b.name, 'ar')); // الترتيب الأبجدي
-
-                students.forEach(s => {
-                    const classes = (sub === "الإنكليزي" || sub === "الحاسوب") 
-                        ? ["c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"]
-                        : ["c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"];
-                    let row = `<tr><td>${s.name}</td>`;
-                    classes.forEach((c, idx) => { row += `<td class="${c}"><input type="text" style="width: 32px !important; text-align: center;" oninput="calculate(this.parentElement.parentElement); checkFail(this, ${idx})"></td>`; });
-
-                    body.innerHTML += row + "</tr>";
+        function checkPermissions() {
+            const name = document.getElementById('teacherName').value;
+            db.collection("teachers_permissions").where("name", "==", name).get().then(snap => {
+                const select = document.getElementById('permSelect');
+                select.innerHTML = '<option>اختر المادة والصف</option>';
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const opt = document.createElement('option');
+                    opt.value = JSON.stringify(d);
+                    opt.innerText = `${d.subject} - ${d.class} (${d.section})`;
+                    select.appendChild(opt);
                 });
-                db.collection("grades").doc(`${cls}_${sec}_${sub}`).get().then(doc => {
-                    if (doc.exists) {
-                        const data = doc.data(); document.getElementById('teacherName').value = data.teacher;
-                        document.querySelectorAll('#gradesBody tr').forEach(row => {
-                            const name = row.cells[0].innerText;
-                            if (data[name]) { const inputs = row.querySelectorAll('input'); data[name].forEach((val, i) => { inputs[i].value = val; checkFail(inputs[i], i); }); }
+                document.getElementById('loginArea').style.display = 'none';
+                document.getElementById('controlArea').style.display = 'block';
+            });
+        }
+
+        async function loadTeacherGrades() {
+            const val = document.getElementById('permSelect').value;
+            if (val === "اختر المادة والصف") return;
+            currentSelection = JSON.parse(val);
+            const {class: cls, section: sec, subject: sub} = currentSelection;
+            
+            // نفس منطق جلب الطلاب من grades.html
+            const body = document.getElementById('gradesBody');
+            body.innerHTML = "";
+            const snap = await db.collection("students").where("class", "==", cls).get();
+            let students = [];
+            snap.forEach(s => { if(s.data().section == sec) students.push(s.data()); });
+            students.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+
+            students.forEach(s => {
+                let row = `<tr><td>${s.name}</td>`;
+                for(let i=0; i<12; i++) { // عدد الخانات حسب مادتك
+                    row += `<td><input type="text" class="gInput" data-index="${i}"></td>`;
+                }
+                body.innerHTML += row + "</tr>";
+            });
+
+            // جلب الدرجات الحالية وقفل المحفوظ منها
+            const doc = await db.collection("grades").doc(`${cls}_${sec}_${sub}`).get();
+            if (doc.exists) {
+                const data = doc.data();
+                document.querySelectorAll('#gradesBody tr').forEach(row => {
+                    const name = row.cells[0].innerText;
+                    if (data[name]) {
+                        row.querySelectorAll('.gInput').forEach((input, i) => {
+                            if (data[name][i] !== "" && data[name][i] !== undefined) {
+                                input.value = data[name][i];
+                                input.readOnly = true; // قفل الخلية المحفوظة
+                                input.style.background = "#eee";
+                            }
                         });
                     }
                 });
-            });
+            }
+            document.getElementById('gradesTable').style.display = 'table';
+            document.getElementById('saveBtn').style.display = 'block';
         }
 
-        function printArabic() {
-    const inputs = document.querySelectorAll('#gradesBody input');
-    // تحويل الأرقام للعربية مؤقتاً
-    inputs.forEach(i => {
-        if(i.value) i.dataset.original = i.value; 
-        i.value = i.value.toString().replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);
-    });
-
-    window.print(); // فتح نافذة الطباعة
-
-    // إعادة الأرقام كما كانت بعد إغلاق نافذة الطباعة
-    setTimeout(() => {
-        inputs.forEach(i => {
-            if(i.dataset.original) i.value = i.dataset.original;
-        });
-    }, 1000);
-}
-
-                function exportExcel() {
-            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value, teacher = document.getElementById('teacherName').value;
-            
-            // تحويل الأرقام إلى عربية
-            const toArabic = (num) => num.toString().replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);
-
-            const infoData = [["نظام إدارة الدرجات"], ["اسم المدرس:", teacher], ["المادة:", sub], ["الصف:", cls], ["الشعبة:", sec]];
-            const headers = (sub === "الإنكليزي" || sub === "الحاسوب") ? ["الطالب", "ش1", "يومي", "ش2", "يومي", "مج.ش1", "مج.ش2", "فصل1", "ن.سنة", "ش1", "يومي", "ش2", "يومي", "مج.ش1", "مج.ش2", "فصل2", "السعي"] : ["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "ن.سنة", "ش1", "ش2", "م.ش", "يومي2", "فصل2", "السعي"];
-            
-            const tableData = [headers];
-            document.querySelectorAll('#gradesBody tr').forEach(row => { 
-                const rowData = [row.cells[0].innerText]; 
-                row.querySelectorAll('input').forEach(i => rowData.push(toArabic(i.value))); 
-                tableData.push(rowData); 
+        async function saveTeacherGrades() {
+            const {class: cls, section: sec, subject: sub} = currentSelection;
+            const dataToSave = { teacher: document.getElementById('teacherName').value };
+            document.querySelectorAll('#gradesBody tr').forEach(row => {
+                dataToSave[row.cells[0].innerText] = Array.from(row.querySelectorAll('.gInput')).map(i => i.value);
             });
-
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(infoData), "معلومات");
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(tableData), "الدرجات");
-            XLSX.writeFile(wb, `الدرجات_${cls}_${sec}_${sub}.xlsx`);
+            await db.collection("grades").doc(`${cls}_${sec}_${sub}`).set(dataToSave, {merge: true});
+            alert("تم حفظ المدخلات الجديدة بنجاح!");
         }
-
     </script>
 </body>
-</html> 
+</html>
