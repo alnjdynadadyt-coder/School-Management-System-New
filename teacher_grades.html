@@ -2,57 +2,83 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>صفحة المدرس</title>
+    <title>صفحة المدرس - نظام الدرجات</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f4f7f6; padding: 10px; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 15px; border-radius: 12px; }
+        .login-box { text-align: center; padding: 50px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 5px; text-align: center; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; color: white; background: #007bff; }
+    </style>
 </head>
 <body>
-    <div id="loginArea">
-        <h2>أدخل اسم المدرس</h2>
-        <input type="text" id="teacherName" placeholder="اسم المدرس">
-        <button onclick="checkPermissions()">دخول</button>
-    </div>
+    <div class="container">
+        <!-- منطقة الدخول -->
+        <div id="loginArea" class="login-box">
+            <h2>دخول المدرس</h2>
+            <input type="text" id="teacherName" placeholder="أدخل اسمك الكريم">
+            <button class="btn" onclick="checkPermissions()">دخول</button>
+        </div>
 
-    <div id="gradesArea" style="display:none;">
-        <h3 id="welcomeMsg"></h3>
-        <select id="allowedClasses"></select>
+        <!-- منطقة العمل -->
+        <div id="gradesArea" style="display:none;">
+            <h3 id="welcomeMsg"></h3>
+            <select id="allowedClasses" onchange="loadStudentGrades()"></select>
+            <table id="gradesTable">
+                <thead id="headArea"></thead>
+                <tbody id="gradesBody"></tbody>
+            </table>
+            <button class="btn" style="width:100%; margin-top:15px;" onclick="saveGrades()">حفظ الدرجات</button>
+        </div>
     </div>
 
     <script>
-        // 1. تأكد من وضع نفس إعدادات Firebase هنا تماماً
         const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        let currentPermissions = [];
 
         async function checkPermissions() {
             const name = document.getElementById('teacherName').value;
-            console.log("جاري البحث عن:", name); // للمساعدة في اكتشاف المشكلة
+            const snap = await db.collection("teachers_permissions").where("name", "==", name).get();
+            if (snap.empty) return alert("اسم غير مصرح له!");
+
+            currentPermissions = [];
+            let select = document.getElementById('allowedClasses');
+            select.innerHTML = '<option value="">اختر الصف والمادة</option>';
             
-            try {
-                const snapshot = await db.collection("teachers_permissions").where("name", "==", name).get();
-                
-                if (snapshot.empty) {
-                    alert("عذراً، لم يتم العثور على اسم المدرس في قاعدة بيانات الصلاحيات!");
-                    return;
-                }
+            snap.forEach(doc => {
+                let d = doc.data();
+                currentPermissions.push(d);
+                let opt = document.createElement('option');
+                opt.value = JSON.stringify(d);
+                opt.innerHTML = `${d.subject} - ${d.class} - ${d.section}`;
+                select.appendChild(opt);
+            });
 
-                let select = document.getElementById('allowedClasses');
-                select.innerHTML = "";
+            document.getElementById('loginArea').style.display = 'none';
+            document.getElementById('gradesArea').style.display = 'block';
+            document.getElementById('welcomeMsg').innerText = "مرحباً بك: " + name;
+        }
 
-                snapshot.forEach(doc => {
-                    let d = doc.data();
-                    let opt = document.createElement('option');
-                    opt.value = `${d.class}-${d.section}`;
-                    opt.innerHTML = `${d.subject} - ${d.class} - ${d.section}`;
-                    select.appendChild(opt);
-                });
-
-                document.getElementById('loginArea').style.display = 'none';
-                document.getElementById('gradesArea').style.display = 'block';
-            } catch (error) {
-                alert("حدث خطأ في الاتصال: " + error.message);
-            }
+        async function loadStudentGrades() {
+            const data = JSON.parse(document.getElementById('allowedClasses').value);
+            if (!data) return;
+            
+            // هنا يتم استدعاء دالة عرض الطلاب التي كانت موجودة في grades.html
+            // قمت بوضعها في المتغيرات المطلوبة للعمل مباشرة
+            const cls = data.class;
+            const sec = data.section;
+            const sub = data.subject;
+            
+            // استدعاء بيانات الطلاب (نفس المنطق القديم)
+            // [هنا تضع منطق loadGrades القديم الخاص بك مع تمرير cls, sec, sub]
+            alert("تم اختيار: " + sub + " للصف " + cls + " شعبة " + sec + ". قم بربط جدول الطلاب هنا.");
         }
     </script>
 </body>
 </html>
+ 
