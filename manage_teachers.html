@@ -7,16 +7,19 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
         input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
         button { padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; }
         table { width: 100%; margin-top: 20px; border-collapse: collapse; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        .back-btn { display: inline-block; margin-bottom: 15px; padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px; }
     </style>
 </head>
 <body>
     <div class="container">
+        <a href="index.html" class="back-btn">← العودة للرئيسية</a>
         <h2>إدارة صلاحيات المدرسين</h2>
+        
         <input type="text" id="tName" placeholder="اسم المدرس">
         
         <select id="tSub">
@@ -63,7 +66,7 @@
         <button onclick="addPermission()">حفظ الصلاحية</button>
 
         <table>
-            <thead><tr><th>المدرس</th><th>المادة</th><th>الصف</th><th>الشعبة</th><th>حذف</th></tr></thead>
+            <thead><tr><th>المدرس</th><th>المادة</th><th>الصف والشعبة</th><th>إجراء</th></tr></thead>
             <tbody id="tBody"></tbody>
         </table>
     </div>
@@ -80,19 +83,30 @@
                 class: document.getElementById('tClass').value,
                 section: document.getElementById('tSec').value
             };
-            if(!data.name || !data.subject || !data.class || !data.section) { alert("يرجى ملء جميع الحقول"); return; }
+            if(!data.name || !data.subject || !data.class || !data.section) return alert("يرجى ملء جميع الحقول");
             db.collection("teachers_permissions").add(data).then(() => location.reload());
         }
 
         db.collection("teachers_permissions").onSnapshot(snap => {
-            let html = "";
+            let teachersData = {};
             snap.forEach(doc => {
-                const d = doc.data();
-                html += `<tr><td>${d.name}</td><td>${d.subject}</td><td>${d.class}</td><td>${d.section}</td>
-                <td><button style="background:red" onclick="db.collection('teachers_permissions').doc('${doc.id}').delete()">حذف</button></td></tr>`;
+                let d = doc.data();
+                if (!teachersData[d.name]) teachersData[d.name] = { subject: d.subject, classes: [], ids: [] };
+                teachersData[d.name].classes.push(`${d.class} (${d.section})`);
+                teachersData[d.name].ids.push(doc.id);
             });
+
+            let html = "";
+            for (let name in teachersData) {
+                html += `<tr><td>${name}</td><td>${teachersData[name].subject}</td><td>${teachersData[name].classes.join("، ")}</td>
+                <td><button style="background:red; border:none; color:white; padding:5px; border-radius:3px;" onclick="deleteTeacher('${teachersData[name].ids.join(',')}')">حذف الكل</button></td></tr>`;
+            }
             document.getElementById('tBody').innerHTML = html;
         });
+
+        function deleteTeacher(ids) {
+            ids.split(',').forEach(id => db.collection("teachers_permissions").doc(id).delete());
+        }
     </script>
 </body>
 </html>
