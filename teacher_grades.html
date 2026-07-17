@@ -52,21 +52,47 @@
         const db = firebase.firestore();
 
         async function verifyTeacher() {
-            const name = document.getElementById('teacherInput').value.trim();
-            const snap = await db.collection("teachers_permissions").where("name", "==", name).get();
-            if (!snap.empty) {
-                document.getElementById('authScreen').style.display = 'none';
-                document.getElementById('mainContent').style.display = 'block';
-                const d = snap.docs[0].data();
-                document.getElementById('teacherName').value = d.name;
-                document.getElementById('gClass').value = d.class;
-                document.getElementById('gSection').value = d.section;
-                document.getElementById('subject').value = d.subject;
-                document.getElementById('gClass').disabled = true;
-                document.getElementById('gSection').disabled = true;
-                document.getElementById('subject').readOnly = true;
-                loadGrades();
-            } else { alert("اسم غير مسجل في الصلاحيات!"); }
+    const name = document.getElementById('teacherInput').value.trim();
+    const snap = await db.collection("teachers_permissions").where("name", "==", name).get();
+    
+    if (snap.empty) {
+        alert("اسم غير مسجل!");
+        return;
+    }
+
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+    document.getElementById('teacherName').value = name;
+
+    // إنشاء قائمة اختيار للصلاحيات
+    const selectBox = document.createElement('select');
+    selectBox.id = "permissionSelect";
+    selectBox.style.margin = "0 10px";
+    selectBox.style.padding = "8px";
+    selectBox.innerHTML = '<option value="">-- اختر الصف والشعبة والمادة --</option>';
+    
+    snap.forEach(doc => {
+        let d = doc.data();
+        let opt = document.createElement('option');
+        opt.value = JSON.stringify(d);
+        opt.innerText = `${d.class} - ${d.section} - ${d.subject}`;
+        selectBox.appendChild(opt);
+    });
+
+    selectBox.onchange = function() {
+        if(!this.value) return;
+        let d = JSON.parse(this.value);
+        document.getElementById('gClass').value = d.class;
+        document.getElementById('gSection').value = d.section;
+        document.getElementById('subject').value = d.subject;
+        loadGrades();
+    };
+
+    // وضع القائمة في بداية قسم التحكم
+    const controls = document.querySelector('.controls');
+    controls.prepend(selectBox);
+}
+
         }
 
         function validateInputs() {
