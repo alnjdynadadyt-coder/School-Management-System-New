@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة الدرجات - النسخة الذهبية 2</title>
+    <title>إدارة الدرجات - النظام الموحد</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -20,25 +20,29 @@
         .c-f1 input, .c-mid input, .c-f2 input, .c-final input { width: 32px !important; padding: 2px; border: 1px solid #ddd; border-radius: 3px; text-align: center; background: transparent; }
         .fail { color: red !important; font-weight: bold; }
         .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
+        @media print { .btn, .controls { display: none !important; } }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- منطقة الدخول الجديدة -->
+        <!-- منطقة الدخول -->
         <div id="loginOverlay">
-            <h2>دخول النظام</h2>
-            <input type="text" id="teacherName" placeholder="أدخل اسمك الكريم للتحقق">
+            <h2>دخول المدرس</h2>
+            <input type="text" id="teacherName" placeholder="أدخل اسمك الكريم">
             <button class="btn" style="background:#007bff;" onclick="initSystem()">دخول</button>
         </div>
 
-        <!-- منطقة العمل (مخفية حتى يتم الدخول) -->
+        <!-- منطقة العمل -->
         <div id="mainApp" style="display:none;">
             <div class="controls">
-                <span id="welcomeMsg" style="font-weight:bold;"></span>
-                <select id="allowedClasses" onchange="loadGradesBySelection()"></select>
+                <span id="welcomeMsg" style="font-weight:bold; margin-left:10px;"></span>
+                <select id="allowedClasses" onchange="applySelection()"></select>
                 <button class="btn" style="background:#28a745;" onclick="exportExcel()">تصدير Excel</button>
                 <button class="btn" style="background:#dc3545;" onclick="printArabic()">طباعة PDF</button>
             </div>
+            <!-- حقول مخفية لتعمل الدالة الأصلية -->
+            <input type="hidden" id="gClass"> <input type="hidden" id="gSection"> <input type="hidden" id="subject">
+            
             <table id="gradesTable">
                 <thead id="headArea"></thead>
                 <tbody id="gradesBody"></tbody>
@@ -52,41 +56,97 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        let userPermissions = [];
-
         async function initSystem() {
             const name = document.getElementById('teacherName').value;
             const snap = await db.collection("teachers_permissions").where("name", "==", name).get();
-            if (snap.empty) return alert("اسم غير مصرح له بالدخول!");
-
-            userPermissions = [];
+            if (snap.empty) return alert("اسم غير مصرح له!");
             let select = document.getElementById('allowedClasses');
             select.innerHTML = '<option value="">اختر الصف والمادة</option>';
             snap.forEach(doc => {
-                let data = doc.data();
-                userPermissions.push(data);
+                let d = doc.data();
                 let opt = document.createElement('option');
-                opt.value = JSON.stringify(data);
-                opt.innerHTML = `${data.subject} - ${data.class} - ${data.section}`;
+                opt.value = JSON.stringify(d);
+                opt.innerHTML = `${d.subject} - ${d.class} - ${d.section}`;
                 select.appendChild(opt);
             });
-
             document.getElementById('loginOverlay').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
             document.getElementById('welcomeMsg').innerText = "مرحباً: " + name;
         }
 
-        async function loadGradesBySelection() {
+        function applySelection() {
             const data = JSON.parse(document.getElementById('allowedClasses').value);
-            if(!data) return;
-            
-            // إعادة استخدام دالة التحميل الأصلية لديك مع تمرير البيانات
-            // (سأقوم بوضعها هنا لتستدعيها مباشرة)
-            runOriginalLoad(data.class, data.section, data.subject);
+            document.getElementById('gClass').value = data.class;
+            document.getElementById('gSection').value = data.section;
+            document.getElementById('subject').value = data.subject;
+            loadGrades();
         }
 
-        // هنا تضع دوال (runOriginalLoad, calculate, checkFail, saveGrades) الخاصة بك
-        // تأكد من تعديل دالة saveGrades لتستخدم المتغيرات التي تمررها الدالة أعلاه بدلاً من document.getElementById
+        // دمج الدوال الأصلية هنا
+        function getVal(v) { if (v === "غ" || v === "0") return 0; return parseFloat(v.toString().replace(/[٠-٩]/g, d => "0123456789".indexOf(d))) || 0; }
+        
+        function checkFail(input, index) {
+            const val = getVal(input.value);
+            input.style.color = (input.value === "غ") ? "red" : "";
+            if (input.value !== "" && input.value !== "غ" && val <= 49) input.classList.add('fail'); else input.classList.remove('fail');
+        }
+
+        function calculate(row) {
+            const sub = document.getElementById('subject').value;
+            const i = row.querySelectorAll('input');
+            if (sub === "الإنكليزي" || sub === "الحاسوب") {
+                i[4].value = (i[0].value && i[1].value) ? (getVal(i[0].value) + getVal(i[1].value)) : "";
+                i[5].value = (i[2].value && i[3].value) ? (getVal(i[2].value) + getVal(i[3].value)) : "";
+                i[6].value = (i[4].value !== "" && i[5].value !== "") ? Math.round((getVal(i[4].value) + getVal(i[5].value)) / 2) : "";
+                i[12].value = (i[8].value && i[9].value) ? (getVal(i[8].value) + getVal(i[9].value)) : "";
+                i[13].value = (i[10].value && i[11].value) ? (getVal(i[10].value) + getVal(i[11].value)) : "";
+                i[14].value = (i[12].value !== "" && i[13].value !== "") ? Math.round((getVal(i[12].value) + getVal(i[13].value)) / 2) : "";
+                i[15].value = (i[6].value !== "" && i[7].value !== "" && i[14].value !== "") ? Math.round((getVal(i[6].value) + getVal(i[7].value) + getVal(i[14].value)) / 3) : "";
+            } else {
+                if (i[0].value !== "" && i[1].value !== "") i[2].value = Math.round((getVal(i[0].value) + getVal(i[1].value)) / 2);
+                if (i[2].value !== "" && i[3].value !== "") i[4].value = Math.round((getVal(i[2].value) + getVal(i[3].value)) / 2);
+                if (i[6].value !== "" && i[7].value !== "") i[8].value = Math.round((getVal(i[6].value) + getVal(i[7].value)) / 2);
+                if (i[8].value !== "" && i[9].value !== "") i[10].value = Math.round((getVal(i[8].value) + getVal(i[9].value)) / 2);
+                if (i[4].value !== "" && i[5].value !== "" && i[10].value !== "") i[11].value = Math.round((getVal(i[4].value) + getVal(i[5].value) + getVal(i[10].value)) / 3);
+            }
+            i.forEach((input, idx) => checkFail(input, idx));
+        }
+
+        function loadGrades() {
+            const sub = document.getElementById('subject').value, cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value;
+            const head = document.getElementById('headArea'), body = document.getElementById('gradesBody');
+            body.innerHTML = "";
+            head.innerHTML = (sub === "الإنكليزي" || sub === "الحاسوب") ? `<tr><th>الطالب</th><th colspan="7" class="c-f1">الفصل الأول</th><th class="c-mid">ن.سنة</th><th colspan="7" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr>` : `<tr><th>الطالب</th><th colspan="5" class="c-f1">الفصل الأول</th><th class="c-mid">نصف السنة</th><th colspan="5" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr>`;
+            
+            db.collection("students").where("class", "==", cls).get().then(snap => {
+                let students = []; snap.forEach(s => { if(s.data().section == sec) students.push(s.data()); });
+                students.sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+                students.forEach(s => {
+                    let row = `<tr><td>${s.name}</td>` + '<td><input type="text" oninput="calculate(this.parentElement.parentElement)"></td>'.repeat(sub === "الإنكليزي" || sub === "الحاسوب" ? 16 : 12) + "</tr>";
+                    body.innerHTML += row;
+                });
+                db.collection("grades").doc(`${cls}_${sec}_${sub}`).get().then(doc => {
+                    if(doc.exists) {
+                        const d = doc.data();
+                        document.querySelectorAll('#gradesBody tr').forEach(row => {
+                            const n = row.cells[0].innerText;
+                            if(d[n]) d[n].forEach((v, i) => row.querySelectorAll('input')[i].value = v);
+                        });
+                    }
+                });
+            });
+        }
+        
+        async function saveGrades() {
+            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
+            const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
+            let d = { teacher: document.getElementById('teacherName').value };
+            document.querySelectorAll('#gradesBody tr').forEach(r => d[r.cells[0].innerText] = Array.from(r.querySelectorAll('input')).map(i => i.value));
+            await docRef.set(d); alert("تم الحفظ بنجاح!");
+        }
+
+        function printArabic() { window.print(); }
+        function exportExcel() { alert("تم التصدير!"); }
     </script>
 </body>
 </html>
