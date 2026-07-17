@@ -16,37 +16,42 @@
     <div id="gradesArea" style="display:none;">
         <h3 id="welcomeMsg"></h3>
         <select id="allowedClasses"></select>
-        <!-- هنا سيتم عرض جدول الدرجات الخاص بالصف المختار -->
     </div>
 
     <script>
+        // 1. تأكد من وضع نفس إعدادات Firebase هنا تماماً
+        const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
+        firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        let teacherPermissions = [];
 
         async function checkPermissions() {
             const name = document.getElementById('teacherName').value;
-            const snapshot = await db.collection("teachers_permissions").where("name", "==", name).get();
+            console.log("جاري البحث عن:", name); // للمساعدة في اكتشاف المشكلة
             
-            if (snapshot.empty) {
-                alert("اسم غير مصرح له أو خطأ في الاسم!");
-                return;
+            try {
+                const snapshot = await db.collection("teachers_permissions").where("name", "==", name).get();
+                
+                if (snapshot.empty) {
+                    alert("عذراً، لم يتم العثور على اسم المدرس في قاعدة بيانات الصلاحيات!");
+                    return;
+                }
+
+                let select = document.getElementById('allowedClasses');
+                select.innerHTML = "";
+
+                snapshot.forEach(doc => {
+                    let d = doc.data();
+                    let opt = document.createElement('option');
+                    opt.value = `${d.class}-${d.section}`;
+                    opt.innerHTML = `${d.subject} - ${d.class} - ${d.section}`;
+                    select.appendChild(opt);
+                });
+
+                document.getElementById('loginArea').style.display = 'none';
+                document.getElementById('gradesArea').style.display = 'block';
+            } catch (error) {
+                alert("حدث خطأ في الاتصال: " + error.message);
             }
-
-            teacherPermissions = [];
-            let select = document.getElementById('allowedClasses');
-            select.innerHTML = "";
-
-            snapshot.forEach(doc => {
-                let d = doc.data();
-                teacherPermissions.push(d);
-                let opt = document.createElement('option');
-                opt.value = `${d.class}-${d.section}`;
-                opt.innerHTML = `${d.subject} - ${d.class} - ${d.section}`;
-                select.appendChild(opt);
-            });
-
-            document.getElementById('loginArea').style.display = 'none';
-            document.getElementById('gradesArea').style.display = 'block';
         }
     </script>
 </body>
