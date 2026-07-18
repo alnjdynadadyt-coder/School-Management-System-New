@@ -103,24 +103,19 @@
             location.reload();
         }
 
-                db.collection("teachers_permissions").onSnapshot(snap => {
+        db.collection("teachers_permissions").onSnapshot(snap => {
             let teachersData = {};
             snap.forEach(doc => {
                 let d = doc.data();
-                // نستخدم الاسم والرقم السري كمفتاح فريد لضمان عدم الدمج الخاطئ
-                let uniqueKey = d.name + "_" + d.password;
-                
-                if (!teachersData[uniqueKey]) {
-                    teachersData[uniqueKey] = { 
-                        name: d.name, 
-                        password: d.password, 
-                        subject: d.subject, 
-                        classes: [], 
-                        ids: [] 
-                    };
+                // نتحقق من وجود البيانات لتجنب ظهور undefined
+                if (d.name) {
+                    let uniqueKey = d.name + "_" + d.password;
+                    if (!teachersData[uniqueKey]) {
+                        teachersData[uniqueKey] = { name: d.name, password: d.password, subject: d.subject, classes: [], ids: [] };
+                    }
+                    teachersData[uniqueKey].classes.push(`${d.class} (${d.section})`);
+                    teachersData[uniqueKey].ids.push(doc.id);
                 }
-                teachersData[uniqueKey].classes.push(`${d.class} (${d.section})`);
-                teachersData[uniqueKey].ids.push(doc.id);
             });
 
             let html = "";
@@ -132,11 +127,9 @@
             document.getElementById('tBody').innerHTML = html;
         });
 
-
         function deleteTeacher(ids) {
             ids.split(',').forEach(id => db.collection("teachers_permissions").doc(id).delete());
         }
     </script>
 </body>
 </html>
- 
