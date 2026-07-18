@@ -8,8 +8,9 @@
     <style>
         body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
         .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; }
+        input[type="text"], select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        .checkbox-group { text-align: right; margin: 10px 0; border: 1px solid #ccc; padding: 10px; border-radius: 5px; }
+        button { padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; }
         table { width: 100%; margin-top: 20px; border-collapse: collapse; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
         .back-btn { display: inline-block; margin-bottom: 15px; padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px; }
@@ -53,16 +54,16 @@
             <option value="السادس الأدبي">السادس الأدبي</option>
         </select>
 
-        <select id="tSec">
-            <option value="">اختر الشعبة</option>
-            <option value="أ">أ</option>
-            <option value="ب">ب</option>
-            <option value="ج">ج</option>
-            <option value="د">د</option>
-            <option value="هـ">هـ</option>
-            <option value="و">و</option>
-            <option value="ز">ز</option>
-        </select>
+        <div class="checkbox-group">
+            <label>اختر الشعب:</label><br>
+            <input type="checkbox" name="sec" value="أ"> أ 
+            <input type="checkbox" name="sec" value="ب"> ب 
+            <input type="checkbox" name="sec" value="ج"> ج 
+            <input type="checkbox" name="sec" value="د"> د 
+            <input type="checkbox" name="sec" value="هـ"> هـ 
+            <input type="checkbox" name="sec" value="و"> و 
+            <input type="checkbox" name="sec" value="ز"> ز
+        </div>
 
         <button onclick="addPermission()">حفظ الصلاحية</button>
 
@@ -78,15 +79,27 @@
         const db = firebase.firestore();
 
         function addPermission() {
-            const data = {
-                name: document.getElementById('tName').value,
-                password: document.getElementById('tPass').value,
-                subject: document.getElementById('tSub').value,
-                class: document.getElementById('tClass').value,
-                section: document.getElementById('tSec').value
-            };
-            if(!data.name || !data.password || !data.subject || !data.class || !data.section) return alert("يرجى ملء جميع الحقول");
-            db.collection("teachers_permissions").add(data).then(() => location.reload());
+            const name = document.getElementById('tName').value;
+            const password = document.getElementById('tPass').value;
+            const subject = document.getElementById('tSub').value;
+            const className = document.getElementById('tClass').value;
+            const selectedSections = [];
+            document.querySelectorAll('input[name="sec"]:checked').forEach(cb => selectedSections.push(cb.value));
+
+            if(!name || !password || !subject || !className || selectedSections.length === 0) 
+                return alert("يرجى ملء جميع الحقول واختيار شعبة واحدة على الأقل");
+
+            selectedSections.forEach(sec => {
+                db.collection("teachers_permissions").add({
+                    name: name,
+                    password: password,
+                    subject: subject,
+                    class: className,
+                    section: sec
+                });
+            });
+            alert("تم حفظ الصلاحيات بنجاح!");
+            location.reload();
         }
 
         db.collection("teachers_permissions").onSnapshot(snap => {
@@ -112,4 +125,3 @@
     </script>
 </body>
 </html>
- 
