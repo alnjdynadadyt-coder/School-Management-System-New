@@ -103,11 +103,11 @@
             location.reload();
         }
 
-        db.collection("teachers_permissions").onSnapshot(snap => {
+                db.collection("teachers_permissions").onSnapshot(snap => {
             let teachersData = {};
             snap.forEach(doc => {
                 let d = doc.data();
-                // التعديل هنا: استخدام الاسم والرقم السري معاً كمفتاح فريد
+                // نستخدم الاسم والرقم السري كمفتاح فريد لضمان عدم الدمج الخاطئ
                 let uniqueKey = d.name + "_" + d.password;
                 
                 if (!teachersData[uniqueKey]) {
@@ -131,6 +131,7 @@
             }
             document.getElementById('tBody').innerHTML = html;
         });
+
 
         function deleteTeacher(ids) {
             ids.split(',').forEach(id => db.collection("teachers_permissions").doc(id).delete());
