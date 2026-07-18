@@ -8,12 +8,12 @@
     <style>
         body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
         .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        input[type="text"], select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        .checkbox-group { text-align: right; margin: 10px 0; border: 1px solid #ccc; padding: 10px; border-radius: 5px; }
-        button { padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; }
         table { width: 100%; margin-top: 20px; border-collapse: collapse; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
         .back-btn { display: inline-block; margin-bottom: 15px; padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px; }
+        .sec-group { text-align: right; margin: 8px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
     </style>
 </head>
 <body>
@@ -54,14 +54,14 @@
             <option value="السادس الأدبي">السادس الأدبي</option>
         </select>
 
-        <div class="checkbox-group">
+        <div class="sec-group">
             <label>اختر الشعب:</label><br>
-            <input type="checkbox" name="sec" value="أ"> أ 
-            <input type="checkbox" name="sec" value="ب"> ب 
-            <input type="checkbox" name="sec" value="ج"> ج 
-            <input type="checkbox" name="sec" value="د"> د 
-            <input type="checkbox" name="sec" value="هـ"> هـ 
-            <input type="checkbox" name="sec" value="و"> و 
+            <input type="checkbox" name="sec" value="أ"> أ
+            <input type="checkbox" name="sec" value="ب"> ب
+            <input type="checkbox" name="sec" value="ج"> ج
+            <input type="checkbox" name="sec" value="د"> د
+            <input type="checkbox" name="sec" value="هـ"> هـ
+            <input type="checkbox" name="sec" value="و"> و
             <input type="checkbox" name="sec" value="ز"> ز
         </div>
 
@@ -106,27 +106,15 @@
             let teachersData = {};
             snap.forEach(doc => {
                 let d = doc.data();
-                if (!teachersData[d.name]) {
-                    teachersData[d.name] = { 
-                        password: d.password, 
-                        subject: d.subject, 
-                        classes: [], 
-                        ids: [] 
-                    };
-                }
+                if (!teachersData[d.name]) teachersData[d.name] = { password: d.password, subject: d.subject, classes: [], ids: [] };
                 teachersData[d.name].classes.push(`${d.class} (${d.section})`);
                 teachersData[d.name].ids.push(doc.id);
             });
 
             let html = "";
             for (let name in teachersData) {
-                html += `<tr>
-                    <td>${name}</td>
-                    <td>${teachersData[name].password}</td>
-                    <td>${teachersData[name].subject}</td>
-                    <td>${teachersData[name].classes.join("، ")}</td>
-                    <td><button style="background:red; border:none; color:white; padding:5px; border-radius:3px;" onclick="deleteTeacher('${teachersData[name].ids.join(',')}')">حذف الكل</button></td>
-                </tr>`;
+                html += `<tr><td>${name}</td><td>${teachersData[name].password}</td><td>${teachersData[name].subject}</td><td>${teachersData[name].classes.join("، ")}</td>
+                <td><button style="background:red; border:none; color:white; padding:5px; border-radius:3px;" onclick="deleteTeacher('${teachersData[name].ids.join(',')}')">حذف الكل</button></td></tr>`;
             }
             document.getElementById('tBody').innerHTML = html;
         });
