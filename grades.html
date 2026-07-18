@@ -46,8 +46,7 @@
     <div class="container">
         <button class="btn" style="background:#6c757d;" onclick="window.history.back()">🔙 العودة</button>
         <div class="controls">
-            <!-- تم استبدال حقل اسم المدرس بالرقم السري -->
-            <input type="password" id="teacherPass" placeholder="الرقم السري" required>
+            <input type="text" id="teacherPass" placeholder="اسم المدرس أو الرقم السري" required>
             <select id="gClass"><option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option><option>الرابع الأدبي</option><option>الخامس الأدبي</option><option>السادس الأدبي</option></select>
             <select id="gSection"><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option></select>
             <input type="text" id="subject" placeholder="اسم المادة" list="subs" required>
@@ -72,30 +71,31 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // دالة التحقق المعدلة لتعمل بالرقم السري
+        // دالة التحقق الذكية الجديدة
         async function verifyAndLoad() {
-            const pass = document.getElementById('teacherPass').value;
-            if (!pass) { alert("يرجى إدخال الرقم السري!"); return; }
+            const inputVal = document.getElementById('teacherPass').value;
+            if (!inputVal) { alert("يرجى إدخال اسم المدرس أو الرقم السري!"); return; }
             
-            // البحث في مجموعة الصلاحيات الجديدة
-            const snap = await db.collection("teachers_permissions").where("password", "==", pass).get();
-            
-            if (snap.empty && pass !== "12345") { // يمكنك إضافة كلمة مرور المدير هنا
-                alert("رقم سري غير صحيح!"); return;
+            // حالة المدير: دخول مباشر بدون رقم سري
+            if (["المدير", "سعد", "حسنين"].includes(inputVal)) {
+                document.getElementById('tableWrapper').style.display = "block";
+                loadGrades();
+                return;
             }
 
-            if (pass !== "12345") {
+            // حالة المدرس: البحث عن الرقم السري
+            const snap = await db.collection("teachers_permissions").where("password", "==", inputVal).get();
+            if (!snap.empty) {
                 const data = snap.docs[0].data();
+                document.getElementById('teacherPass').value = data.teacherName; // استبدال الرقم بالاسم
                 document.getElementById('gClass').value = data.class;
                 document.getElementById('gSection').value = data.section;
                 document.getElementById('subject').value = data.subject;
-                document.getElementById('gClass').disabled = true;
-                document.getElementById('gSection').disabled = true;
-                document.getElementById('subject').readOnly = true;
+                document.getElementById('tableWrapper').style.display = "block";
+                loadGrades();
+            } else {
+                alert("بيانات الدخول غير صحيحة!");
             }
-            
-            document.getElementById('tableWrapper').style.display = "block";
-            loadGrades();
         }
 
         async function saveGrades() {
@@ -196,7 +196,7 @@
         function exportExcel() {
             const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value, teacher = document.getElementById('teacherPass').value;
             const toArabic = (num) => num.toString().replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);
-            const infoData = [["نظام إدارة الدرجات"], ["الرقم السري:", teacher], ["المادة:", sub], ["الصف:", cls], ["الشعبة:", sec]];
+            const infoData = [["نظام إدارة الدرجات"], ["المدرس:", teacher], ["المادة:", sub], ["الصف:", cls], ["الشعبة:", sec]];
             const headers = (sub === "الإنكليزي" || sub === "الحاسوب") ? ["الطالب", "ش1", "يومي", "ش2", "يومي", "مج.ش1", "مج.ش2", "فصل1", "ن.سنة", "ش1", "يومي", "ش2", "يومي", "مج.ش1", "مج.ش2", "فصل2", "السعي"] : ["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "ن.سنة", "ش1", "ش2", "م.ش", "يومي2", "فصل2", "السعي"];
             const tableData = [headers];
             document.querySelectorAll('#gradesBody tr').forEach(row => { 
@@ -212,3 +212,4 @@
     </script>
 </body>
 </html>
+ 
