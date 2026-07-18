@@ -10,16 +10,16 @@
         .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         #loginArea { text-align: center; padding: 40px; }
         input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn { padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; color: white; background: #007bff; font-weight: bold; }
+        .btn { padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; color: white; background: #007bff; font-weight: bold; width: 100%; }
         #gradesArea { display: none; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 5px; text-align: center; }
+        input[type="text"] { width: 32px !important; text-align: center; padding: 2px; }
         .fail { color: red !important; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- منطقة الدخول -->
         <div id="loginArea">
             <h2>🔐 بوابة دخول المدرس</h2>
             <input type="text" id="teacherName" placeholder="اسم المستخدم">
@@ -27,7 +27,6 @@
             <button class="btn" onclick="checkPermissions()">دخول</button>
         </div>
 
-        <!-- منطقة العمل -->
         <div id="gradesArea">
             <h3 id="welcomeMsg"></h3>
             <select id="allowedClasses" onchange="loadSelectedGrades()">
@@ -37,8 +36,8 @@
                 <thead id="headArea"></thead>
                 <tbody id="gradesBody"></tbody>
             </table>
-            <button class="btn" style="width:100%; background:#28a745; margin-top:20px;" onclick="saveGrades()">حفظ الدرجات</button>
-            <button onclick="location.reload()" style="background:none; border:none; color:red; cursor:pointer; margin-top:10px;">تسجيل خروج</button>
+            <button class="btn" style="background:#28a745; margin-top:20px;" onclick="saveGrades()">حفظ الدرجات</button>
+            <button onclick="location.reload()" style="background:none; border:none; color:red; cursor:pointer; margin-top:10px; width:100%;">تسجيل خروج</button>
         </div>
     </div>
 
@@ -47,7 +46,6 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // 1. منطق الدخول (فلترة الصلاحيات)
         async function checkPermissions() {
             const name = document.getElementById('teacherName').value;
             const pass = document.getElementById('teacherPass').value;
@@ -63,20 +61,57 @@
                 opt.innerHTML = `${d.subject} | ${d.class} - ${d.section}`;
                 select.appendChild(opt);
             });
+            document.getElementById('welcomeMsg').innerText = "مرحباً بك: " + name;
             document.getElementById('loginArea').style.display = 'none';
             document.getElementById('gradesArea').style.display = 'block';
         }
 
-        // 2. دالة جلب الدرجات بناءً على الاختيار
-        function loadSelectedGrades() {
+        async function loadSelectedGrades() {
             const selectedData = JSON.parse(document.getElementById('allowedClasses').value);
-            // هنا يتم استدعاء منطق دالة loadGrades التي أرسلتها لي سابقاً مع استخدام متغيرات selectedData
-            // ملاحظة: سأقوم بدمج منطق العرض الخاص بك في هذا المكان...
-            alert("تم اختيار: " + selectedData.subject + " - الصف: " + selectedData.class);
-            // يمكنك الآن إكمال ربط دالة loadGrades الأصلية الخاصة بك هنا
+            const {class: cls, section: sec, subject: sub} = selectedData;
+            
+            const head = document.getElementById('headArea');
+            const body = document.getElementById('gradesBody'); 
+            body.innerHTML = "";
+            
+            head.innerHTML = `<tr><th>الطالب</th><th colspan="15">الدرجات</th></tr>`;
+            
+            const snap = await db.collection("students").where("class", "==", cls).get();
+            let students = [];
+            snap.forEach(s => { if(s.data().section == sec) students.push(s.data()); });
+            students.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+
+            students.forEach(s => {
+                let row = `<tr><td>${s.name}</td>`;
+                for(let i=0; i<15; i++) { 
+                    row += `<td><input type="text"></td>`; 
+                }
+                body.innerHTML += row + "</tr>";
+            });
+
+            const doc = await db.collection("grades").doc(`${cls}_${sec}_${sub}`).get();
+            if (doc.exists) {
+                const data = doc.data();
+                document.querySelectorAll('#gradesBody tr').forEach(row => {
+                    const name = row.cells[0].innerText;
+                    if (data[name]) {
+                        const inputs = row.querySelectorAll('input');
+                        data[name].forEach((val, i) => { if(inputs[i]) inputs[i].value = val; });
+                    }
+                });
+            }
         }
 
-        function saveGrades() { /* كود الحفظ المعتاد */ }
+        async function saveGrades() {
+            const selectedData = JSON.parse(document.getElementById('allowedClasses').value);
+            const docRef = db.collection("grades").doc(`${selectedData.class}_${selectedData.section}_${selectedData.subject}`);
+            const dataToSave = { teacher: selectedData.name };
+            document.querySelectorAll('#gradesBody tr').forEach((row) => { 
+                dataToSave[row.cells[0].innerText] = Array.from(row.querySelectorAll('input')).map(i => i.value); 
+            });
+            await docRef.set(dataToSave); 
+            alert("تم حفظ الدرجات بنجاح!");
+        }
     </script>
 </body>
 </html>
