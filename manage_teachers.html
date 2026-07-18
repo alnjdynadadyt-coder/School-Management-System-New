@@ -106,7 +106,14 @@
             let teachersData = {};
             snap.forEach(doc => {
                 let d = doc.data();
-                if (!teachersData[d.name]) teachersData[d.name] = { password: d.password, subject: d.subject, classes: [], ids: [] };
+                if (!teachersData[d.name]) {
+                    teachersData[d.name] = { 
+                        password: d.password || "", 
+                        subject: d.subject, 
+                        classes: [], 
+                        ids: [] 
+                    };
+                }
                 teachersData[d.name].classes.push(`${d.class} (${d.section})`);
                 teachersData[d.name].ids.push(doc.id);
             });
