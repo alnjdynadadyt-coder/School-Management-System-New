@@ -97,6 +97,7 @@
                 body.innerHTML += row + "</tr>";
             });
 
+            // تعديل مسار القراءة ليكون متطابقاً مع صفحة المدير
             const doc = await db.collection("grades").doc(`${cls}_${sec}_${sub}`).get();
             if (doc.exists) {
                 const data = doc.data();
@@ -109,8 +110,9 @@
 
         async function saveGrades() {
             const data = JSON.parse(document.getElementById('allowedClasses').value);
+            // تعديل مسار الحفظ ليكون متطابقاً مع صفحة المدير
             const docRef = db.collection("grades").doc(`${data.class}_${data.section}_${data.subject}`);
-            const dataToSave = { teacher: data.name };
+            const dataToSave = { teacher: document.getElementById('teacherName').value };
             document.querySelectorAll('#gradesBody tr').forEach((row) => { dataToSave[row.cells[0].innerText] = Array.from(row.querySelectorAll('input')).map(i => i.value); });
             await docRef.set(dataToSave); alert("تم الحفظ!");
         }
