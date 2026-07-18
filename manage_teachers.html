@@ -106,15 +106,27 @@
             let teachersData = {};
             snap.forEach(doc => {
                 let d = doc.data();
-                if (!teachersData[d.name]) teachersData[d.name] = { password: d.password, subject: d.subject, classes: [], ids: [] };
+                if (!teachersData[d.name]) {
+                    teachersData[d.name] = { 
+                        password: d.password, 
+                        subject: d.subject, 
+                        classes: [], 
+                        ids: [] 
+                    };
+                }
                 teachersData[d.name].classes.push(`${d.class} (${d.section})`);
                 teachersData[d.name].ids.push(doc.id);
             });
 
             let html = "";
             for (let name in teachersData) {
-                html += `<tr><td>${name}</td><td>${teachersData[name].password}</td><td>${teachersData[name].subject}</td><td>${teachersData[name].classes.join("، ")}</td>
-                <td><button style="background:red; border:none; color:white; padding:5px; border-radius:3px;" onclick="deleteTeacher('${teachersData[name].ids.join(',')}')">حذف الكل</button></td></tr>`;
+                html += `<tr>
+                    <td>${name}</td>
+                    <td>${teachersData[name].password}</td>
+                    <td>${teachersData[name].subject}</td>
+                    <td>${teachersData[name].classes.join("، ")}</td>
+                    <td><button style="background:red; border:none; color:white; padding:5px; border-radius:3px;" onclick="deleteTeacher('${teachersData[name].ids.join(',')}')">حذف الكل</button></td>
+                </tr>`;
             }
             document.getElementById('tBody').innerHTML = html;
         });
