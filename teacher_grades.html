@@ -1,120 +1,55 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>بوابة المدرس - نظام الدرجات</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <style>
-        body { font-family: sans-serif; background: #f4f7f6; padding: 10px; }
-        .container { max-width: 1200px; margin: auto; background: white; padding: 15px; border-radius: 12px; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 3px; text-align: center; }
-        .c-f1 { background-color: #fff9c4 !important; } .c-mid { background-color: #e8f5e9 !important; } 
-        .c-f2 { background-color: #e3f2fd !important; } .c-final { background-color: #fce4ec !important; }
-        /* تم تكبير حقل اسم المدرس هنا */
-        #teacherName { width: 80%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; text-align: center; }
-        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; color: white; background: #007bff; }
-        .back-btn { background: #6c757d; margin-bottom: 15px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <button class="btn back-btn" onclick="window.history.back()">🔙 العودة للوحة الرئيسية</button>
+<!-- الجزء الخاص بواجهة الدخول في HTML -->
+<div id="loginArea">
+    <h2>دخول النظام</h2>
+    <input type="text" id="teacherName" placeholder="اسم المستخدم">
+    <input type="password" id="teacherPass" placeholder="الرقم السري">
+    <br>
+    <button class="btn" style="width: 80%; padding: 12px; font-size: 16px;" onclick="checkPermissions()">دخول</button>
+</div>
 
-        <div id="loginArea">
-            <h2>دخول المدرس</h2>
-            <input type="text" id="teacherName" placeholder="اسم المدرس">
-            <br>
-            <button class="btn" style="width: 80%; padding: 12px; font-size: 16px;" onclick="checkPermissions()">دخول</button>
-        </div>
+<script>
+async function checkPermissions() {
+    const name = document.getElementById('teacherName').value;
+    const pass = document.getElementById('teacherPass').value;
+    let select = document.getElementById('allowedClasses');
+    select.innerHTML = '<option value="">اختر الصف والمادة</option>';
+
+    // --- منطق دخول المدير (اسم المستخدم هو admin فقط) ---
+    if (name === "admin") { 
+        const snap = await db.collection("teachers_permissions").get();
+        snap.forEach(doc => {
+            let d = doc.data();
+            let opt = document.createElement('option');
+            opt.value = JSON.stringify(d);
+            opt.innerHTML = `${d.name} | ${d.subject} - ${d.class} - ${d.section}`;
+            select.appendChild(opt);
+        });
+        document.getElementById('welcomeMsg').innerText = "مرحباً: المدير (صلاحيات كاملة)";
+        document.getElementById('loginArea').style.display = 'none';
+        document.getElementById('gradesArea').style.display = 'block';
+    } 
+    // --- منطق دخول المدرس (يجب مطابقة الاسم والرقم السري) ---
+    else {
+        const snap = await db.collection("teachers_permissions")
+                             .where("name", "==", name)
+                             .where("password", "==", pass)
+                             .get();
+                             
+        if (snap.empty) {
+            alert("خطأ: اسم المستخدم أو الرقم السري غير صحيح!");
+            return;
+        }
         
-        <div id="gradesArea" style="display:none;">
-            <h3 id="welcomeMsg"></h3>
-            <select id="allowedClasses" onchange="loadStudentGrades()"><option value="">اختر الصف والمادة</option></select>
-            <table id="gradesTable">
-                <thead id="headArea"></thead>
-                <tbody id="gradesBody"></tbody>
-            </table>
-            <button class="btn" style="width:100%; margin-top:15px;" onclick="saveGrades()">حفظ الدرجات</button>
-        </div>
-    </div>
-
-    <script>
-        const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
-        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
-        async function checkPermissions() {
-            const name = document.getElementById('teacherName').value;
-            const snap = await db.collection("teachers_permissions").where("name", "==", name).get();
-            if (snap.empty) return alert("اسم غير مصرح له!");
-            let select = document.getElementById('allowedClasses');
-            select.innerHTML = '<option value="">اختر الصف والمادة</option>';
-            snap.forEach(doc => {
-                let d = doc.data();
-                let opt = document.createElement('option');
-                opt.value = JSON.stringify(d);
-                opt.innerHTML = `${d.subject} - ${d.class} - ${d.section}`;
-                select.appendChild(opt);
-            });
-            document.getElementById('loginArea').style.display = 'none';
-            document.getElementById('gradesArea').style.display = 'block';
-            document.getElementById('welcomeMsg').innerText = "مرحباً: " + name;
-        }
-
-        async function loadStudentGrades() {
-            const val = document.getElementById('allowedClasses').value;
-            if(!val) return;
-            const data = JSON.parse(val);
-            const head = document.getElementById('headArea');
-            const body = document.getElementById('gradesBody');
-            body.innerHTML = "";
-
-            const isEnglishOrComputer = (data.subject === "الإنكليزي" || data.subject === "الحاسوب");
-            head.innerHTML = isEnglishOrComputer 
-                ? `<tr><th>الطالب</th><th colspan="7" class="c-f1">الفصل الأول</th><th class="c-mid">ن.سنة</th><th colspan="7" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr>`
-                : `<tr><th>الطالب</th><th colspan="5" class="c-f1">الفصل الأول</th><th class="c-mid">نصف السنة</th><th colspan="5" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr>`;
-
-            const classes = isEnglishOrComputer 
-                ? ["c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"]
-                : ["c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"];
-
-            const snap = await db.collection("students").where("class", "==", data.class).get();
-            let students = [];
-            snap.forEach(s => { if(s.data().section == data.section) students.push(s.data()); });
-            students.sort((a,b) => a.name.localeCompare(b.name, 'ar'));
-
-            students.forEach(s => {
-                let row = `<tr><td>${s.name}</td>`;
-                classes.forEach(c => { row += `<td class="${c}"><input type="text"></td>`; });
-                body.innerHTML += row + "</tr>";
-            });
-
-            const gDoc = await db.collection("grades").doc(`${data.class}_${data.section}_${data.subject}`).get();
-            if (gDoc.exists) {
-                const gData = gDoc.data();
-                document.querySelectorAll('#gradesBody tr').forEach(row => {
-                    const name = row.cells[0].innerText;
-                    if (gData[name]) {
-                        const inputs = row.querySelectorAll('input');
-                        gData[name].forEach((val, i) => { if(inputs[i]) inputs[i].value = val; });
-                    }
-                });
-            }
-        }
-
-        async function saveGrades() {
-            const data = JSON.parse(document.getElementById('allowedClasses').value);
-            const docRef = db.collection("grades").doc(`${data.class}_${data.section}_${data.subject}`);
-            const gradesData = {};
-            document.querySelectorAll('#gradesBody tr').forEach(row => {
-                const name = row.cells[0].innerText;
-                gradesData[name] = Array.from(row.querySelectorAll('input')).map(i => i.value);
-            });
-            await docRef.set(gradesData, {merge: true});
-            alert("تم حفظ درجات " + data.subject + " بنجاح!");
-        }
-    </script>
-</body>
-</html>
+        snap.forEach(doc => {
+            let d = doc.data();
+            let opt = document.createElement('option');
+            opt.value = JSON.stringify(d);
+            opt.innerHTML = `${d.subject} - ${d.class} - ${d.section}`;
+            select.appendChild(opt);
+        });
+        document.getElementById('welcomeMsg').innerText = "مرحباً المدرس: " + name;
+        document.getElementById('loginArea').style.display = 'none';
+        document.getElementById('gradesArea').style.display = 'block';
+    }
+}
+</script>
