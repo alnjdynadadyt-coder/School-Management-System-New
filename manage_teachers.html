@@ -101,8 +101,7 @@
             location.reload();
         }
 
-        }
-
+        
         db.collection("teachers_permissions").onSnapshot(snap => {
             let teachersData = {};
             snap.forEach(doc => {
