@@ -21,11 +21,18 @@
 </head>
 <body>
     <div class="container">
-        <div id="loginArea">
-            <h2>🔐 بوابة دخول المدرس</h2>
-            <input type="text" id="teacherName" placeholder="اسم المستخدم">
-            <input type="password" id="teacherPass" placeholder="الرقم السري">
-            <button class="btn" onclick="checkPermissions()">دخول</button>
+                <!-- منطقة التحكم الجديدة التي ستظهر وتختفي -->
+        <div id="authBar" style="margin-bottom: 20px; padding: 10px; background: #eef; border-radius: 8px;">
+            <div id="loginForm">
+                <input type="text" id="teacherName" placeholder="اسم المستخدم">
+                <input type="password" id="teacherPass" placeholder="الرقم السري">
+                <button class="btn" onclick="checkPermissions()">دخول</button>
+            </div>
+            <div id="teacherControls" style="display:none;">
+                <h3 id="welcomeMsg" style="margin:0;"></h3>
+                <select id="allowedClasses" onchange="loadSelectedGrades()"></select>
+                <button onclick="location.reload()" style="background:none; border:none; color:red; cursor:pointer;">خروج</button>
+            </div>
         </div>
 
         <div id="gradesArea">
