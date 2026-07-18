@@ -67,8 +67,10 @@
                 opt.innerHTML = `${d.subject} | ${d.class} - ${d.section}`;
                 select.appendChild(opt);
             });
-            document.getElementById('loginArea').style.display = 'none';
-            document.getElementById('gradesArea').style.display = 'block';
+                document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('teacherControls').style.display = 'block';
+    document.getElementById('welcomeMsg').innerText = "مرحباً بك: " + name;
+    document.getElementById('gradesArea').style.display = 'block';
         }
 
         async function loadSelectedGrades() {
