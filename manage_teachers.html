@@ -53,16 +53,17 @@
             <option value="السادس الأدبي">السادس الأدبي</option>
         </select>
 
-        <select id="tSec">
-            <option value="">اختر الشعبة</option>
-            <option value="أ">أ</option>
-            <option value="ب">ب</option>
-            <option value="ج">ج</option>
-            <option value="د">د</option>
-            <option value="هـ">هـ</option>
-            <option value="و">و</option>
-            <option value="ز">ز</option>
-        </select>
+        <div style="text-align: right; border: 1px solid #ccc; padding: 10px; margin: 8px 0; border-radius: 5px;">
+    <label>اختر الشعب:</label><br>
+    <input type="checkbox" name="sec" value="أ"> أ 
+    <input type="checkbox" name="sec" value="ب"> ب 
+    <input type="checkbox" name="sec" value="ج"> ج 
+    <input type="checkbox" name="sec" value="د"> د 
+    <input type="checkbox" name="sec" value="هـ"> هـ 
+    <input type="checkbox" name="sec" value="و"> و 
+    <input type="checkbox" name="sec" value="ز"> ز
+</div>
+
 
         <button onclick="addPermission()">حفظ الصلاحية</button>
 
@@ -76,17 +77,30 @@
         const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-
         function addPermission() {
-            const data = {
-                name: document.getElementById('tName').value,
-                password: document.getElementById('tPass').value,
-                subject: document.getElementById('tSub').value,
-                class: document.getElementById('tClass').value,
-                section: document.getElementById('tSec').value
-            };
-            if(!data.name || !data.password || !data.subject || !data.class || !data.section) return alert("يرجى ملء جميع الحقول");
-            db.collection("teachers_permissions").add(data).then(() => location.reload());
+            const name = document.getElementById('tName').value;
+            const password = document.getElementById('tPass').value;
+            const subject = document.getElementById('tSub').value;
+            const className = document.getElementById('tClass').value;
+            const selectedSections = [];
+            document.querySelectorAll('input[name="sec"]:checked').forEach(cb => selectedSections.push(cb.value));
+
+            if(!name || !password || !subject || !className || selectedSections.length === 0) 
+                return alert("يرجى ملء جميع الحقول واختيار شعبة واحدة على الأقل");
+
+            selectedSections.forEach(sec => {
+                db.collection("teachers_permissions").add({
+                    name: name,
+                    password: password,
+                    subject: subject,
+                    class: className,
+                    section: sec
+                });
+            });
+            alert("تم حفظ الصلاحيات بنجاح!");
+            location.reload();
+        }
+
         }
 
         db.collection("teachers_permissions").onSnapshot(snap => {
