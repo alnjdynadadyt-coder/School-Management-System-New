@@ -21,6 +21,7 @@
         <h2>إدارة صلاحيات المدرسين</h2>
         
         <input type="text" id="tName" placeholder="اسم المدرس">
+        <input type="text" id="tPass" placeholder="الرقم السري للمدرس">
         
         <select id="tSub">
             <option value="">اختر المادة</option>
@@ -66,7 +67,7 @@
         <button onclick="addPermission()">حفظ الصلاحية</button>
 
         <table>
-            <thead><tr><th>المدرس</th><th>المادة</th><th>الصف والشعبة</th><th>إجراء</th></tr></thead>
+            <thead><tr><th>المدرس</th><th>الرقم السري</th><th>المادة</th><th>الصف والشعبة</th><th>إجراء</th></tr></thead>
             <tbody id="tBody"></tbody>
         </table>
     </div>
@@ -79,11 +80,12 @@
         function addPermission() {
             const data = {
                 name: document.getElementById('tName').value,
+                password: document.getElementById('tPass').value,
                 subject: document.getElementById('tSub').value,
                 class: document.getElementById('tClass').value,
                 section: document.getElementById('tSec').value
             };
-            if(!data.name || !data.subject || !data.class || !data.section) return alert("يرجى ملء جميع الحقول");
+            if(!data.name || !data.password || !data.subject || !data.class || !data.section) return alert("يرجى ملء جميع الحقول");
             db.collection("teachers_permissions").add(data).then(() => location.reload());
         }
 
@@ -91,14 +93,14 @@
             let teachersData = {};
             snap.forEach(doc => {
                 let d = doc.data();
-                if (!teachersData[d.name]) teachersData[d.name] = { subject: d.subject, classes: [], ids: [] };
+                if (!teachersData[d.name]) teachersData[d.name] = { password: d.password, subject: d.subject, classes: [], ids: [] };
                 teachersData[d.name].classes.push(`${d.class} (${d.section})`);
                 teachersData[d.name].ids.push(doc.id);
             });
 
             let html = "";
             for (let name in teachersData) {
-                html += `<tr><td>${name}</td><td>${teachersData[name].subject}</td><td>${teachersData[name].classes.join("، ")}</td>
+                html += `<tr><td>${name}</td><td>${teachersData[name].password}</td><td>${teachersData[name].subject}</td><td>${teachersData[name].classes.join("، ")}</td>
                 <td><button style="background:red; border:none; color:white; padding:5px; border-radius:3px;" onclick="deleteTeacher('${teachersData[name].ids.join(',')}')">حذف الكل</button></td></tr>`;
             }
             document.getElementById('tBody').innerHTML = html;
@@ -110,3 +112,4 @@
     </script>
 </body>
 </html>
+ 
