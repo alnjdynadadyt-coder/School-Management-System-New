@@ -69,7 +69,7 @@
         const db = firebase.firestore();
 
         function validateInputs() {
-            if(!document.getElementById('teacherName').value || !document.getElementById('subject').value) {
+            if(!document.getElementById('subject').value) {
                 alert("يرجى إدخال المادة أولاً!"); return false;
             } return true;
         }
