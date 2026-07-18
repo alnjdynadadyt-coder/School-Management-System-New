@@ -93,7 +93,7 @@
             students.forEach(s => {
                 const classes = (sub === "الإنكليزي" || sub === "الحاسوب") ? ["c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"] : ["c-f1","c-f1","c-f1","c-f1","c-f1","c-mid","c-f2","c-f2","c-f2","c-f2","c-f2","c-final"];
                 let row = `<tr><td>${s.name}</td>`;
-                classes.forEach(c => { row += `<td class="${c}"><input type="text"></td>`; });
+                classes.forEach(c => { row += `<td><input type="number" oninput="checkRed(this)" class="${c}"></td>`; });
                 body.innerHTML += row + "</tr>";
             });
 
@@ -115,5 +115,14 @@
             await docRef.set(dataToSave); alert("تم الحفظ!");
         }
     </script>
+    function checkRed(input) {
+    if (input.value !== "" && parseFloat(input.value) < 50) {
+        input.style.color = "red";
+        input.style.fontWeight = "bold";
+    } else {
+        input.style.color = "black";
+        input.style.fontWeight = "normal";
+    }
+}
 </body>
 </html>
