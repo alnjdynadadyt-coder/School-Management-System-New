@@ -114,15 +114,16 @@
             document.querySelectorAll('#gradesBody tr').forEach((row) => { dataToSave[row.cells[0].innerText] = Array.from(row.querySelectorAll('input')).map(i => i.value); });
             await docRef.set(dataToSave); alert("تم الحفظ!");
         }
+                function checkRed(input) {
+            if (input.value !== "" && parseFloat(input.value) < 50) {
+                input.style.color = "red";
+                input.style.fontWeight = "bold";
+            } else {
+                input.style.color = "black";
+                input.style.fontWeight = "normal";
+            }
+        }
     </script>
-    function checkRed(input) {
-    if (input.value !== "" && parseFloat(input.value) < 50) {
-        input.style.color = "red";
-        input.style.fontWeight = "bold";
-    } else {
-        input.style.color = "black";
-        input.style.fontWeight = "normal";
-    }
-}
+    
 </body>
 </html>
