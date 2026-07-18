@@ -222,6 +222,19 @@ i[15].value = (i[6].value !== "" && i[7].value !== "" && i[14].value !== "") ? M
             XLSX.writeFile(wb, `الدرجات_${cls}_${sec}_${sub}.xlsx`);
         }
 
+        function verifyAndLoad() {
+    const teacherName = document.getElementById('teacherName').value;
+    if (!teacherName) { alert("يرجى إدخال اسم المدرس!"); return; }
+    
+    // التحقق من الصلاحيات
+    if (teacherName === "المدير" || teacherName === "سعد" || teacherName === "حسنين") {
+        document.getElementById('tableWrapper').style.display = "block";
+        loadGrades();
+    } else {
+        alert("عذراً، اسم المدرس غير مسجل في قاعدة الصلاحيات!");
+    }
+}
+
     </script>
 </body>
 </html>
