@@ -2,43 +2,43 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>بوابة المدرس</title>
+    <title>بوابة المدرس الموحدة</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        
-        #loginArea { text-align: center; }
-        input { width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #e1e1e1; border-radius: 12px; font-size: 16px; box-sizing: border-box; transition: 0.3s; }
-        input:focus { border-color: #007bff; outline: none; }
-        .btn-main { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 12px; font-size: 18px; cursor: pointer; transition: 0.3s; }
-        .btn-main:hover { background: #0056b3; }
-        
-        select { width: 100%; padding: 15px; margin-bottom: 20px; border-radius: 12px; border: 2px solid #007bff; font-size: 16px; }
+        body { font-family: sans-serif; background: #f4f7f6; padding: 10px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        #loginArea { text-align: center; padding: 40px; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn { padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; color: white; background: #007bff; font-weight: bold; }
         #gradesArea { display: none; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 5px; text-align: center; }
+        .fail { color: red !important; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- منطقة الدخول -->
         <div id="loginArea">
             <h2>🔐 بوابة دخول المدرس</h2>
             <input type="text" id="teacherName" placeholder="اسم المستخدم">
             <input type="password" id="teacherPass" placeholder="الرقم السري">
-            <button class="btn-main" onclick="checkPermissions()">دخول</button>
+            <button class="btn" onclick="checkPermissions()">دخول</button>
         </div>
-        
+
+        <!-- منطقة العمل -->
         <div id="gradesArea">
             <h3 id="welcomeMsg"></h3>
-            <select id="allowedClasses" onchange="loadStudentGrades()">
+            <select id="allowedClasses" onchange="loadSelectedGrades()">
                 <option value="">اختر المادة / الصف المطلوب</option>
             </select>
-            <table id="gradesTable" border="1" style="width:100%; text-align:center;">
+            <table id="gradesTable">
                 <thead id="headArea"></thead>
                 <tbody id="gradesBody"></tbody>
             </table>
-            <button class="btn-main" style="margin-top:20px; background:#28a745;" onclick="saveGrades()">حفظ التغييرات</button>
-            <button onclick="location.reload()" style="margin-top:10px; background:none; border:none; color:red; cursor:pointer;">تسجيل خروج</button>
+            <button class="btn" style="width:100%; background:#28a745; margin-top:20px;" onclick="saveGrades()">حفظ الدرجات</button>
+            <button onclick="location.reload()" style="background:none; border:none; color:red; cursor:pointer; margin-top:10px;">تسجيل خروج</button>
         </div>
     </div>
 
@@ -47,16 +47,13 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        // 1. منطق الدخول (فلترة الصلاحيات)
         async function checkPermissions() {
             const name = document.getElementById('teacherName').value;
             const pass = document.getElementById('teacherPass').value;
             let select = document.getElementById('allowedClasses');
 
-            const snap = await db.collection("teachers_permissions")
-                                 .where("name", "==", name)
-                                 .where("password", "==", pass)
-                                 .get();
-                                 
+            const snap = await db.collection("teachers_permissions").where("name", "==", name).where("password", "==", pass).get();
             if (snap.empty) return alert("خطأ: اسم المستخدم أو الرقم السري غير صحيح!");
             
             snap.forEach(doc => {
@@ -66,14 +63,20 @@
                 opt.innerHTML = `${d.subject} | ${d.class} - ${d.section}`;
                 select.appendChild(opt);
             });
-            
-            document.getElementById('welcomeMsg').innerText = "مرحباً بك: " + name;
             document.getElementById('loginArea').style.display = 'none';
             document.getElementById('gradesArea').style.display = 'block';
         }
 
-        async function loadStudentGrades() { /* كود جلب بياناتك هنا */ }
-        async function saveGrades() { /* كود الحفظ هنا */ }
+        // 2. دالة جلب الدرجات بناءً على الاختيار
+        function loadSelectedGrades() {
+            const selectedData = JSON.parse(document.getElementById('allowedClasses').value);
+            // هنا يتم استدعاء منطق دالة loadGrades التي أرسلتها لي سابقاً مع استخدام متغيرات selectedData
+            // ملاحظة: سأقوم بدمج منطق العرض الخاص بك في هذا المكان...
+            alert("تم اختيار: " + selectedData.subject + " - الصف: " + selectedData.class);
+            // يمكنك الآن إكمال ربط دالة loadGrades الأصلية الخاصة بك هنا
+        }
+
+        function saveGrades() { /* كود الحفظ المعتاد */ }
     </script>
 </body>
 </html>
