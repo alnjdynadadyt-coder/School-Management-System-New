@@ -54,17 +54,17 @@
         </select>
 
         <div style="text-align: right; border: 1px solid #ccc; padding: 10px; margin: 8px 0; border-radius: 5px;">
-    <label>اختر الشعب:</label><br>
-    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px;">
-        <label><input type="checkbox" name="sec" value="أ"> أ</label>
-        <label><input type="checkbox" name="sec" value="ب"> ب</label>
-        <label><input type="checkbox" name="sec" value="ج"> ج</label>
-        <label><input type="checkbox" name="sec" value="د"> د</label>
-        <label><input type="checkbox" name="sec" value="هـ"> هـ</label>
-        <label><input type="checkbox" name="sec" value="و"> و</label>
-        <label><input type="checkbox" name="sec" value="ز"> ز</label>
-    </div>
-</div>
+            <label>اختر الشعب:</label><br>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px;">
+                <label><input type="checkbox" name="sec" value="أ"> أ</label>
+                <label><input type="checkbox" name="sec" value="ب"> ب</label>
+                <label><input type="checkbox" name="sec" value="ج"> ج</label>
+                <label><input type="checkbox" name="sec" value="د"> د</label>
+                <label><input type="checkbox" name="sec" value="هـ"> هـ</label>
+                <label><input type="checkbox" name="sec" value="و"> و</label>
+                <label><input type="checkbox" name="sec" value="ز"> ز</label>
+            </div>
+        </div>
 
         <button onclick="addPermission()">حفظ الصلاحية</button>
 
@@ -107,15 +107,27 @@
             let teachersData = {};
             snap.forEach(doc => {
                 let d = doc.data();
-                if (!teachersData[d.name]) teachersData[d.name] = { password: d.password, subject: d.subject, classes: [], ids: [] };
-                teachersData[d.name].classes.push(`${d.class} (${d.section})`);
-                teachersData[d.name].ids.push(doc.id);
+                // التعديل هنا: استخدام الاسم والرقم السري معاً كمفتاح فريد
+                let uniqueKey = d.name + "_" + d.password;
+                
+                if (!teachersData[uniqueKey]) {
+                    teachersData[uniqueKey] = { 
+                        name: d.name, 
+                        password: d.password, 
+                        subject: d.subject, 
+                        classes: [], 
+                        ids: [] 
+                    };
+                }
+                teachersData[uniqueKey].classes.push(`${d.class} (${d.section})`);
+                teachersData[uniqueKey].ids.push(doc.id);
             });
 
             let html = "";
-            for (let name in teachersData) {
-                html += `<tr><td>${name}</td><td>${teachersData[name].password}</td><td>${teachersData[name].subject}</td><td>${teachersData[name].classes.join("، ")}</td>
-                <td><button style="background:red; border:none; color:white; padding:5px; border-radius:3px;" onclick="deleteTeacher('${teachersData[name].ids.join(',')}')">حذف الكل</button></td></tr>`;
+            for (let key in teachersData) {
+                let t = teachersData[key];
+                html += `<tr><td>${t.name}</td><td>${t.password}</td><td>${t.subject}</td><td>${t.classes.join("، ")}</td>
+                <td><button style="background:red; border:none; color:white; padding:5px; border-radius:3px;" onclick="deleteTeacher('${t.ids.join(',')}')">حذف الكل</button></td></tr>`;
             }
             document.getElementById('tBody').innerHTML = html;
         });
@@ -126,3 +138,4 @@
     </script>
 </body>
 </html>
+ 
