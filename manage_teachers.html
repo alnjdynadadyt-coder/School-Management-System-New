@@ -13,13 +13,13 @@
         table { width: 100%; margin-top: 20px; border-collapse: collapse; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
         .back-btn { display: inline-block; margin-bottom: 15px; padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px; }
-        .sec-group { text-align: right; margin: 8px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .sec-box { text-align: right; margin: 8px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
     </style>
 </head>
 <body>
     <div class="container">
         <a href="index.html" class="back-btn">← العودة للرئيسية</a>
-        <h2>إدارة صلاحية المدرسين</h2>
+        <h2>إدارة صلاحيات المدرسين</h2>
         
         <input type="text" id="tName" placeholder="اسم المدرس">
         <input type="text" id="tPass" placeholder="الرقم السري للمدرس">
@@ -54,14 +54,14 @@
             <option value="السادس الأدبي">السادس الأدبي</option>
         </select>
 
-        <div class="sec-group">
+        <div class="sec-box">
             <label>اختر الشعب:</label><br>
-            <input type="checkbox" name="sec" value="أ"> أ
-            <input type="checkbox" name="sec" value="ب"> ب
-            <input type="checkbox" name="sec" value="ج"> ج
-            <input type="checkbox" name="sec" value="د"> د
-            <input type="checkbox" name="sec" value="هـ"> هـ
-            <input type="checkbox" name="sec" value="و"> و
+            <input type="checkbox" name="sec" value="أ"> أ 
+            <input type="checkbox" name="sec" value="ب"> ب 
+            <input type="checkbox" name="sec" value="ج"> ج 
+            <input type="checkbox" name="sec" value="د"> د 
+            <input type="checkbox" name="sec" value="هـ"> هـ 
+            <input type="checkbox" name="sec" value="و"> و 
             <input type="checkbox" name="sec" value="ز"> ز
         </div>
 
@@ -106,14 +106,7 @@
             let teachersData = {};
             snap.forEach(doc => {
                 let d = doc.data();
-                if (!teachersData[d.name]) {
-                    teachersData[d.name] = { 
-                        password: d.password || "", 
-                        subject: d.subject, 
-                        classes: [], 
-                        ids: [] 
-                    };
-                }
+                if (!teachersData[d.name]) teachersData[d.name] = { password: d.password, subject: d.subject, classes: [], ids: [] };
                 teachersData[d.name].classes.push(`${d.class} (${d.section})`);
                 teachersData[d.name].ids.push(doc.id);
             });
