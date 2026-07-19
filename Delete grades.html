@@ -1,1 +1,44 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة تحكم المدرسة</title>
+    <script>
+        // تعريفك كمدير للنظام ليفتح النظام بدون باسورد
+        sessionStorage.setItem("isAdmin", "true");
+    </script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #f4f4f9; text-align: center; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 600px; margin: auto; }
+        .nav-btn { display: block; padding: 20px; font-size: 16px; border-radius: 10px; color: white; text-decoration: none; font-weight: bold; }
+        .bg-blue { background: #007bff; }
+        .bg-green { background: #5cb85c; }
+        .bg-purple { background: #6f42c1 !important; color: white !important; }
+        .bg-red { background: #d9534f; }
+    </style>
+</head>
+<body>
 
+    <h1>لوحة تحكم المدرسة</h1>
+    
+    <div class="grid">
+        <a href="teacher.html" class="nav-btn bg-blue">تسجيل الحضور</a>
+        <a href="students.html" class="nav-btn bg-blue">إدارة الطلاب</a>
+        <a href="daily.html" class="nav-btn bg-green">التقرير اليومي</a>
+        <a href="student_report.html" class="nav-btn bg-purple">تقرير الطالب التفصيلي</a>
+        <a href="reports.html" class="nav-btn bg-blue">تقارير الحضور</a>
+        <a href="grades.html" style="display:block; padding:10px; background:#007bff; color:white; text-align:center; border-radius:8px; margin-top:10px;">إدارة الدرجات</a>
+        <button class="btn" style="background:#28a745;" onclick="window.location.href='teacher_grades.html'">حذف درجات المدرس</button>
+        <a href="manage_teachers.html" class="btn">إدارة صلاحيات المدرسين</a>
+        <a href="delete.html" class="nav-btn bg-red">حذف السجلات</a>
+        
+        <a href="system_backup.html" style="text-decoration: none;">
+            <button style="background: #343a40; color: white; padding: 15px; width: 100%; border: none; border-radius: 8px; margin-top: 10px; cursor: pointer;">🛡️ النسخ الاحتياطي للنظام</button>
+        </a>
+        <a href="archive.html" style="text-decoration: none;">
+            <button style="background: #6f42c1; color: white; padding: 15px; width: 100%; border: none; border-radius: 8px; margin-top: 10px; font-size: 16px; cursor: pointer;">📦 إدارة الأرشيف</button>
+        </a>
+    </div>
+
+</body>
+</html> 
