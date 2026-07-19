@@ -43,12 +43,14 @@
 </head>
 <body>
     <div class="container">
-        <div id="loginArea" style="text-align: center; padding: 20px;">
-            <h3>تسجيل الدخول</h3>
-            <input type="text" id="loginUser" placeholder="اسم المستخدم">
-            <input type="password" id="loginPass" placeholder="كلمة المرور">
-            <button onclick="checkAuth()">دخول</button>
-        </div>
+       <div id="loginArea" style="text-align: center; padding: 20px;">
+    <h3>تسجيل الدخول</h3>
+    <input type="text" id="loginUser" placeholder="اسم المستخدم">
+    <input type="password" id="loginPass" placeholder="كلمة المرور">
+    <button onclick="checkAuth()">دخول</button>
+    <br><br>
+    <button class="btn" style="background:#6c757d;" onclick="directAdminLogin()">دخول المدير (مباشر)</button>
+</div>
         
         <div id="mainContent" style="display: none;">
             <button class="btn" style="background:#6c757d;" onclick="window.history.back()">🔙 العودة</button>
