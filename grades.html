@@ -84,6 +84,7 @@
             if (user === "مدير" && pass === "123") {
                 document.getElementById('loginArea').style.display = 'none';
                 document.getElementById('mainContent').style.display = 'block';
+                document.getElementById('teacherName').value = "مدير";
                 return;
             }
 
@@ -173,6 +174,8 @@
             const head = document.getElementById('headArea');
             const body = document.getElementById('gradesBody'); body.innerHTML = "";
             const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value;
+            const currentUser = document.getElementById('teacherName').value;
+
             if (sub === "الإنكليزي" || sub === "الحاسوب") {
                 head.innerHTML = `<tr><th>الطالب</th><th colspan="7" class="c-f1">الفصل الأول</th><th class="c-mid">ن.سنة</th><th colspan="7" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr><tr><th></th><th>ش1</th><th>يومي</th><th>ش2</th><th>يومي</th><th>مج.ش1</th><th>مج.ش2</th><th>فصل1</th><th>ن.سنة</th><th>ش1</th><th>يومي</th><th>ش2</th><th>يومي</th><th>مج.ش1</th><th>مج.ش2</th><th>فصل2</th><th>السعي</th></tr>`;
             } else {
@@ -189,10 +192,22 @@
                 });
                 db.collection("grades").doc(`${cls}_${sec}_${sub}`).get().then(doc => {
                     if (doc.exists) {
-                        const data = doc.data(); document.getElementById('teacherName').value = data.teacher;
+                        const data = doc.data(); 
+                        if (currentUser !== "مدير") document.getElementById('teacherName').value = data.teacher;
                         document.querySelectorAll('#gradesBody tr').forEach(row => {
                             const name = row.cells[0].innerText;
-                            if (data[name]) { const inputs = row.querySelectorAll('input'); data[name].forEach((val, i) => { inputs[i].value = val; checkFail(inputs[i], i); }); }
+                            if (data[name]) { 
+                                const inputs = row.querySelectorAll('input'); 
+                                data[name].forEach((val, i) => { 
+                                    inputs[i].value = val; 
+                                    // قفل الدرجات للمدرس فقط
+                                    if(val !== "" && currentUser !== "مدير") {
+                                        inputs[i].readOnly = true;
+                                        inputs[i].style.backgroundColor = "#e0e0e0";
+                                    }
+                                    checkFail(inputs[i], i); 
+                                }); 
+                            }
                         });
                     }
                 });
