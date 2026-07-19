@@ -67,13 +67,33 @@
             <thead id="headArea"></thead>
             <tbody id="gradesBody"></tbody>
         </table>
-        <button class="btn" style="width:100%; background:#007bff; margin-top:15px;" onclick="saveGrades()">حفظ الدرجات</button>
-    </div>
+            <button class="btn" style="width:100%; background:#007bff; margin-top:15px;" onclick="saveGrades()">حفظ الدرجات</button>
+</div></div>
 
     <script>
         const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        function checkAuth() {
+    const user = document.getElementById('loginUser').value;
+    const pass = document.getElementById('loginPass').value;
+    
+    // هنا نضيف الصلاحيات (المدير أو المدرس)
+    // إذا كنت المدير، نفتح الصفحة مباشرة
+    if (user === "مدير" && pass === "123") {
+        document.getElementById('loginArea').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+    } 
+    // هنا يمكنك إضافة المدرسين بنفس الطريقة
+    else if (user === "سعد" && pass === "123") {
+        document.getElementById('loginArea').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+        document.getElementById('teacherName').value = "سعد"; // يملأ اسم المدرس تلقائياً
+    }
+    else {
+        alert("اسم المستخدم أو كلمة المرور غير صحيحة!");
+    }
+}
 
         function validateInputs() {
             if(!document.getElementById('subject').value) {
