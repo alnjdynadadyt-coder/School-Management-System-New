@@ -74,49 +74,55 @@
         const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-            async function checkAuth() {
-        const user = document.getElementById('loginUser').value;
-        const pass = document.getElementById('loginPass').value;
 
-        // استثناء للمدير
-        if (user === "مدير" && pass === "123") {
-            document.getElementById('loginArea').style.display = 'none';
-            document.getElementById('mainContent').style.display = 'block';
-            return;
-        }
+        async function checkAuth() {
+    const user = document.getElementById('loginUser').value;
+    const pass = document.getElementById('loginPass').value;
 
-        // التحقق من صلاحيات المدرس من قاعدة البيانات
-        try {
-            const snapshot = await db.collection("teachers_permissions").where("name", "==", user).where("password", "==", pass).get();
-            
-            if (!snapshot.empty) {
-                const teacherData = snapshot.docs[0].data();
-                
-                document.getElementById('loginArea').style.display = 'none';
-                document.getElementById('mainContent').style.display = 'block';
-                
-                // تعبئة البيانات وقفلها
-                document.getElementById('teacherName').value = teacherData.name;
-                document.getElementById('teacherName').readOnly = true;
-                
-                document.getElementById('gClass').value = teacherData.class;
-                document.getElementById('gSection').value = teacherData.section;
-                document.getElementById('subject').value = teacherData.subject;
-                
-                // منع التغيير
-                document.getElementById('gClass').disabled = true;
-                document.getElementById('gSection').disabled = true;
-                document.getElementById('subject').disabled = true;
-                
-                alert("تم تسجيل الدخول بنجاح!");
-            } else {
-                alert("اسم المستخدم أو كلمة المرور غير صحيحة، أو لا تملك صلاحية!");
-            }
-        } catch (error) {
-            alert("حدث خطأ أثناء التحقق من الصلاحيات: " + error.message);
-        }
+    if (user === "مدير" && pass === "123") {
+        document.getElementById('loginArea').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+        return;
     }
 
+    try {
+        const snapshot = await db.collection("teachers_permissions").where("name", "==", user).where("password", "==", pass).get();
+        
+        if (!snapshot.empty) {
+            document.getElementById('loginArea').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('teacherName').value = user;
+            document.getElementById('teacherName').readOnly = true;
+
+            const gClass = document.getElementById('gClass');
+            const gSection = document.getElementById('gSection');
+            const subjectInput = document.getElementById('subject');
+
+            gClass.innerHTML = "";
+            gSection.innerHTML = "";
+
+            let classes = new Set();
+            let sections = new Set();
+            let subjects = new Set();
+
+            snapshot.forEach(doc => {
+                let data = doc.data();
+                classes.add(data.class);
+                sections.add(data.section);
+                subjects.add(data.subject);
+            });
+
+            classes.forEach(c => gClass.innerHTML += `<option value="${c}">${c}</option>`);
+            sections.forEach(s => gSection.innerHTML += `<option value="${s}">${s}</option>`);
+            subjectInput.value = Array.from(subjects).join(", ");
+            subjectInput.readOnly = true;
+        } else {
+            alert("اسم المستخدم أو كلمة المرور غير صحيحة!");
+        }
+    } catch (error) {
+        alert("خطأ أثناء التحقق: " + error.message);
+    }
+}
 
         function validateInputs() {
             if(!document.getElementById('subject').value) {
