@@ -14,46 +14,26 @@
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
         th, td { border: 1px solid #ddd; padding: 3px; text-align: center; }
         th:first-child, td:first-child { min-width: 130px; text-align: right; }
-        
-        .c-f1 { background-color: #fff9c4 !important; } 
-        .c-mid { background-color: #e8f5e9 !important; } 
-        .c-f2 { background-color: #e3f2fd !important; } 
-        .c-final { background-color: #fce4ec !important; }
-
-        .c-f1 input, .c-mid input, .c-f2 input, .c-final input { 
-            width: 32px !important; 
-            padding: 2px; 
-            border: 1px solid #ddd; 
-            border-radius: 3px; 
-            text-align: center; 
-            background: transparent; 
-        }
-        
+        .c-f1 { background-color: #fff9c4 !important; } .c-mid { background-color: #e8f5e9 !important; } .c-f2 { background-color: #e3f2fd !important; } .c-final { background-color: #fce4ec !important; }
+        .c-f1 input, .c-mid input, .c-f2 input, .c-final input { width: 32px !important; padding: 2px; border: 1px solid #ddd; border-radius: 3px; text-align: center; background: transparent; }
         .fail { color: red !important; font-weight: bold; }
-        .pass { color: black !important; }
         .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
-
-        @media print {
-            @page { size: A4 landscape; margin: 5mm; }
-            body { background: white; font-size: 9px; }
-            .btn, button { display: none !important; }
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        }
+        @media print { @page { size: A4 landscape; margin: 5mm; } body { background: white; font-size: 9px; } .btn, button { display: none !important; } * { -webkit-print-color-adjust: exact !important; } }
     </style>
 </head>
 <body>
     <div class="container">
-           <div id="loginArea" style="text-align: center; padding: 20px;">
-    <h3>تسجيل الدخول</h3>
-    <input type="text" id="loginUser" placeholder="اسم المستخدم">
-    <input type="password" id="loginPass" placeholder="كلمة المرور">
-    <button onclick="checkAuth()">دخول</button>
-    <br><br>
-    <button class="btn" style="background:#6c757d;" onclick="directAdminLogin()">دخول المدير (مباشر)</button>
-</div>
+        <div id="loginArea" style="text-align: center; padding: 20px;">
+            <h3>تسجيل الدخول</h3>
+            <input type="text" id="loginUser" placeholder="اسم المستخدم">
+            <input type="password" id="loginPass" placeholder="كلمة المرور">
+            <button onclick="checkAuth()">دخول</button>
+            <br><br>
+            <button class="btn" style="background:#6c757d;" onclick="directAdminLogin()">دخول المدير (مباشر)</button>
+        </div>
         
         <div id="mainContent" style="display: none;">
-            <button class="btn" style="background:#6c757d;" onclick="window.history.back()">🔙 العودة</button>
+            <button class="btn" style="background:#6c757d;" onclick="window.location.reload()">🔙 الخروج</button>
             <div class="controls">
                 <input type="text" id="teacherName" placeholder="اسم المدرس" required>
                 <select id="gClass"><option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option><option>الرابع الأدبي</option><option>الخامس الأدبي</option><option>السادس الأدبي</option></select>
@@ -82,13 +62,7 @@
         async function checkAuth() {
             const user = document.getElementById('loginUser').value;
             const pass = document.getElementById('loginPass').value;
-
-            if (user === "مدير" && pass === "123") {
-                document.getElementById('loginArea').style.display = 'none';
-                document.getElementById('mainContent').style.display = 'block';
-                return;
-            }
-
+            if (user === "مدير" && pass === "123") { directAdminLogin(); return; }
             try {
                 const snapshot = await db.collection("teachers_permissions").where("name", "==", user).where("password", "==", pass).get();
                 if (!snapshot.empty) {
@@ -96,19 +70,13 @@
                     document.getElementById('mainContent').style.display = 'block';
                     document.getElementById('teacherName').value = user;
                     document.getElementById('teacherName').readOnly = true;
-
+                    
                     const gClass = document.getElementById('gClass');
                     const gSection = document.getElementById('gSection');
                     const subjectInput = document.getElementById('subject');
                     gClass.innerHTML = ""; gSection.innerHTML = "";
                     let classes = new Set(); let sections = new Set(); let subjects = new Set();
-
-                    snapshot.forEach(doc => {
-                        let data = doc.data();
-                        classes.add(data.class);
-                        sections.add(data.section);
-                        subjects.add(data.subject);
-                    });
+                    snapshot.forEach(doc => { let data = doc.data(); classes.add(data.class); sections.add(data.section); subjects.add(data.subject); });
                     classes.forEach(c => gClass.innerHTML += `<option value="${c}">${c}</option>`);
                     sections.forEach(s => gSection.innerHTML += `<option value="${s}">${s}</option>`);
                     subjectInput.value = Array.from(subjects).join(", ");
@@ -117,13 +85,14 @@
             } catch (error) { alert("خطأ: " + error.message); }
         }
 
-        function validateInputs() {
-            if(!document.getElementById('subject').value) { alert("يرجى إدخال المادة أولاً!"); return false; } return true;
+        function directAdminLogin() {
+            document.getElementById('loginArea').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('teacherName').value = "مدير";
+            document.getElementById('teacherName').readOnly = false;
         }
 
-        <button onclick="checkAuth()">دخول</button>
-<br><br>
-<button class="btn" style="background:#6c757d;" onclick="directAdminLogin()">دخول المدير</button>
+        function validateInputs() { if(!document.getElementById('subject').value) { alert("يرجى إدخال المادة أولاً!"); return false; } return true; }
 
         async function saveGrades() {
             if(!validateInputs()) return;
@@ -146,8 +115,7 @@
         function checkFail(input, index) {
             const sub = document.getElementById('subject').value;
             const val = getVal(input.value);
-            if (input.value === "غ") { input.style.color = "red"; input.style.fontWeight = "bold"; } 
-            else { input.style.color = ""; input.style.fontWeight = ""; }
+            if (input.value === "غ") { input.style.color = "red"; input.style.fontWeight = "bold"; } else { input.style.color = ""; input.style.fontWeight = ""; }
             if (sub === "الإنكليزي" || sub === "الحاسوب") { const excluded = [0, 1, 2, 3, 8, 9, 10, 11]; if (excluded.includes(index)) { input.classList.remove('fail'); return; } }
             if (input.value !== "" && input.value !== "غ" && val <= 49) { input.classList.add('fail'); } else { input.classList.remove('fail'); }
         }
@@ -227,3 +195,4 @@
     </script>
 </body>
 </html>
+ 
