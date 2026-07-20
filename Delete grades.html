@@ -82,18 +82,23 @@
                 if(!doc.exists) return;
                 let data = doc.data();
 
-                        const clearDependencies = (studentData) => {
+                                const clearDependencies = (studentData) => {
             const isSpecial = (sub === "الإنكليزي" || sub === "الحاسوب");
             if (isSpecial) {
-                if (typeIndex === 0 || typeIndex === 1) { studentData[4] = ""; studentData[6] = ""; }
-                if (typeIndex === 3 || typeIndex === 4) { studentData[5] = ""; studentData[6] = ""; }
+                // تصفير "نصف السنة" (7) فقط عند حذف درجات الفصل الأول
+                if (typeIndex === 0 || typeIndex === 1) { studentData[4] = ""; studentData[6] = ""; studentData[7] = ""; }
+                if (typeIndex === 3 || typeIndex === 4) { studentData[5] = ""; studentData[6] = ""; studentData[7] = ""; }
+                
+                // الفصل الثاني
                 if (typeIndex === 8 || typeIndex === 9) { studentData[12] = ""; studentData[14] = ""; }
                 if (typeIndex === 11 || typeIndex === 12) { studentData[13] = ""; studentData[14] = ""; }
-                studentData[7] = ""; studentData[15] = "";
+                
+                studentData[15] = ""; // السعي
             } else {
-                if (typeIndex <= 4) { studentData[2] = ""; studentData[4] = ""; }
-                if (typeIndex >= 6 && typeIndex <= 10) { studentData[8] = ""; studentData[10] = ""; }
-                studentData[11] = "";
+                // للمواد العامة
+                if (typeIndex <= 4) { studentData[2] = ""; studentData[4] = ""; studentData[6] = ""; }
+                if (typeIndex >= 8 && typeIndex <= 10) { studentData[8] = ""; studentData[10] = ""; studentData[11] = ""; }
+                studentData[11] = ""; 
             }
             return studentData;
         };
