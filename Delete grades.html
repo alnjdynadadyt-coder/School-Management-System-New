@@ -13,6 +13,7 @@
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
         th { background-color: #f8f9fa; }
+        .btn-all { background: #dc3545 !important; color: white; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -26,6 +27,12 @@
             <input type="text" id="subject" placeholder="اسم المادة" list="subs">
             <datalist id="subs"><option value="الإسلامية"><option value="العربي"><option value="الإنكليزي"><option value="الرياضيات"><option value="الفيزياء"><option value="الكيمياء"><option value="الأحياء"><option value="التاريخ"><option value="الجغرافية"><option value="الاقتصاد"><option value="الحاسوب"></datalist>
             <button onclick="loadStudentsForDelete()" style="background:#007bff; color:white; grid-column: span 2;">جلب جميع الطلاب</button>
+        </div>
+
+        <input type="text" id="searchInput" placeholder="🔍 ابحث عن اسم الطالب..." onkeyup="filterTable()" style="margin-bottom: 15px; border: 2px solid #007bff;">
+
+        <div id="bulkAction" style="display:none;">
+            <button class="btn-all" onclick="archiveAll()" style="width:100%; padding:15px; border:none; border-radius:5px; cursor:pointer;">⚠️ أرشفة وتصفير جميع الطلاب في هذا الصف</button>
         </div>
 
         <table id="deleteTable">
@@ -47,50 +54,68 @@
             body.innerHTML = "";
             
             const doc = await db.collection("grades").doc(`${cls}_${sec}_${sub}`).get();
-            if(!doc.exists) { alert("لا توجد بيانات لهذا الصف والمادة!"); return; }
+            if(!doc.exists) { alert("لا توجد بيانات لهذا الصف والمادة!"); document.getElementById('bulkAction').style.display = 'none'; return; }
             
+            document.getElementById('bulkAction').style.display = 'block';
             const data = doc.data();
-            for (let studentName in data) {
-                if(studentName !== "teacher") {
-                    body.innerHTML += `<tr>
-                        <td>${studentName}</td>
-                        <td><button onclick="archiveAndClear('${studentName}')" style="background:#28a745; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:4px;">أرشفة وتصفير</button></td>
-                    </tr>`;
-                }
+            
+            // ترتيب الأسماء أبجدياً
+            const studentNames = Object.keys(data).filter(name => name !== "teacher").sort();
+            
+            for (let studentName of studentNames) {
+                body.innerHTML += `<tr class="student-row">
+                    <td>${studentName}</td>
+                    <td><button onclick="archiveAndClear('${studentName}')" style="background:#28a745; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:4px;">أرشفة وتصفير</button></td>
+                </tr>`;
             }
         }
 
-        async function archiveAndClear(studentName) {
-            if (!confirm(`⚠️ تحذير: سيتم نقل بيانات ${studentName} إلى الأرشيف وتصفير كافة درجاته في هذه المادة. هل أنت متأكد؟`)) return;
+        // دالة البحث
+        function filterTable() {
+            const query = document.getElementById('searchInput').value;
+            const rows = document.querySelectorAll('.student-row');
+            rows.forEach(row => {
+                const name = row.cells[0].innerText;
+                row.style.display = name.includes(query) ? "" : "none";
+            });
+        }
 
+        async function archiveAndClear(studentName) {
+            if (!confirm(`⚠️ تحذير: سيتم نقل بيانات ${studentName} للأرشيف وتصفير درجاته. هل أنت متأكد؟`)) return;
+            await processStudent(studentName, false);
+        }
+
+        async function archiveAll() {
+            if (!confirm("🚨 تحذير خطير: سيتم أرشفة وتصفير بيانات كـافـة الطلاب في القائمة الحالية. هل أنت متأكد؟")) return;
+            const rows = document.querySelectorAll('.student-row');
+            for (let row of rows) {
+                if(row.style.display !== "none") {
+                    const name = row.cells[0].innerText;
+                    await processStudent(name, true);
+                }
+            }
+            alert("✅ تم تنفيذ العملية بنجاح!");
+            loadStudentsForDelete();
+        }
+
+        async function processStudent(studentName, isBulk) {
             const cls = document.getElementById('gClass').value;
             const sec = document.getElementById('gSection').value;
             const sub = document.getElementById('subject').value;
             const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
-
             try {
                 const doc = await docRef.get();
                 let data = doc.data();
                 let studentData = data[studentName];
-
-                // 1. أرشفة البيانات
                 await db.collection("archived_grades").add({
-                    studentName: studentName,
-                    subject: sub,
-                    class: cls,
-                    section: sec,
-                    data: studentData,
-                    timestamp: new Date().toISOString()
+                    studentName, subject: sub, class: cls, section: sec, data: studentData, timestamp: new Date().toISOString()
                 });
-
-                // 2. تصفير البيانات (استبدال القيم بـ "")
                 data[studentName] = studentData.map(() => "");
-                
                 await docRef.set(data);
-                alert("✅ تم أرشفة وتصفير بيانات الطالب بنجاح!");
-                loadStudentsForDelete();
+                if(!isBulk) { alert("✅ تمت العملية بنجاح!"); loadStudentsForDelete(); }
             } catch (error) { alert("❌ خطأ: " + error.message); }
         }
     </script>
 </body>
 </html>
+ 
