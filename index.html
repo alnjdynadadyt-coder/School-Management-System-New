@@ -4,17 +4,19 @@
     <meta charset="UTF-8">
     <title>لوحة تحكم المدرسة</title>
     <script>
-        // تعريفك كمدير للنظام ليفتح النظام بدون باسورد
+        // ميزة المدير: السماح بالدخول المباشر للنظام
         sessionStorage.setItem("isAdmin", "true");
     </script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #f4f4f9; text-align: center; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 600px; margin: auto; }
-        .nav-btn { display: block; padding: 20px; font-size: 16px; border-radius: 10px; color: white; text-decoration: none; font-weight: bold; }
+        .nav-btn { display: block; padding: 20px; font-size: 16px; border-radius: 10px; color: white; text-decoration: none; font-weight: bold; border: none; cursor: pointer; }
+        .btn-custom { background: #28a745; width: 100%; border: none; padding: 15px; border-radius: 8px; color: white; cursor: pointer; font-size: 16px; font-weight: bold; }
         .bg-blue { background: #007bff; }
         .bg-green { background: #5cb85c; }
-        .bg-purple { background: #6f42c1 !important; color: white !important; }
+        .bg-purple { background: #6f42c1; }
         .bg-red { background: #d9534f; }
+        .bg-dark { background: #343a40; }
     </style>
 </head>
 <body>
@@ -27,19 +29,21 @@
         <a href="daily.html" class="nav-btn bg-green">التقرير اليومي</a>
         <a href="student_report.html" class="nav-btn bg-purple">تقرير الطالب التفصيلي</a>
         <a href="reports.html" class="nav-btn bg-blue">تقارير الحضور</a>
-        <a href="grades.html" style="display:block; padding:10px; background:#007bff; color:white; text-align:center; border-radius:8px; margin-top:10px;">إدارة الدرجات</a>
-        <!-- استخدم هذا السطر بدلاً من السطر القديم -->
-<button class="btn" style="background:#28a745; width:100%; border:none; padding:15px; border-radius:8px; color:white; cursor:pointer;" onclick="window.location.href='Delete%20grades.html'">حذف درجات المدرس</button>
-        <a href="manage_teachers.html" class="btn">إدارة صلاحيات المدرسين</a>
-        <a href="Archive.html" class="btn">إدارة أرشيف الدرجات 📦</a>
+        <a href="grades.html" class="nav-btn bg-blue">إدارة الدرجات</a>
+        
+        <!-- ميزة حذف درجات المدرس المخصصة -->
+        <button class="btn-custom" onclick="window.location.href='Delete%20grades.html'">حذف درجات المدرس</button>
+        
+        <a href="manage_teachers.html" class="nav-btn bg-purple">إدارة صلاحيات المدرسين</a>
+        
+        <!-- الأرشيفات المميزة -->
+        <a href="Archive.html" class="nav-btn bg-purple">إدارة أرشيف الدرجات 📦</a>
+        <a href="archive.html" class="nav-btn bg-purple">إدارة أرشيف الحضور 📦</a>
+        
         <a href="delete.html" class="nav-btn bg-red">حذف السجلات</a>
         
-        <a href="system_backup.html" style="text-decoration: none;">
-            <button style="background: #343a40; color: white; padding: 15px; width: 100%; border: none; border-radius: 8px; margin-top: 10px; cursor: pointer;">🛡️ النسخ الاحتياطي للنظام</button>
-        </a>
-        <a href="archive.html" style="text-decoration: none;">
-            <button style="background: #6f42c1; color: white; padding: 15px; width: 100%; border: none; border-radius: 8px; margin-top: 10px; font-size: 16px; cursor: pointer;">📦 إدارة الأرشيف</button>
-        </a>
+        <!-- النسخ الاحتياطي للنظام -->
+        <a href="system_backup.html" class="nav-btn bg-dark">🛡️ النسخ الاحتياطي للنظام</a>
     </div>
 
 </body>
