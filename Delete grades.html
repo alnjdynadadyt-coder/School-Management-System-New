@@ -69,21 +69,48 @@
         }
 
         async function performDelete(studentName, isAll) {
-            const cls = document.getElementById('gClass').value;
-            const sec = document.getElementById('gSection').value;
-            const sub = document.getElementById('subject').value;
-            const typeIndex = parseInt(document.getElementById('gradeType').value);
-            const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
-            try {
-                const doc = await docRef.get();
-                let data = doc.data();
-                if(isAll) { for(let s in data) { data[s][typeIndex] = ""; } } 
-                else { data[studentName][typeIndex] = ""; }
-                await docRef.set(data);
-                alert("✅ تمت العملية بنجاح!");
-                loadStudentsForDelete();
-            } catch (error) { alert("❌ خطأ: " + error.message); }
+    const cls = document.getElementById('gClass').value;
+    const sec = document.getElementById('gSection').value;
+    const sub = document.getElementById('subject').value;
+    const typeIndex = parseInt(document.getElementById('gradeType').value);
+    const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
+    
+    try {
+        const doc = await docRef.get();
+        if(!doc.exists) return;
+        let data = doc.data();
+
+        const clearDependencies = (studentData) => {
+            const isSpecial = (sub === "الإنكليزي" || sub === "الحاسوب");
+            if (isSpecial) {
+                studentData[4] = ""; studentData[5] = ""; studentData[6] = "";
+                studentData[12] = ""; studentData[13] = ""; studentData[14] = "";
+                studentData[15] = "";
+            } else {
+                studentData[2] = ""; studentData[4] = ""; studentData[8] = "";
+                studentData[10] = ""; studentData[11] = "";
+            }
+            return studentData;
+        };
+
+        if(isAll) {
+            for(let s in data) { 
+                if(s !== "teacher") {
+                    data[s][typeIndex] = ""; 
+                    data[s] = clearDependencies(data[s]);
+                }
+            }
+        } else {
+            data[studentName][typeIndex] = "";
+            data[studentName] = clearDependencies(data[studentName]);
         }
+        
+        await docRef.set(data);
+        alert("✅ تم الحذف وتصفير المعادلات التابعة بنجاح!");
+        loadStudentsForDelete();
+    } catch (error) { alert("❌ خطأ: " + error.message); }
+}
+
 
         async function deleteSingle(studentName) { if(confirm("⚠️ تأكيد الحذف؟")) performDelete(studentName, false); }
         async function deleteAllStudents() { if(confirm("⚠️ تحذير: سيتم حذف البيانات للجميع، هل أنت متأكد؟")) performDelete(null, true); }
