@@ -8,9 +8,9 @@
     <style>
         body { font-family: sans-serif; background: #fdf2f2; padding: 20px; }
         .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 12px; border: 2px solid #dc3545; }
-        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 20px; }
-        select, input, button { padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
-        .btn-delete { background: #dc3545; color: white; cursor: pointer; border: none; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        select, input, button { padding: 10px; border-radius: 5px; border: 1px solid #ccc; width: 100%; }
+        .btn-delete { background: #dc3545; color: white; cursor: pointer; border: none; margin-top: 10px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
     </style>
@@ -19,31 +19,31 @@
     <div class="container">
         <h2>⚠️ لوحة التحكم بحذف الدرجات</h2>
         <div class="controls">
-            <select id="gClass"><option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option></select>
-            <select id="gSection"><option>أ</option><option>ب</option><option>ج</option></select>
-            <input type="text" id="subject" placeholder="اسم المادة">
+            <select id="gClass"><option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option><option>الرابع الأدبي</option><option>الخامس الأدبي</option><option>السادس الأدبي</option></select>
+            <select id="gSection"><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option></select>
+            <input type="text" id="subject" placeholder="اسم المادة" list="subs">
+            <datalist id="subs"><option value="الإسلامية"><option value="العربي"><option value="الإنكليزي"><option value="الرياضيات"><option value="الفيزياء"><option value="الكيمياء"><option value="الأحياء"><option value="التاريخ"><option value="الجغرافية"><option value="الاقتصاد"><option value="علم النفس"><option value="الحاسوب"><option value="الاجتماع"><option value="الجرائم"><option value="الرياضة"><option value="الفنية"></datalist>
             <select id="gradeType">
                 <option value="0">ش1</option><option value="1">ش2</option>
                 <option value="4">فصل1</option><option value="6">نصف السنة</option>
-                <option value="15">السعي</option>
             </select>
-            <button onclick="loadStudentsForDelete()">جلب الطلاب</button>
+            <button onclick="loadStudentsForDelete()" style="background:#007bff; color:white;">جلب الطلاب</button>
         </div>
         <table id="deleteTable">
             <thead><tr><th>اسم الطالب</th><th>الإجراء</th></tr></thead>
             <tbody id="deleteBody"></tbody>
         </table>
-        <button class="btn-delete" style="width: 100%; margin-top: 20px;" onclick="deleteAllSelectedType()">حذف هذا النوع للجميع</button>
+        <button class="btn-delete" style="width: 100%;" onclick="deleteAllSelectedType()">حذف هذا النوع للجميع</button>
     </div>
 
     <script>
-        // (يجب إضافة إعدادات Firebase هنا كما في النسخة الذهبية)
+        const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
+        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
         async function loadStudentsForDelete() {
             const cls = document.getElementById('gClass').value;
             const sec = document.getElementById('gSection').value;
-            const sub = document.getElementById('subject').value;
             const body = document.getElementById('deleteBody');
             body.innerHTML = "";
 
@@ -54,14 +54,7 @@
                 }
             });
         }
-
-        async function deleteSingle(name) {
-            if(!confirm("هل أنت متأكد من حذف هذه الدرجة؟")) return;
-            const typeIndex = parseInt(document.getElementById('gradeType').value);
-            // 1. أرشفة هنا
-            // 2. تحديث Firebase وحذف القيمة
-            alert("تم الحذف والأرشفة!");
-        }
+        // سأقوم بتكملة دوال الحذف والربط معك في الخطوة القادمة فور تجربة هذا الجزء
     </script>
 </body>
 </html>
