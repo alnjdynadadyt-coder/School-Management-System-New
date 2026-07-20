@@ -82,19 +82,22 @@
                 if(!doc.exists) return;
                 let data = doc.data();
 
-                const clearDependencies = (studentData) => {
-                    const isSpecial = (sub === "الإنكليزي" || sub === "الحاسوب");
-                    if (isSpecial) {
-                        if (typeIndex <= 6) { studentData[4] = ""; studentData[5] = ""; studentData[6] = ""; }
-                        if (typeIndex >= 8 && typeIndex <= 14) { studentData[12] = ""; studentData[13] = ""; studentData[14] = ""; }
-                        studentData[15] = ""; 
-                    } else {
-                        if (typeIndex <= 4) { studentData[2] = ""; studentData[4] = ""; }
-                        if (typeIndex >= 6 && typeIndex <= 10) { studentData[8] = ""; studentData[10] = ""; }
-                        studentData[11] = ""; 
-                    }
-                    return studentData;
-                };
+                        const clearDependencies = (studentData) => {
+            const isSpecial = (sub === "الإنكليزي" || sub === "الحاسوب");
+            if (isSpecial) {
+                if (typeIndex === 0 || typeIndex === 1) { studentData[4] = ""; studentData[6] = ""; }
+                if (typeIndex === 3 || typeIndex === 4) { studentData[5] = ""; studentData[6] = ""; }
+                if (typeIndex === 8 || typeIndex === 9) { studentData[12] = ""; studentData[14] = ""; }
+                if (typeIndex === 11 || typeIndex === 12) { studentData[13] = ""; studentData[14] = ""; }
+                studentData[7] = ""; studentData[15] = "";
+            } else {
+                if (typeIndex <= 4) { studentData[2] = ""; studentData[4] = ""; }
+                if (typeIndex >= 6 && typeIndex <= 10) { studentData[8] = ""; studentData[10] = ""; }
+                studentData[11] = "";
+            }
+            return studentData;
+        };
+
 
                 if(isAll) {
                     for(let s in data) { 
