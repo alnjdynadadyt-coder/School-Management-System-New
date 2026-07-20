@@ -82,15 +82,16 @@
                 if(!doc.exists) return;
                 let data = doc.data();
 
-                                        const clearDependencies = (studentData) => {
+                                                const clearDependencies = (studentData) => {
             const isSpecial = (sub === "الإنكليزي" || sub === "الحاسوب");
             if (isSpecial) {
-                // حذف ش1 أو يومي1 (الفهرس 0 أو 1) - صفر المجاميع والفصل1 فقط
+                // إذا حذفت ش1 (0) أو يومي1 (1) -> احذف مج.ش1 (4) وفصل1 (6)
                 if (typeIndex === 0 || typeIndex === 1) { studentData[4] = ""; studentData[6] = ""; }
-                // حذف ش2 أو يومي1 (الفهرس 3 أو 4) - صفر المجاميع والفصل1 فقط
-                if (typeIndex === 3 || typeIndex === 4) { studentData[5] = ""; studentData[6] = ""; }
                 
-                // الفصل الثاني: (الفهارس 8-12)
+                // إذا حذفت ش2 (2) أو يومي2 (3) -> احذف مج.ش2 (5) وفصل1 (6)
+                if (typeIndex === 2 || typeIndex === 3) { studentData[5] = ""; studentData[6] = ""; }
+                
+                // الفصل الثاني
                 if (typeIndex === 8 || typeIndex === 9) { studentData[12] = ""; studentData[14] = ""; }
                 if (typeIndex === 11 || typeIndex === 12) { studentData[13] = ""; studentData[14] = ""; }
                 
@@ -102,6 +103,8 @@
                 studentData[11] = ""; 
             }
             return studentData;
+        };
+
         };
 
 
