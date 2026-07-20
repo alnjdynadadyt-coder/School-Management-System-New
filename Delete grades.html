@@ -24,16 +24,17 @@
             <input type="text" id="subject" placeholder="اسم المادة" list="subs">
             <datalist id="subs"><option value="الإسلامية"><option value="العربي"><option value="الإنكليزي"><option value="الرياضيات"><option value="الفيزياء"><option value="الكيمياء"><option value="الأحياء"><option value="التاريخ"><option value="الجغرافية"><option value="الاقتصاد"><option value="علم النفس"><option value="الحاسوب"><option value="الاجتماع"><option value="الجرائم"><option value="الرياضة"><option value="الفنية"></datalist>
             <select id="gradeType">
-                <option value="0">ش1</option><option value="1">ش2</option>
+                <option value="0">ش1 (فصل1)</option><option value="1">ش2 (فصل1)</option>
                 <option value="4">فصل1</option><option value="6">نصف السنة</option>
+                <option value="8">ش1 (فصل2)</option><option value="9">ش2 (فصل2)</option>
+                <option value="11">فصل2</option><option value="12">السعي النهائي</option>
             </select>
-            <button onclick="loadStudentsForDelete()" style="background:#007bff; color:white;">جلب الطلاب</button>
+            <button onclick="loadStudentsForDelete()" style="background:#007bff; color:white; grid-column: span 2;">جلب الطلاب</button>
         </div>
         <table id="deleteTable">
             <thead><tr><th>اسم الطالب</th><th>الإجراء</th></tr></thead>
             <tbody id="deleteBody"></tbody>
         </table>
-        <button class="btn-delete" style="width: 100%;" onclick="deleteAllSelectedType()">حذف هذا النوع للجميع</button>
     </div>
 
     <script>
@@ -50,12 +51,53 @@
             const snap = await db.collection("students").where("class", "==", cls).get();
             snap.forEach(s => {
                 if(s.data().section == sec) {
-                    body.innerHTML += `<tr><td>${s.data().name}</td><td><button onclick="deleteSingle('${s.data().name}')">حذف</button></td></tr>`;
+                    body.innerHTML += `<tr><td>${s.data().name}</td><td><button onclick="deleteSingle('${s.data().name}')" style="background:#dc3545; color:white; border:none; padding:5px 10px; cursor:pointer;">حذف</button></td></tr>`;
                 }
             });
         }
-        // سأقوم بتكملة دوال الحذف والربط معك في الخطوة القادمة فور تجربة هذا الجزء
+
+        async function deleteSingle(studentName) {
+            if(!confirm("⚠️ تحذير: سيتم أرشفة هذه الدرجة وحذفها نهائياً. هل أنت متأكد؟")) return;
+
+            const cls = document.getElementById('gClass').value;
+            const sec = document.getElementById('gSection').value;
+            const sub = document.getElementById('subject').value;
+            const typeIndex = parseInt(document.getElementById('gradeType').value);
+            const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
+
+            try {
+                const doc = await docRef.get();
+                if (doc.exists) {
+                    let data = doc.data();
+                    let studentGrades = data[studentName];
+
+                    if(!studentGrades) { alert("لا توجد درجات لهذا الطالب!"); return; }
+
+                    // 1. الأرشفة في مجموعة archive_grades
+                    await db.collection("archive_grades").add({
+                        student: studentName,
+                        subject: sub,
+                        deletedValue: studentGrades[typeIndex],
+                        typeIndex: typeIndex,
+                        date: new Date().toISOString(),
+                        class: cls,
+                        section: sec
+                    });
+
+                    // 2. تصفير القيمة
+                    studentGrades[typeIndex] = "";
+                    data[studentName] = studentGrades;
+
+                    // 3. حفظ التعديل
+                    await docRef.set(data);
+                    alert("✅ تم حذف الدرجة وأرشفتها بنجاح!");
+                } else {
+                    alert("لا توجد بيانات لهذا الصف والمادة!");
+                }
+            } catch (error) {
+                alert("❌ حدث خطأ: " + error.message);
+            }
+        }
     </script>
 </body>
 </html>
- 
