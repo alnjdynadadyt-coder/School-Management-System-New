@@ -23,17 +23,10 @@
         <div class="controls">
             <select id="gClass"><option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option><option>الرابع الأدبي</option><option>الخامس الأدبي</option><option>السادس الأدبي</option></select>
             <select id="gSection"><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option></select>
-            <input type="text" id="subject" placeholder="اسم المادة" list="subs">
-            <datalist id="subs"><option value="الإسلامية"><option value="العربي"><option value="الإنكليزي"><option value="الرياضيات"><option value="الفيزياء"><option value="الكيمياء"><option value="الأحياء"><option value="التاريخ"><option value="الجغرافية"><option value="الاقتصاد"><option value="علم النفس"><option value="الحاسوب"><option value="الاجتماع"><option value="الجرائم"><option value="الرياضة"><option value="الفنية"></datalist>
+            <input type="text" id="subject" placeholder="اسم المادة" list="subs" onchange="updateOptions()">
+            <datalist id="subs"><option value="الإسلامية"><option value="العربي"><option value="الإنكليزي"><option value="الرياضيات"><option value="الفيزياء"><option value="الكيمياء"><option value="الأحياء"><option value="التاريخ"><option value="الجغرافية"><option value="الاقتصاد"><option value="الحاسوب"><option value="الاجتماع"><option value="الجرائم"><option value="الرياضة"><option value="الفنية"></datalist>
             
-            <select id="gradeType">
-                <option value="0">ش1 (فصل1)</option><option value="1">ش2 (فصل1)</option>
-                <option value="2">م.ش (فصل1)</option><option value="3">يومي1 (فصل1)</option>
-                <option value="4">فصل1</option><option value="6">نصف السنة</option>
-                <option value="8">ش1 (فصل2)</option><option value="9">م.ش (فصل2)</option>
-                <option value="10">يومي2 (فصل2)</option><option value="11">فصل2</option>
-                <option value="12">السعي النهائي</option>
-            </select>
+            <select id="gradeType"></select>
             <button onclick="loadStudentsForDelete()" style="background:#007bff; color:white; grid-column: span 2;">جلب الطلاب</button>
         </div>
 
@@ -50,30 +43,29 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        function updateOptions() {
+            const sub = document.getElementById('subject').value;
+            const select = document.getElementById('gradeType');
+            select.innerHTML = "";
+            const isSpecial = (sub === "الإنكليزي" || sub === "الحاسوب");
+            const options = isSpecial ? 
+                [ {v:0, t:"ش1 (ف1)"}, {v:1, t:"يومي (ف1)"}, {v:3, t:"ش2 (ف1)"}, {v:4, t:"يومي (ف1)"}, {v:6, t:"فصل1"}, {v:7, t:"نصف السنة"}, {v:8, t:"ش1 (ف2)"}, {v:9, t:"يومي (ف2)"}, {v:11, t:"ش2 (ف2)"}, {v:12, t:"يومي (ف2)"}, {v:14, t:"فصل2"}, {v:15, t:"السعي"}] :
+                [ {v:0, t:"ش1 (ف1)"}, {v:1, t:"ش2 (ف1)"}, {v:2, t:"م.ش (ف1)"}, {v:3, t:"يومي (ف1)"}, {v:4, t:"فصل1"}, {v:6, t:"نصف السنة"}, {v:8, t:"ش1 (ف2)"}, {v:9, t:"م.ش (ف2)"}, {v:10, t:"يومي (ف2)"}, {v:11, t:"فصل2"}, {v:12, t:"السعي"}];
+            options.forEach(opt => select.innerHTML += `<option value="${opt.v}">${opt.t}</option>`);
+        }
+
         async function loadStudentsForDelete() {
             const cls = document.getElementById('gClass').value;
             const sec = document.getElementById('gSection').value;
             const sub = document.getElementById('subject').value;
             const body = document.getElementById('deleteBody');
             body.innerHTML = "";
-
             const doc = await db.collection("grades").doc(`${cls}_${sec}_${sub}`).get();
             if(!doc.exists) { alert("لا توجد بيانات لهذا الصف والمادة!"); return; }
-            
             const data = doc.data();
             for (let studentName in data) {
                 body.innerHTML += `<tr><td>${studentName}</td><td><button onclick="deleteSingle('${studentName}')" style="background:#dc3545; color:white; border:none; padding:5px 10px; cursor:pointer;">حذف</button></td></tr>`;
             }
-        }
-
-        async function deleteSingle(studentName) {
-            if(!confirm("⚠️ تأكيد حذف الدرجة للطالب: " + studentName)) return;
-            performDelete(studentName, false);
-        }
-
-        async function deleteAllStudents() {
-            if(!confirm("⚠️ تحذير: سيتم حذف هذه الدرجة لجميع الطلاب في هذا الصف والمادة. هل أنت متأكد؟")) return;
-            performDelete(null, true);
         }
 
         async function performDelete(studentName, isAll) {
@@ -82,20 +74,20 @@
             const sub = document.getElementById('subject').value;
             const typeIndex = parseInt(document.getElementById('gradeType').value);
             const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
-
             try {
                 const doc = await docRef.get();
                 let data = doc.data();
-                if(isAll) {
-                    for(let s in data) { data[s][typeIndex] = ""; }
-                } else {
-                    data[studentName][typeIndex] = "";
-                }
+                if(isAll) { for(let s in data) { data[s][typeIndex] = ""; } } 
+                else { data[studentName][typeIndex] = ""; }
                 await docRef.set(data);
                 alert("✅ تمت العملية بنجاح!");
                 loadStudentsForDelete();
             } catch (error) { alert("❌ خطأ: " + error.message); }
         }
+
+        async function deleteSingle(studentName) { if(confirm("⚠️ تأكيد الحذف؟")) performDelete(studentName, false); }
+        async function deleteAllStudents() { if(confirm("⚠️ تحذير: سيتم حذف البيانات للجميع، هل أنت متأكد؟")) performDelete(null, true); }
+        updateOptions(); // تهيئة الخيارات عند التحميل
     </script>
 </body>
 </html>
