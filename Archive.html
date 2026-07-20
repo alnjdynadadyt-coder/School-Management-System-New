@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة الأرشيف</title>
+    <title>إدارة أرشيف الدرجات</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
@@ -10,7 +10,8 @@
         .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 12px; border: 2px solid #6f42c1; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        .btn-restore { background: #6f42c1; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px; }
+        th { background-color: #f8f9fa; }
+        .btn-restore { background: #6f42c1; color: white; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -30,37 +31,50 @@
 
         async function loadArchive() {
             const body = document.getElementById('archiveBody');
-            const snapshot = await db.collection("archived_grades").orderBy("timestamp", "desc").get();
+            body.innerHTML = "<tr><td colspan='4'>جاري تحميل البيانات...</td></tr>";
             
-            if(snapshot.empty) { body.innerHTML = "<tr><td colspan='4'>الأرشيف فارغ حالياً.</td></tr>"; return; }
+            try {
+                const snapshot = await db.collection("archived_grades").orderBy("timestamp", "desc").get();
+                body.innerHTML = "";
+                
+                if(snapshot.empty) { body.innerHTML = "<tr><td colspan='4'>الأرشيف فارغ حالياً.</td></tr>"; return; }
 
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                body.innerHTML += `<tr>
-                    <td>${data.studentName}</td>
-                    <td>${data.subject}</td>
-                    <td>${new Date(data.timestamp).toLocaleDateString('ar-IQ')}</td>
-                    <td><button class="btn-restore" onclick="restore('${doc.id}')">استعادة</button></td>
-                </tr>`;
-            });
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    body.innerHTML += `<tr>
+                        <td>${data.studentName}</td>
+                        <td>${data.subject}</td>
+                        <td>${new Date(data.timestamp).toLocaleDateString('ar-IQ')}</td>
+                        <td><button class="btn-restore" onclick="restore('${doc.id}')">استعادة</button></td>
+                    </tr>`;
+                });
+            } catch (error) {
+                body.innerHTML = "<tr><td colspan='4'>خطأ في تحميل البيانات!</td></tr>";
+            }
         }
 
         async function restore(id) {
             if(!confirm("⚠️ هل تريد استعادة هذه البيانات إلى سجل الدرجات الحالي؟")) return;
-            // منطق الاستعادة: جلب البيانات من الأرشيف وإضافتها للـ grades ثم حذفها من الأرشيف
-            const doc = await db.collection("archived_grades").doc(id).get();
-            const {studentName, subject, class: cls, section: sec, data} = doc.data();
             
-            const gradeRef = db.collection("grades").doc(`${cls}_${sec}_${subject}`);
-            const gradeDoc = await gradeRef.get();
-            let currentGrades = gradeDoc.data();
-            
-            currentGrades[studentName] = data; // استرجاع البيانات
-            await gradeRef.set(currentGrades);
-            await db.collection("archived_grades").doc(id).delete();
-            
-            alert("✅ تمت الاستعادة بنجاح!");
-            location.reload();
+            try {
+                const doc = await db.collection("archived_grades").doc(id).get();
+                const {studentName, subject, class: cls, section: sec, data} = doc.data();
+                
+                const gradeRef = db.collection("grades").doc(`${cls}_${sec}_${subject}`);
+                const gradeDoc = await gradeRef.get();
+                
+                // التأكد من وجود سجل للمادة، إذا لم يوجد يتم إنشاء كائن جديد
+                let currentGrades = gradeDoc.exists ? gradeDoc.data() : {};
+                
+                currentGrades[studentName] = data; 
+                await gradeRef.set(currentGrades);
+                await db.collection("archived_grades").doc(id).delete();
+                
+                alert("✅ تمت الاستعادة بنجاح!");
+                loadArchive();
+            } catch (error) {
+                alert("❌ خطأ أثناء الاستعادة: " + error.message);
+            }
         }
 
         loadArchive();
