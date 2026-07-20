@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إدارة الأرشيف</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #fdf2f2; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 12px; border: 2px solid #6f42c1; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        .btn-restore { background: #6f42c1; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html">🔙 العودة للرئيسية</a>
+        <h2>📦 سجلات الدرجات المؤرشفة</h2>
+        <table id="archiveTable">
+            <thead><tr><th>اسم الطالب</th><th>المادة</th><th>التاريخ</th><th>الإجراء</th></tr></thead>
+            <tbody id="archiveBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw", authDomain: "school-2-2026.firebaseapp.com", projectId: "school-2-2026", storageBucket: "school-2-2026.firebasestorage.app", messagingSenderId: "283472829932", appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9" };
+        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        async function loadArchive() {
+            const body = document.getElementById('archiveBody');
+            const snapshot = await db.collection("archived_grades").orderBy("timestamp", "desc").get();
+            
+            if(snapshot.empty) { body.innerHTML = "<tr><td colspan='4'>الأرشيف فارغ حالياً.</td></tr>"; return; }
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                body.innerHTML += `<tr>
+                    <td>${data.studentName}</td>
+                    <td>${data.subject}</td>
+                    <td>${new Date(data.timestamp).toLocaleDateString('ar-IQ')}</td>
+                    <td><button class="btn-restore" onclick="restore('${doc.id}')">استعادة</button></td>
+                </tr>`;
+            });
+        }
+
+        async function restore(id) {
+            if(!confirm("⚠️ هل تريد استعادة هذه البيانات إلى سجل الدرجات الحالي؟")) return;
+            // منطق الاستعادة: جلب البيانات من الأرشيف وإضافتها للـ grades ثم حذفها من الأرشيف
+            const doc = await db.collection("archived_grades").doc(id).get();
+            const {studentName, subject, class: cls, section: sec, data} = doc.data();
+            
+            const gradeRef = db.collection("grades").doc(`${cls}_${sec}_${subject}`);
+            const gradeDoc = await gradeRef.get();
+            let currentGrades = gradeDoc.data();
+            
+            currentGrades[studentName] = data; // استرجاع البيانات
+            await gradeRef.set(currentGrades);
+            await db.collection("archived_grades").doc(id).delete();
+            
+            alert("✅ تمت الاستعادة بنجاح!");
+            location.reload();
+        }
+
+        loadArchive();
+    </script>
+</body>
+</html>
