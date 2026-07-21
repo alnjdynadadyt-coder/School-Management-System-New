@@ -130,26 +130,26 @@
             document.getElementById('failDiv').style.display = (stage === 'sixth') ? "block" : "none";
         }
 
-        // دالة دقيقة ومضبوطة تماماً لاستخراج حقول الفصل الأول، نصف السنة، الفصل الثاني، والسعي بناءً على صور سجل الدرجات الفعلية
+        // مطابقة تامة لمصفوفة الحقول المخزنة في صفحة الدرجات (grades.html)
         function extractSubjectMarks(sub, subObj) {
             let f1 = '-', mid = '-', f2 = '-', saei = 0;
             if (!subObj) return { f1, mid, f2, saei };
 
             if (Array.isArray(subObj)) {
                 if (sub === "الانكليزي" || sub === "الحاسوب") {
-                    // الإنكليزي والحاسوب حسب شاشة الإدخال:
-                    // 0: شهر1, 1: شهر2, 2: يومي, 3: مجموع شهر 1 (فصل 1), 4: نصف السنة, 5: شهر1(ف2), 6: شهر2(ف2), 7: يومي(ف2), 8: مجموع شهر 2 (فصل 2), 9: السعي
-                    f1 = subObj[3] !== undefined && subObj[3] !== "" ? subObj[3] : '-';
-                    mid = subObj[4] !== undefined && subObj[4] !== "" ? subObj[4] : '-';
-                    f2 = subObj[8] !== undefined && subObj[8] !== "" ? subObj[8] : '-';
-                    saei = subObj[9] !== undefined && subObj[9] !== "" ? Number(subObj[9]) || 0 : (subObj[subObj.length - 1] ? Number(subObj[subObj.length - 1]) || 0 : 0);
+                    // مصفوفة الإنكليزي والحاسوب (16 حقل):
+                    // [0]:ش1, [1]:يومي1, [2]:ش2, [3]:يومي2, [4]:مج.ش1, [5]:مج.ش2, [6]:فصل1, [7]:ن.سنة, [8]:ش1, [9]:يومي1, [10]:ش2, [11]:يومي2, [12]:مج.ش1, [13]:مج.ش2, [14]:فصل2, [15]:السعي
+                    f1 = subObj[6] !== undefined && subObj[6] !== "" ? subObj[6] : '-';
+                    mid = subObj[7] !== undefined && subObj[7] !== "" ? subObj[7] : '-';
+                    f2 = subObj[14] !== undefined && subObj[14] !== "" ? subObj[14] : '-';
+                    saei = subObj[15] !== undefined && subObj[15] !== "" ? Number(subObj[15]) || 0 : 0;
                 } else {
-                    // المواد الاعتيادية (الإسلامية، العربي، إلخ) حسب شاشة الإدخال:
-                    // 0: شهر1, 1: شهر2, 2: مجموع شهر 1 (فصل 1), 3: نصف السنة, 4: شهر1(ف2), 5: شهر2(ف2), 6: مجموع شهر 2 (فصل 2), 7: السعي
-                    f1 = subObj[2] !== undefined && subObj[2] !== "" ? subObj[2] : '-';
-                    mid = subObj[3] !== undefined && subObj[3] !== "" ? subObj[3] : '-';
-                    f2 = subObj[6] !== undefined && subObj[6] !== "" ? subObj[6] : '-';
-                    saei = subObj[7] !== undefined && subObj[7] !== "" ? Number(subObj[7]) || 0 : (subObj[subObj.length - 1] ? Number(subObj[subObj.length - 1]) || 0 : 0);
+                    // مصفوفة المواد الاعتيادية (12 حقل بناءً على صفحة الدرجات):
+                    // [0]:ش1, [1]:ش2, [2]:م.ش (فصل 1), [3]:يومي1, [4]:فصل1 (الناتج النهائي للفصل الأول), [5]:ن.سنة, [6]:ش1, [7]:ش2, [8]:م.ش (فصل 2), [9]:يومي2, [10]:فصل2, [11]:السعي
+                    f1 = subObj[4] !== undefined && subObj[4] !== "" ? subObj[4] : (subObj[2] !== undefined ? subObj[2] : '-');
+                    mid = subObj[5] !== undefined && subObj[5] !== "" ? subObj[5] : '-';
+                    f2 = subObj[10] !== undefined && subObj[10] !== "" ? subObj[10] : '-';
+                    saei = subObj[11] !== undefined && subObj[11] !== "" ? Number(subObj[11]) || 0 : 0;
                 }
             } else {
                 saei = Number(subObj) || 0;
