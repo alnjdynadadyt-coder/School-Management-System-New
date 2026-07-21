@@ -106,7 +106,7 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // الترتيب الدقيق حسب طلبك تماماً (مع توحيد الهمزات لضمان التطابق)
+        // الترتيب الدقيق حسب طلبك تماماً لكل مرحلة
         const subjectOrders = {
             "السادس العلمي": ["الاسلامية", "العربي", "الانكليزي", "رياضيات", "الاحياء", "الكيمياء", "الفيزياء", "الرياضة", "الفنية"],
             "السادس الادبي": ["الاسلامية", "العربي", "الانكليزي", "رياضيات", "التاريخ", "الجغرافية", "الاقتصاد", "الرياضة", "الفنية"],
@@ -129,6 +129,34 @@
             document.getElementById('viewModeDiv').style.display = (stage === 'sixth') ? "block" : "none";
             document.getElementById('decisionDiv').style.display = (stage === 'sixth') ? "block" : "none";
             document.getElementById('failDiv').style.display = (stage === 'sixth') ? "block" : "none";
+        }
+
+        // دالة استخراج قيم الفصل الأول، نصف السنة، الفصل الثاني، والسعي بدقة مطابقة لسجل الدرجات
+        function extractSubjectMarks(sub, subObj) {
+            let f1 = '-', mid = '-', f2 = '-', saei = 0;
+            if (!subObj) return { f1, mid, f2, saei };
+
+            if (Array.isArray(subObj)) {
+                if (sub === "الانكليزي" || sub === "الحاسوب") {
+                    // هيكلة الإنكليزي والحاسوب كما تظهر في سجل الدرجات:
+                    // 0:ش1, 1:يومي1, 2:ش2, 3:م.ش1, 4:ن.سنة, 5:ش1(ف2), 6:يومي2, 7:ش2(ف2), 8:م.ش2, 9:فصل2, 10:السعي
+                    // بناءً على الصورة: [ش1, يومي, ش2, م.ش1, ن.سنة, ش1, يومي, ش2, م.ش2, فصل2, السعي]
+                    f1 = subObj[3] !== undefined && subObj[3] !== "" ? subObj[3] : (subObj[0] !== undefined ? subObj[0] : '-'); // مجموع شهر أول أو الشهر الأول
+                    mid = subObj[4] !== undefined && subObj[4] !== "" ? subObj[4] : '-'; // نصف السنة
+                    f2 = subObj[9] !== undefined && subObj[9] !== "" ? subObj[9] : '-'; // فصل 2
+                    saei = subObj[10] !== undefined && subObj[10] !== "" ? Number(subObj[10]) || 0 : (subObj[subObj.length - 1] ? Number(subObj[subObj.length - 1]) || 0 : 0);
+                } else {
+                    // هيكلة بقية المواد الاعتيادية بناءً على الصورة:
+                    // 0:ش1, 1:ش2, 2:م.ش1, 3:ن.سنة, 4:ش1, 5:ش2, 6:م.ش2, 7:فصل2, 8:السعي
+                    f1 = subObj[2] !== undefined && subObj[2] !== "" ? subObj[2] : (subObj[0] !== undefined ? subObj[0] : '-'); // مجموع شهر أول
+                    mid = subObj[3] !== undefined && subObj[3] !== "" ? subObj[3] : '-'; // نصف السنة
+                    f2 = subObj[7] !== undefined && subObj[7] !== "" ? subObj[7] : '-'; // فصل 2
+                    saei = subObj[8] !== undefined && subObj[8] !== "" ? Number(subObj[8]) || 0 : (subObj[subObj.length - 1] ? Number(subObj[subObj.length - 1]) || 0 : 0);
+                }
+            } else {
+                saei = Number(subObj) || 0;
+            }
+            return { f1, mid, f2, saei };
         }
 
         async function processResults() {
@@ -187,25 +215,8 @@
                             let sortedSubs = [...standardOrder.filter(sub => availableSubs.includes(sub)), ...availableSubs.filter(sub => !standardOrder.includes(sub))];
 
                             sortedSubs.forEach(sub => {
-                                let subObj = sGrades[sub];
-                                let f1 = '-', mid = '-', f2 = '-', saei = 0;
-
-                                if (Array.isArray(subObj)) {
-                                    // تصحيح مؤشرات الاستخراج حسب هيكلة درجات الإنكليزي والمواد الأخرى بدقة
-                                    if (sub === "الانكليزي" || sub === "الحاسوب") {
-                                        f1 = subObj[1] !== undefined && subObj[1] !== "" ? subObj[1] : '-';
-                                        mid = subObj[2] !== undefined && subObj[2] !== "" ? subObj[2] : '-';
-                                        f2 = subObj[4] !== undefined && subObj[4] !== "" ? subObj[4] : '-';
-                                        saei = subObj[5] !== undefined && subObj[5] !== "" ? Number(subObj[5]) || 0 : (subObj[15] ? Number(subObj[15]) || 0 : 0);
-                                    } else {
-                                        f1 = subObj[1] !== undefined && subObj[1] !== "" ? subObj[1] : '-';
-                                        mid = subObj[2] !== undefined && subObj[2] !== "" ? subObj[2] : '-';
-                                        f2 = subObj[4] !== undefined && subObj[4] !== "" ? subObj[4] : '-';
-                                        saei = subObj[5] !== undefined && subObj[5] !== "" ? Number(subObj[5]) || 0 : (subObj[11] ? Number(subObj[11]) || 0 : 0);
-                                    }
-                                } else {
-                                    saei = Number(subObj) || 0;
-                                }
+                                let marks = extractSubjectMarks(sub, sGrades[sub]);
+                                let f1 = marks.f1, mid = marks.mid, f2 = marks.f2, saei = marks.saei;
 
                                 let finalMark = saei;
                                 let isHelped = false;
@@ -268,7 +279,6 @@
                             </div>`;
                         });
                     } else {
-                        // الجدول العام
                         let sampleStudent = studentsSnap.docs[0];
                         let sampleGrades = studentGradesMap[sampleStudent.data().name] || {};
                         let availableSubs = Object.keys(sampleGrades);
@@ -289,15 +299,8 @@
                             let subCells = "";
                             
                             sortedSubs.forEach(sub => {
-                                let subObj = sGrades[sub];
-                                let saei = 0;
-                                if (subObj) {
-                                    if (Array.isArray(subObj)) {
-                                        saei = (sub === "الانكليزي" || sub === "الحاسوب") ? (Number(subObj[5]) || Number(subObj[15]) || 0) : (Number(subObj[5]) || Number(subObj[11]) || 0);
-                                    } else {
-                                        saei = Number(subObj) || 0;
-                                    }
-                                }
+                                let marks = extractSubjectMarks(sub, sGrades[sub]);
+                                let saei = marks.saei;
                                 if (saei < 50) failCount++;
                                 subCells += `<td>${saei}</td>`;
                             });
@@ -322,6 +325,84 @@
                                 <tbody>${tableRows || "<tr><td colspan='10'>لا توجد بيانات.</td></tr>"}</tbody>
                             </table>
                         </div>`;
+                    }
+                } else {
+                    studentsSnap.forEach(studentDoc => {
+                        const sName = studentDoc.data().name;
+                        const sGrades = studentGradesMap[sName] || {};
+                        
+                        let totalSaei = 0;
+                        let countSubs = 0;
+                        let lowestSaei = 100;
+                        let rows = "";
+                        let hasFailedSubject = false;
+
+                        let availableSubs = Object.keys(sGrades);
+                        let sortedSubs = [...standardOrder.filter(sub => availableSubs.includes(sub)), ...availableSubs.filter(sub => !standardOrder.includes(sub))];
+
+                        sortedSubs.forEach(sub => {
+                            let marks = extractSubjectMarks(sub, sGrades[sub]);
+                            let f1 = marks.f1, mid = marks.mid, f2 = marks.f2, saei = marks.saei;
+
+                            totalSaei += saei;
+                            countSubs++;
+                            if (saei < lowestSaei) lowestSaei = saei;
+                            if (saei < 75) hasFailedSubject = true;
+
+                            let displayName = (sub === "رياضيات") ? "الرياضيات" : (sub === "الاسلامية" ? "الإسلامية" : (sub === "الانكليزي" ? "الإنكليزي" : sub));
+
+                            rows += `<tr>
+                                <td>${displayName}</td>
+                                <td>${f1}</td>
+                                <td>${mid}</td>
+                                <td>${f2}</td>
+                                <td><b>${saei}</b></td>
+                                <td><b>${saei >= 75 ? 'معفى' : 'غير معفى'}</b></td>
+                            </tr>`;
+                        });
+
+                        let avgSaei = countSubs > 0 ? (totalSaei / countSubs).toFixed(1) : 0;
+                        let isExempted = (avgSaei >= 85 && !hasFailedSubject && countSubs > 0);
+
+                        if (isExempted) {
+                            htmlOutput += `
+                            <div class="result-card">
+                                <div class="card-header" style="border-bottom: 2px solid #28a745;">
+                                    <h3 style="color: #28a745;">🌟 شهادة إعفاء عام (صفوف غير منتهية)</h3>
+                                    <p>جمهورية العراق - وزارة التربية</p>
+                                </div>
+                                <div class="student-meta" style="background: #d4edda; color: #155724;">
+                                    <div>اسم الطالب: ${sName}</div>
+                                    <div>الصف: ${className} (${sectionName})</div>
+                                    <div>الحالة: معفى إعفاءً عاماً ✨</div>
+                                </div>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>المادة</th>
+                                            <th>فصل 1</th>
+                                            <th>نصف السنة</th>
+                                            <th>فصل 2</th>
+                                            <th>السعي السنوي</th>
+                                            <th>موقف المادة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${rows}</tbody>
+                                </table>
+                                <div style="margin-top: 15px; font-weight: bold; display: flex; justify-content: space-between;">
+                                    <div>المجموع الكلي: ${totalSaei}</div>
+                                    <div>المعدل العام: ${avgSaei}%</div>
+                                </div>
+                                <div class="footer-note">
+                                    <div>توقيع إدارة المدرسة</div>
+                                    <div>ختم الإدارة</div>
+                                </div>
+                            </div>`;
+                        }
+                    });
+
+                    if (!htmlOutput) {
+                        htmlOutput = "<p style='text-align:center; color:#dc3545; font-weight:bold; margin-top:20px;'>لا يوجد طلاب مشمولين بالإعفاء العام في هذا الصف والشعبة.</p>";
                     }
                 }
 
