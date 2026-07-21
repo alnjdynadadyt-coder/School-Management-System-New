@@ -153,10 +153,10 @@
                 
                 allGradesSnap.forEach(doc => {
                     const data = doc.data();
-                    let subName = data.subject || doc.id.split('_').slice(2).join('_') || "مادة";
+                    let subName = doc.id.split('_').slice(2).join('_') || "مادة";
                     
                     for(let studentName in data) {
-                        if(studentName !== "class" && studentName !== "section" && studentName !== "subject") {
+                        if(studentName !== "class" && studentName !== "section" && studentName !== "subject" && studentName !== "teacher") {
                             if(!studentGradesMap[studentName]) studentGradesMap[studentName] = {};
                             studentGradesMap[studentName][subName] = data[studentName];
                         }
@@ -182,11 +182,24 @@
 
                             for (let sub in sGrades) {
                                 let subObj = sGrades[sub];
-                                // استخراج درجات الفصول والسعي حسب الهيكل المخزن لديك
-                                let f1 = typeof subObj === 'object' ? (subObj.f1 || subObj. فصل1 || 0) : '-';
-                                let mid = typeof subObj === 'object' ? (subObj.mid || subObj.نصف_السنة || 0) : '-';
-                                let f2 = typeof subObj === 'object' ? (subObj.f2 || subObj.فصل2 || 0) : '-';
-                                let saei = typeof subObj === 'object' ? Number(subObj.saei || subObj.final || subObj.degree || 0) : Number(subObj || 0);
+                                let f1 = '-', mid = '-', f2 = '-', saei = 0;
+
+                                // قراءة البيانات الدقيقة من مصفوفة الدرجات المخزنة
+                                if (Array.isArray(subObj)) {
+                                    if (sub === "الإنكليزي" || sub === "الحاسوب") {
+                                        f1 = subObj[6] !== undefined && subObj[6] !== "" ? subObj[6] : '-';
+                                        mid = subObj[7] !== undefined && subObj[7] !== "" ? subObj[7] : '-';
+                                        f2 = subObj[14] !== undefined && subObj[14] !== "" ? subObj[14] : '-';
+                                        saei = subObj[15] !== undefined && subObj[15] !== "" ? Number(subObj[15]) || 0 : 0;
+                                    } else {
+                                        f1 = subObj[4] !== undefined && subObj[4] !== "" ? subObj[4] : '-';
+                                        mid = subObj[5] !== undefined && subObj[5] !== "" ? subObj[5] : '-';
+                                        f2 = subObj[10] !== undefined && subObj[10] !== "" ? subObj[10] : '-';
+                                        saei = subObj[11] !== undefined && subObj[11] !== "" ? Number(subObj[11]) || 0 : 0;
+                                    }
+                                } else {
+                                    saei = Number(subObj) || 0;
+                                }
 
                                 let finalMark = saei;
                                 let isHelped = false;
@@ -253,7 +266,7 @@
                             </div>`;
                         });
                     } else {
-                        // نتيجة للكل في جدول واحد (الأسماء، المواد، السعي، والنتيجة)
+                        // نتيجة للكل في جدول واحد
                         let tableRows = "";
                         studentsSnap.forEach(studentDoc => {
                             const sName = studentDoc.data().name;
@@ -261,12 +274,14 @@
                             let failCount = 0;
                             let subCells = "";
                             
-                            // سنأخذ قائمة كل المواد الفريدة الموجودة
-                            let allSubs = Object.keys(sGrades);
-                            
                             for (let sub in sGrades) {
                                 let subObj = sGrades[sub];
-                                let saei = typeof subObj === 'object' ? Number(subObj.saei || subObj.final || subObj.degree || 0) : Number(subObj || 0);
+                                let saei = 0;
+                                if (Array.isArray(subObj)) {
+                                    saei = (sub === "الإنكليزي" || sub === "الحاسوب") ? (Number(subObj[15]) || 0) : (Number(subObj[11]) || 0);
+                                } else {
+                                    saei = Number(subObj) || 0;
+                                }
                                 if (saei < 50) failCount++;
                                 subCells += `<td>${saei}</td>`;
                             }
@@ -300,7 +315,7 @@
                     }
 
                 } else {
-                    // حسابات الصفوف الرابع والخامس (تصفية الطلبة المشمولين بالإعفاء العام حصراً)
+                    // حسابات الصفوف الرابع والخامس (الإعفاء العام)
                     studentsSnap.forEach(studentDoc => {
                         const sName = studentDoc.data().name;
                         const sGrades = studentGradesMap[sName] || {};
@@ -313,15 +328,28 @@
 
                         for (let sub in sGrades) {
                             let subObj = sGrades[sub];
-                            let f1 = typeof subObj === 'object' ? (subObj.f1 || subObj.فصل1 || 0) : '-';
-                            let mid = typeof subObj === 'object' ? (subObj.mid || subObj.نصف_السنة || 0) : '-';
-                            let f2 = typeof subObj === 'object' ? (subObj.f2 || subObj.فصل2 || 0) : '-';
-                            let saei = typeof subObj === 'object' ? Number(subObj.saei || subObj.final || subObj.degree || 0) : Number(subObj || 0);
+                            let f1 = '-', mid = '-', f2 = '-', saei = 0;
+
+                            if (Array.isArray(subObj)) {
+                                if (sub === "الإنكليزي" || sub === "الحاسوب") {
+                                    f1 = subObj[6] !== undefined && subObj[6] !== "" ? subObj[6] : '-';
+                                    mid = subObj[7] !== undefined && subObj[7] !== "" ? subObj[7] : '-';
+                                    f2 = subObj[14] !== undefined && subObj[14] !== "" ? subObj[14] : '-';
+                                    saei = subObj[15] !== undefined && subObj[15] !== "" ? Number(subObj[15]) || 0 : 0;
+                                } else {
+                                    f1 = subObj[4] !== undefined && subObj[4] !== "" ? subObj[4] : '-';
+                                    mid = subObj[5] !== undefined && subObj[5] !== "" ? subObj[5] : '-';
+                                    f2 = subObj[10] !== undefined && subObj[10] !== "" ? subObj[10] : '-';
+                                    saei = subObj[11] !== undefined && subObj[11] !== "" ? Number(subObj[11]) || 0 : 0;
+                                }
+                            } else {
+                                saei = Number(subObj) || 0;
+                            }
 
                             totalSaei += saei;
                             countSubs++;
                             if (saei < lowestSaei) lowestSaei = saei;
-                            if (saei < 75) hasFailedSubject = true; // شرط الإعفاء: ألا تقل أي مادة عن 75
+                            if (saei < 75) hasFailedSubject = true;
 
                             rows += `<tr>
                                 <td>${sub}</td>
@@ -333,11 +361,8 @@
                         }
 
                         let avgSaei = countSubs > 0 ? (totalSaei / countSubs).toFixed(1) : 0;
-
-                        // شرط الإعفاء العام: المعدل >= 85 ولا تقل أي مادة عن 75
                         let isExempted = (avgSaei >= 85 && !hasFailedSubject && countSubs > 0);
 
-                        // إذا كان الطالب مشمولاً بالإعفاء العام فقط نظهره
                         if (isExempted) {
                             htmlOutput += `
                             <div class="result-card">
@@ -375,7 +400,7 @@
                     });
 
                     if (!htmlOutput) {
-                        htmlOutput = "<p style='text-align:center; color:#dc3545; font-weight:bold; margin-top:20px;'>لا يوجد طلاب مشمولين بالإعفاء العام في هذا الصف والشعبة بناءً على شروط المعدل (85% فأكثر) وعدم هبوط أي مادة عن 75%.</p>";
+                        htmlOutput = "<p style='text-align:center; color:#dc3545; font-weight:bold; margin-top:20px;'>لا يوجد طلاب مشمولين بالإعفاء العام في هذا الصف والشعبة.</p>";
                     }
                 }
 
@@ -388,8 +413,8 @@
             }
         }
 
-        // تشغيل التحقق عند البدء
         toggleStageOptions();
     </script>
 </body>
 </html>
+ 
