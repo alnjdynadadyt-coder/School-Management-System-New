@@ -17,9 +17,9 @@
 <body>
     <div class="container">
         <h3>🛡️ النسخ الاحتياطي الشامل</h3>
-        <p>قم بتحميل نسخة من بيانات المدرسة بالكامل، أو استعادة نسخة سابقة.</p>
+        <p>قم بتحميل نسخة من بيانات المدرسة بالكامل لجميع الصفحات، أو استعادة نسخة سابقة.</p>
         
-        <button class="btn-backup" onclick="fullBackup()">📥 تصدير نسخة احتياطية (JSON)</button>
+        <button class="btn-backup" onclick="fullBackup()">📥 تصدير نسخة احتياطية شاملة (JSON)</button>
         <input type="file" id="restoreInput" style="display:none" onchange="fullRestore(event)">
         <button class="btn-restore" onclick="document.getElementById('restoreInput').click()">📤 استيراد نسخة احتياطية</button>
         
@@ -41,42 +41,62 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // قائمة بجميع المجموعات في نظامك
-        const collections = ['students', 'attendance', 'archived_attendance', 'teachers'];
+        // قائمة شاملة لجميع مجموعات (Collections) النظام والصفحات
+        const collections = [
+            'students',            // بيانات الطلاب
+            'attendance',          // سجلات الحضور اليومي
+            'grades',              // درجات الطلاب
+            'teachers',            // بيانات وصلاحيات المدرسين
+            'archive',             // أرشيف الحضور (بحرف a الصغير)
+            'Archive'              // أرشيف الدرجات (بحرف A الكبير)
+        ];
 
         async function fullBackup() {
-            let backupData = {};
-            for (let col of collections) {
-                let snap = await db.collection(col).get();
-                backupData[col] = {};
-                snap.forEach(doc => { backupData[col][doc.id] = doc.data(); });
+            try {
+                let backupData = {};
+                for (let col of collections) {
+                    let snap = await db.collection(col).get();
+                    backupData[col] = {};
+                    snap.forEach(doc => { backupData[col][doc.id] = doc.data(); });
+                }
+                const blob = new Blob([JSON.stringify(backupData, null, 2)], {type: "application/json"});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "School_Complete_Backup_" + new Date().toISOString().slice(0,10) + ".json";
+                a.click();
+                alert("✅ تم تحميل ملف النسخة الاحتياطية الشاملة بنجاح!");
+            } catch (err) {
+                alert("❌ حدث خطأ أثناء التصدير: " + err.message);
             }
-            const blob = new Blob([JSON.stringify(backupData)], {type: "application/json"});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = "School_Backup_" + new Date().toISOString().slice(0,10) + ".json";
-            a.click();
-            alert("تم تحميل ملف النسخة الاحتياطية بنجاح!");
         }
 
         async function fullRestore(event) {
-            if (!confirm("⚠️ تحذير: سيتم مسح البيانات الحالية واستبدالها ببيانات الملف. هل أنت متأكد؟")) return;
+            if (!confirm("⚠️ تحذير خطير: سيتم دمج أو استبدال بيانات النظام الحالية ببيانات الملف المرفق. هل أنت متأكد؟")) return;
             const file = event.target.files[0];
+            if (!file) return;
+            
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
                     const batch = db.batch();
+                    let count = 0;
+                    
                     for (let col in data) {
                         for (let id in data[col]) {
-                            batch.set(db.collection(col).doc(id), data[col][id]);
+                            const ref = db.collection(col).doc(id);
+                            batch.set(ref, data[col][id]);
+                            count++;
                         }
                     }
+                    
                     await batch.commit();
-                    alert("تم استعادة النظام بالكامل بنجاح!");
+                    alert(`✅ تم استعادة النظام بالكامل بنجاح! (تمت معالجة ${count} سجل)`);
                     location.reload();
-                } catch (err) { alert("حدث خطأ أثناء الاستعادة: " + err.message); }
+                } catch (err) { 
+                    alert("❌ حدث خطأ أثناء الاستعادة: " + err.message); 
+                }
             };
             reader.readAsText(file);
         }
