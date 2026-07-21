@@ -8,18 +8,24 @@
     <style>
         body { font-family: sans-serif; background: #fdf2f2; padding: 20px; }
         .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 12px; border: 2px solid #6f42c1; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
         th { background-color: #f8f9fa; }
-        .btn-restore { background: #6f42c1; color: white; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; }
+        .btn-restore { background: #6f42c1; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px; margin-left: 5px; }
+        .btn-delete { background: #dc3545; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px; }
+        .btn-delete-all { background: #dc3545; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 6px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
-        <a href="index.html">🔙 العودة للرئيسية</a>
+        <div class="header-actions">
+            <a href="index.html">🔙 العودة للرئيسية</a>
+            <button class="btn-delete-all" onclick="deleteAllArchive()">🗑️ حذف الكل من الأرشيف</button>
+        </div>
         <h2>📦 سجلات الدرجات المؤرشفة</h2>
         <table id="archiveTable">
-            <thead><tr><th>اسم الطالب</th><th>المادة</th><th>التاريخ</th><th>الإجراء</th></tr></thead>
+            <thead><tr><th>اسم الطالب</th><th>المادة</th><th>التاريخ</th><th>الإجراءات</th></tr></thead>
             <tbody id="archiveBody"></tbody>
         </table>
     </div>
@@ -45,7 +51,10 @@
                         <td>${data.studentName}</td>
                         <td>${data.subject}</td>
                         <td>${new Date(data.timestamp).toLocaleDateString('ar-IQ')}</td>
-                        <td><button class="btn-restore" onclick="restore('${doc.id}')">استعادة</button></td>
+                        <td>
+                            <button class="btn-restore" onclick="restore('${doc.id}')">استعادة</button>
+                            <button class="btn-delete" onclick="deleteArchiveItem('${doc.id}')">حذف</button>
+                        </td>
                     </tr>`;
                 });
             } catch (error) {
@@ -63,7 +72,6 @@
                 const gradeRef = db.collection("grades").doc(`${cls}_${sec}_${subject}`);
                 const gradeDoc = await gradeRef.get();
                 
-                // التأكد من وجود سجل للمادة، إذا لم يوجد يتم إنشاء كائن جديد
                 let currentGrades = gradeDoc.exists ? gradeDoc.data() : {};
                 
                 currentGrades[studentName] = data; 
@@ -74,6 +82,37 @@
                 loadArchive();
             } catch (error) {
                 alert("❌ خطأ أثناء الاستعادة: " + error.message);
+            }
+        }
+
+        async function deleteArchiveItem(id) {
+            if(!confirm("⚠️ هل أنت متأكد من حذف هذا السجل نهائياً من الأرشيف؟")) return;
+            try {
+                await db.collection("archived_grades").doc(id).delete();
+                alert("✅ تم الحذف بنجاح!");
+                loadArchive();
+            } catch (error) {
+                alert("❌ حدث خطأ أثناء الحذف: " + error.message);
+            }
+        }
+
+        async function deleteAllArchive() {
+            if(!confirm("⚠️ تحذير خطير: سيتم حذف جميع سجلات الأرشيف نهائياً دون إمكانية استرجاعها! هل أنت متأكد؟")) return;
+            try {
+                const snapshot = await db.collection("archived_grades").get();
+                if(snapshot.empty) {
+                    alert("الأرشيف فارغ أصلاً.");
+                    return;
+                }
+                const batch = db.batch();
+                snapshot.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+                alert("✅ تم حذف كل محتويات الأرشيف بنجاح!");
+                loadArchive();
+            } catch (error) {
+                alert("❌ حدث خطأ أثناء الحذف الشامل: " + error.message);
             }
         }
 
