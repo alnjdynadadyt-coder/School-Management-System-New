@@ -86,7 +86,7 @@
             if (isAdmin) document.getElementById('backBtn').style.display = "inline-block";
             else if(!sessionStorage.getItem("teacherLoggedIn")) {
                 const pass = prompt("🔐 كلمة مرور المدرس:");
-                if (pass !== "Teacher123") { document.body.innerHTML = "<h1>❌ دخول مرفوض</h1>"; return; }
+                if (pass !== "123") { document.body.innerHTML = "<h1>❌ دخول مرفوض</h1>"; return; }
                 sessionStorage.setItem("teacherLoggedIn", "true");
             }
             document.getElementById('datePicker').valueAsDate = new Date();
@@ -94,9 +94,10 @@
         };
 
         window.loadStudents = () => {
-            const isAdmin = sessionStorage.getItem("isAdmin") === "true";
-            const docId = `${datePicker.value}_${classSelect.value}_${sectionSelect.value}_${lessonSelect.value}`;
-            db.collection("attendance").doc(docId).get().then(doc => {
+    const isAdmin = sessionStorage.getItem("isAdmin") === "true";
+    const docId = `${datePicker.value}_${classSelect.value}_${sectionSelect.value}_${lessonSelect.value}`;
+    db.collection("attendance").doc(docId).get().then(doc => {
+
                 const isSubmitted = doc.exists;
                 const savedData = isSubmitted ? doc.data().data : {};
                 if(isSubmitted) {
@@ -105,17 +106,29 @@
                     document.getElementById('subjectSelect').value = doc.data().subject || "إسلامية";
                 }
                 db.collection("students").where("class", "==", classSelect.value).where("section", "==", sectionSelect.value).get().then(snap => {
-                    const body = document.getElementById('attendanceBody'); body.innerHTML = "";
+                    let students = [];
                     snap.forEach(s => {
+                        students.push({ id: s.id, name: s.data().name });
+                    });
+                    
+                    // ترتيب الطلاب أبجدياً باللغة العربية
+                    students.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+
+                    const body = document.getElementById('attendanceBody'); 
+                    body.innerHTML = "";
+                    
+                    students.forEach(s => {
                         const status = isSubmitted ? (savedData[s.id] || "حاضر") : "حاضر";
                         const color = status === "حاضر" ? "#28a745" : (status === "غائب" ? "#dc3545" : "#ffc107");
                         const presentClass = status === "حاضر" ? "is-present" : "";
-                        body.innerHTML += `<tr class="${presentClass}"><td>${s.data().name}</td><td><button class="status-btn" style="background:${color}" ${(isSubmitted && !isAdmin) ? 'disabled' : ''} onclick="toggleStatus(this)" data-id="${s.id}">${status}</button></td></tr>`;
+                        body.innerHTML += `<tr class="${presentClass}"><td>${s.name}</td><td><button class="status-btn" style="background:${color}" ${(isSubmitted && !isAdmin) ? 'disabled' : ''} onclick="toggleStatus(this)" data-id="${s.id}">${status}</button></td></tr>`;
                     });
                     document.getElementById('saveBtn').style.display = (isSubmitted && !isAdmin) ? "none" : "block";
                     document.getElementById('pdfBtn').style.display = isSubmitted ? "block" : "none";
                 });
             });
+        };
+
         };
 
         window.toggleStatus = (btn) => {
