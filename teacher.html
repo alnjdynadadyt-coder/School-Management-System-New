@@ -51,7 +51,6 @@
     </div>
 
     <script>
-        // إعدادات الربط للمشروع الجديد (School 2 2026)
         const firebaseConfig = {
             apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw",
             authDomain: "school-2-2026.firebaseapp.com",
@@ -86,7 +85,7 @@
             if (isAdmin) document.getElementById('backBtn').style.display = "inline-block";
             else if(!sessionStorage.getItem("teacherLoggedIn")) {
                 const pass = prompt("🔐 كلمة مرور المدرس:");
-                if (pass !== "123") { document.body.innerHTML = "<h1>❌ دخول مرفوض</h1>"; return; }
+                if (pass !== "Teacher123") { document.body.innerHTML = "<h1>❌ دخول مرفوض</h1>"; return; }
                 sessionStorage.setItem("teacherLoggedIn", "true");
             }
             document.getElementById('datePicker').valueAsDate = new Date();
@@ -94,10 +93,9 @@
         };
 
         window.loadStudents = () => {
-    const isAdmin = sessionStorage.getItem("isAdmin") === "true";
-    const docId = `${datePicker.value}_${classSelect.value}_${sectionSelect.value}_${lessonSelect.value}`;
-    db.collection("attendance").doc(docId).get().then(doc => {
-
+            const isAdmin = sessionStorage.getItem("isAdmin") === "true";
+            const docId = `${datePicker.value}_${classSelect.value}_${sectionSelect.value}_${lessonSelect.value}`;
+            db.collection("attendance").doc(docId).get().then(doc => {
                 const isSubmitted = doc.exists;
                 const savedData = isSubmitted ? doc.data().data : {};
                 if(isSubmitted) {
@@ -127,8 +125,6 @@
                     document.getElementById('pdfBtn').style.display = isSubmitted ? "block" : "none";
                 });
             });
-        };
-
         };
 
         window.toggleStatus = (btn) => {
