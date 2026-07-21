@@ -2,62 +2,68 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة طباعة الشهادات والنتائج</title>
+    <title>إدارة الشهادات والنتائج المدرسية</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; color: #333; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .container { max-width: 950px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; background: #f8f9fa; padding: 20px; border-radius: 10px; border: 1px solid #ddd; }
-        .full-width { grid-column: span 2; }
         select, input { padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%; font-size: 14px; }
         .btn { padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; width: 100%; font-size: 16px; }
         .btn-load { background: #28a745; }
         .btn-print { background: #007bff; margin-top: 20px; display: none; }
         
-        /* تصميم الشهادة المدرسية */
-        .certificate-card { border: 5px double #007bff; padding: 30px; margin-top: 20px; border-radius: 15px; background: #fff; position: relative; display: none; }
-        .cert-header { text-align: center; border-bottom: 2px solid #007bff; padding-bottom: 15px; margin-bottom: 20px; }
-        .cert-header h2 { margin: 0; color: #007bff; }
-        .student-info { display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: bold; font-size: 16px; background: #f1f8ff; padding: 10px 15px; border-radius: 8px; }
+        /* تنسيق الشهادات والجداول */
+        .result-card { border: 3px solid #007bff; padding: 25px; margin-top: 20px; border-radius: 12px; background: #fff; display: none; }
+        .card-header { text-align: center; border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 15px; }
+        .card-header h3 { margin: 0; color: #007bff; }
+        .student-meta { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; background: #f1f8ff; padding: 10px; border-radius: 6px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 13px; }
         th { background-color: #007bff; color: white; }
-        .cert-footer { margin-top: 30px; display: flex; justify-content: space-between; font-weight: bold; }
+        .footer-note { margin-top: 20px; display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; }
         
         #backBtn { display: inline-block; margin-bottom: 15px; color: #6c757d; text-decoration: none; font-weight: bold; }
 
         @media print {
             body { background: white; padding: 0; }
             .container { box-shadow: none; width: 100%; padding: 0; border: none; }
-            .controls, #backBtn, .btn-print, header, .no-print { display: none !important; }
-            .certificate-card { display: block !important; border: 3px solid #000; box-shadow: none; page-break-after: always; }
+            .controls, #backBtn, .btn-print, header { display: none !important; }
+            .result-card { display: block !important; page-break-after: always; border: 2px solid #000; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <a href="index.html" id="backBtn">⬅️ العودة للرئيسية</a>
-        <h2>🎓 إصدار الشهادات والنتائج المدرسية</h2>
+        <h2>🎓 نظام استخراج النتائج والشهادات المدرسية</h2>
         
-        <!-- لوحة التحكم العامة للإعدادات وتطبيقها على الجميع -->
+        <!-- لوحة التحكم -->
         <div class="controls">
             <div>
-                <label>نوع النظام:</label>
-                <select id="systemType">
-                    <option value="final">صف وضوحي/منتهٍ (يشمل إعفاء وقرار)</option>
-                    <option value="non-final">صف غير منتهٍ (نظام عادي)</option>
+                <label>اختر المرحلة:</label>
+                <select id="stageSelect" onchange="toggleStageOptions()">
+                    <option value="sixth">الصف السادس (منتهٍ - سعي + قرار + إكمال)</option>
+                    <option value="other">الرابع والخامس (غير منتهٍ - الإعفاء العام)</option>
                 </select>
             </div>
-            <div>
-                <label>درجة القرار المضافة:</label>
+            <div id="viewModeDiv">
+                <label>طريقة العرض (للصف السادس):</label>
+                <select id="viewMode">
+                    <option value="individual">نتيجة فردية (تفصيلية لكل طالب)</option>
+                    <option value="all-table">نتيجة عامة للجميع (جدول السعي والمواد)</option>
+                </select>
+            </div>
+            <div id="decisionDiv">
+                <label>درجة القرار:</label>
                 <select id="decisionDegree">
                     <option value="0">بدون قرار (0)</option>
                     <option value="5" selected>5 درجات</option>
                     <option value="10">10 درجات</option>
                 </select>
             </div>
-            <div>
+            <div id="failDiv">
                 <label>الحد الأقصى لمواد الإكمال:</label>
                 <select id="maxFailSubjects">
                     <option value="1">درس واحد</option>
@@ -67,27 +73,28 @@
                 </select>
             </div>
             <div>
-                <label>اختر الصف:</label>
+                <label>الصف:</label>
                 <select id="classSelect">
-                    <option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option>
-                    <option>الرابع الادبي</option><option>الخامس الادبي</option><option>السادس الادبي</option>
+                    <option>السادس العلمي</option><option>السادس الادبي</option>
+                    <option>الرابع العلمي</option><option>الخامس العلمي</option>
+                    <option>الرابع الادبي</option><option>الخامس الادبي</option>
                 </select>
             </div>
             <div>
-                <label>اختر الشعبة:</label>
+                <label>الشعبة:</label>
                 <select id="sectionSelect">
-                    <option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option>
+                    <option>أ</option><option>ب</option><option>ج</option><option>د</option>
                 </select>
             </div>
             <div style="grid-column: span 2;">
-                <button class="btn btn-load" onclick="generateCertificates()">جلب وعرض شهادات الطلاب</button>
+                <button class="btn btn-load" onclick="processResults()">عرض النتائج واستخراج الشهادات</button>
             </div>
         </div>
 
-        <!-- منطقة عرض الشهادات -->
-        <div id="certificatesContainer"></div>
+        <!-- منطقة عرض النتائج -->
+        <div id="resultsContainer"></div>
         
-        <button class="btn btn-print" id="printAllBtn" onclick="window.print()">🖨️ طباعة الشهادات المعروضة</button>
+        <button class="btn btn-print" id="printAllBtn" onclick="window.print()">🖨️ طباعة النتائج المعروضة</button>
     </div>
 
     <script>
@@ -102,49 +109,55 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        async function generateCertificates() {
+        function toggleStageOptions() {
+            const stage = document.getElementById('stageSelect').value;
+            const viewModeDiv = document.getElementById('viewModeDiv');
+            const decisionDiv = document.getElementById('decisionDiv');
+            const failDiv = document.getElementById('failDiv');
+
+            if (stage === 'sixth') {
+                viewModeDiv.style.display = "block";
+                decisionDiv.style.display = "block";
+                failDiv.style.display = "block";
+            } else {
+                viewModeDiv.style.display = "none";
+                decisionDiv.style.display = "none";
+                failDiv.style.display = "none";
+            }
+        }
+
+        async function processResults() {
+            const stage = document.getElementById('stageSelect').value;
             const className = document.getElementById('classSelect').value;
             const sectionName = document.getElementById('sectionSelect').value;
-            const systemType = document.getElementById('systemType').value;
-            const decisionVal = parseInt(document.getElementById('decisionDegree').value);
-            const maxFailVal = document.getElementById('maxFailSubjects').value;
+            const container = document.getElementById('resultsContainer');
             
-            const container = document.getElementById('certificatesContainer');
-            container.innerHTML = "<p style='text-align:center;'>جاري جلب بيانات الطلاب والدرجات وحساب النتائج...</p>";
+            container.innerHTML = "<p style='text-align:center;'>جاري جلب بيانات الطلاب والدرجات...</p>";
 
             try {
-                // 1. جلب طلاب الصف والشعبة
+                // 1. جلب الطلاب
                 const studentsSnap = await db.collection("students")
                     .where("class", "==", className)
                     .where("section", "==", sectionName)
                     .get();
 
                 if(studentsSnap.empty) {
-                    container.innerHTML = "<p style='text-align:center; color:red;'>لا يوجد طلاب في هذا الصف والشعبة.</p>";
+                    container.innerHTML = "<p style='text-align:center; color:red;'>لا يوجد طلاب مسجلين في هذا الصف والشعبة.</p>";
                     document.getElementById('printAllBtn').style.display = "none";
                     return;
                 }
 
-                // 2. جلب كافة درجات المواد لهذا الصف والشعبة
-                const gradesSnap = await db.collection("grades")
-                    .where("class", "==", className) // افتراض تخزين الصف في المستند أو اسم المستند
-                    .get();
-                
-                // سنقوم بجمع درجات كل طالب عبر المواد
+                // 2. جلب جميع درجات المواد
                 let studentGradesMap = {};
-                
-                // جلب كل المستندات في مجموعة grades
                 const allGradesSnap = await db.collection("grades").get();
+                
                 allGradesSnap.forEach(doc => {
-                    // هيكل معرف المستند المتوقع: class_section_subject أو حسب نظامك، لنفحص البيانات داخله
                     const data = doc.data();
-                    // إذا كان المستند يمثل مادة معينة ويحتوي على درجات الطلاب كحقول
-                    // أو إذا كانت البيانات مخزنة بشكل ماب لكل طالب
+                    let subName = data.subject || doc.id.split('_').slice(2).join('_') || "مادة";
+                    
                     for(let studentName in data) {
                         if(studentName !== "class" && studentName !== "section" && studentName !== "subject") {
                             if(!studentGradesMap[studentName]) studentGradesMap[studentName] = {};
-                            // نفترض أن المستند يحمل اسم المادة أو بداخله اسم المادة
-                            let subName = data.subject || doc.id.split('_').slice(2).join('_');
                             studentGradesMap[studentName][subName] = data[studentName];
                         }
                     }
@@ -153,106 +166,230 @@
                 container.innerHTML = "";
                 let htmlOutput = "";
 
-                studentsSnap.forEach(studentDoc => {
-                    const student = studentDoc.data();
-                    const sName = student.name;
-                    const sGrades = studentGradesMap[sName] || {};
+                if (stage === 'sixth') {
+                    // حسابات الصف السادس
+                    const viewMode = document.getElementById('viewMode').value;
+                    const decisionVal = parseInt(document.getElementById('decisionDegree').value);
+                    const maxFailVal = document.getElementById('maxFailSubjects').value;
 
-                    let totalScore = 0;
-                    let countSubjects = 0;
-                    let failCount = 0;
-                    let lowestDegree = 100;
-                    let subjectsRows = "";
+                    if (viewMode === 'individual') {
+                        // نتيجة فردية تفصيلية لكل طالب
+                        studentsSnap.forEach(studentDoc => {
+                            const sName = studentDoc.data().name;
+                            const sGrades = studentGradesMap[sName] || {};
+                            let failCount = 0;
+                            let rows = "";
 
-                    for(let sub in sGrades) {
-                        let originalMark = Number(sGrades[sub].final || sGrades[sub] || 0);
-                        let finalMark = originalMark;
-                        let statusText = "ناجح";
+                            for (let sub in sGrades) {
+                                let subObj = sGrades[sub];
+                                // استخراج درجات الفصول والسعي حسب الهيكل المخزن لديك
+                                let f1 = typeof subObj === 'object' ? (subObj.f1 || subObj. فصل1 || 0) : '-';
+                                let mid = typeof subObj === 'object' ? (subObj.mid || subObj.نصف_السنة || 0) : '-';
+                                let f2 = typeof subObj === 'object' ? (subObj.f2 || subObj.فصل2 || 0) : '-';
+                                let saei = typeof subObj === 'object' ? Number(subObj.saei || subObj.final || subObj.degree || 0) : Number(subObj || 0);
 
-                        // تطبيق درجة القرار إذا كان الطالب مائلاً للرسوب (مثلاً من (50 - قرار) إلى 49)
-                        if(finalMark < 50 && finalMark >= (50 - decisionVal)) {
-                            finalMark = 50; // رفع بالقرار
-                        }
+                                let finalMark = saei;
+                                let isHelped = false;
+                                if (finalMark < 50 && finalMark >= (50 - decisionVal)) {
+                                    finalMark = 50;
+                                    isHelped = true;
+                                }
 
-                        if(finalMark < 50) {
-                            failCount++;
-                            statusText = "راسب/مكمل";
-                        }
+                                let status = "ناجح";
+                                if (finalMark < 50) {
+                                    failCount++;
+                                    status = "راسب/مكمل";
+                                }
 
-                        totalScore += finalMark;
-                        countSubjects++;
-                        if(finalMark < lowestDegree) lowestDegree = finalMark;
+                                rows += `<tr>
+                                    <td>${sub}</td>
+                                    <td>${f1}</td>
+                                    <td>${mid}</td>
+                                    <td>${f2}</td>
+                                    <td><b>${saei}</b></td>
+                                    <td><b>${finalMark}</b> ${isHelped ? '<small style="color:blue;">(قرار)</small>' : ''}</td>
+                                    <td>${status}</td>
+                                </tr>`;
+                            }
 
-                        subjectsRows += `<tr>
-                            <td>${sub}</td>
-                            <td>${originalMark}</td>
-                            <td>${finalMark} ${originalMark !== finalMark ? '<small>(مساعده)</small>' : ''}</td>
-                            <td>${statusText}</td>
-                        </tr>`;
+                            let finalRes = "ناجح";
+                            if (failCount > 0) {
+                                if (maxFailVal === "all" || failCount <= parseInt(maxFailVal)) {
+                                    finalRes = `مكمل (${failCount} مواد)`;
+                                } else {
+                                    finalRes = "راسب";
+                                }
+                            }
+
+                            htmlOutput += `
+                            <div class="result-card">
+                                <div class="card-header">
+                                    <h3>جمهورية العراق - وزارة التربية</h3>
+                                    <p>نتيجة الطالب النهائية (الصف السادس)</p>
+                                </div>
+                                <div class="student-meta">
+                                    <div>اسم الطالب: ${sName}</div>
+                                    <div>الصف: ${className} (${sectionName})</div>
+                                    <div>النتيجة: <span style="color:${failCount===0?'green':'red'}">${finalRes}</span></div>
+                                </div>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>المادة</th>
+                                            <th>فصل 1</th>
+                                            <th>نصف السنة</th>
+                                            <th>فصل 2</th>
+                                            <th>السعي السنوي</th>
+                                            <th>الدرجة النهائية</th>
+                                            <th>الحالة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${rows || "<tr><td colspan='7'>لا توجد درجات مسجلة.</td></tr>"}</tbody>
+                                </table>
+                                <div class="footer-note">
+                                    <div>توقيع اللجنة الامتحانية</div>
+                                    <div>ختم المدرسة</div>
+                                </div>
+                            </div>`;
+                        });
+                    } else {
+                        // نتيجة للكل في جدول واحد (الأسماء، المواد، السعي، والنتيجة)
+                        let tableRows = "";
+                        studentsSnap.forEach(studentDoc => {
+                            const sName = studentDoc.data().name;
+                            const sGrades = studentGradesMap[sName] || {};
+                            let failCount = 0;
+                            let subCells = "";
+                            
+                            // سنأخذ قائمة كل المواد الفريدة الموجودة
+                            let allSubs = Object.keys(sGrades);
+                            
+                            for (let sub in sGrades) {
+                                let subObj = sGrades[sub];
+                                let saei = typeof subObj === 'object' ? Number(subObj.saei || subObj.final || subObj.degree || 0) : Number(subObj || 0);
+                                if (saei < 50) failCount++;
+                                subCells += `<td>${saei}</td>`;
+                            }
+
+                            let finalRes = failCount === 0 ? "ناجح" : (failCount <= parseInt(maxFailVal) || maxFailVal === "all" ? `مكمل (${failCount})` : "راسب");
+
+                            tableRows += `<tr>
+                                <td>${sName}</td>
+                                ${subCells}
+                                <td style="font-weight:bold; color:${failCount===0?'green':'red'}">${finalRes}</td>
+                            </tr>`;
+                        });
+
+                        htmlOutput = `
+                        <div class="result-card" style="display:block;">
+                            <div class="card-header">
+                                <h3>جدول درجات السعي السنوي والنتائج النهائية - الصف السادس</h3>
+                                <p>الصف: ${className} - الشعبة: ${sectionName}</p>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>اسم الطالب</th>
+                                        <th>المواد الدراسية (درجة السعي)</th>
+                                        <th>النتيجة النهائية</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${tableRows || "<tr><td colspan='3'>لا توجد بيانات.</td></tr>"}</tbody>
+                            </table>
+                        </div>`;
                     }
 
-                    let avg = countSubjects > 0 ? (totalScore / countSubjects).toFixed(1) : 0;
-                    let finalResultState = "ناجح";
-                    let exemptionStatus = "";
+                } else {
+                    // حسابات الصفوف الرابع والخامس (تصفية الطلبة المشمولين بالإعفاء العام حصراً)
+                    studentsSnap.forEach(studentDoc => {
+                        const sName = studentDoc.data().name;
+                        const sGrades = studentGradesMap[sName] || {};
+                        
+                        let totalSaei = 0;
+                        let countSubs = 0;
+                        let lowestSaei = 100;
+                        let rows = "";
+                        let hasFailedSubject = false;
 
-                    // فحص الإعفاء العام (للصفوف المنتهية حصراً وبشروط محددة)
-                    if(systemType === "final" && avg >= 85 && lowestDegree >= 75) {
-                        exemptionStatus = "🌟 معفى إعفاءً عاماً";
-                    }
+                        for (let sub in sGrades) {
+                            let subObj = sGrades[sub];
+                            let f1 = typeof subObj === 'object' ? (subObj.f1 || subObj.فصل1 || 0) : '-';
+                            let mid = typeof subObj === 'object' ? (subObj.mid || subObj.نصف_السنة || 0) : '-';
+                            let f2 = typeof subObj === 'object' ? (subObj.f2 || subObj.فصل2 || 0) : '-';
+                            let saei = typeof subObj === 'object' ? Number(subObj.saei || subObj.final || subObj.degree || 0) : Number(subObj || 0);
 
-                    // حساب الإكمال والرسوب
-                    if(failCount > 0) {
-                        if(maxFailVal === "all" || failCount <= parseInt(maxFailVal)) {
-                            finalResultState = `مكمل في (${failCount} مواد)`;
-                        } else {
-                            finalResultState = "راسب";
+                            totalSaei += saei;
+                            countSubs++;
+                            if (saei < lowestSaei) lowestSaei = saei;
+                            if (saei < 75) hasFailedSubject = true; // شرط الإعفاء: ألا تقل أي مادة عن 75
+
+                            rows += `<tr>
+                                <td>${sub}</td>
+                                <td>${f1}</td>
+                                <td>${mid}</td>
+                                <td>${f2}</td>
+                                <td><b>${saei}</b></td>
+                            </tr>`;
                         }
-                    }
 
-                    // بناء كارت الشهادة لكل طالب
-                    htmlOutput += `
-                    <div class="certificate-card">
-                        <div class="cert-header">
-                            <h2>جمهورية العراق - وزارة التربية</h2>
-                            <p>موسوعة إدارة المدرسة الذكية - شهادة نهاية العام الدراسي</p>
-                        </div>
-                        <div class="student-info">
-                            <div>اسم الطالب: ${sName}</div>
-                            <div>الصف: ${className} (${sectionName})</div>
-                            <div>النتيجة: <span style="color: ${failCount === 0 ? 'green':'red'}">${finalResultState}</span></div>
-                        </div>
-                        ${exemptionStatus ? `<div style="text-align:center; background:#d4edda; color:#155724; padding:8px; border-radius:5px; margin-bottom:15px; font-weight:bold;">${exemptionStatus}</div>` : ''}
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>المادة الدراسية</th>
-                                    <th>الدرجة الأصلية</th>
-                                    <th>الدرجة النهائية (بعد القرار)</th>
-                                    <th>الحالة</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${subjectsRows || "<tr><td colspan='4'>لا توجد درجات مدخلة لهذا الطالب.</td></tr>"}
-                            </tbody>
-                        </table>
-                        <div style="margin-top: 15px; font-weight: bold;">
-                            المعدل العام: ${avg}%
-                        </div>
-                        <div class="cert-footer">
-                            <div>توقيع إدارة المدرسة</div>
-                            <div>مختبر المدرسة / ختم الإدارة</div>
-                        </div>
-                    </div>`;
-                });
+                        let avgSaei = countSubs > 0 ? (totalSaei / countSubs).toFixed(1) : 0;
+
+                        // شرط الإعفاء العام: المعدل >= 85 ولا تقل أي مادة عن 75
+                        let isExempted = (avgSaei >= 85 && !hasFailedSubject && countSubs > 0);
+
+                        // إذا كان الطالب مشمولاً بالإعفاء العام فقط نظهره
+                        if (isExempted) {
+                            htmlOutput += `
+                            <div class="result-card">
+                                <div class="card-header" style="border-bottom: 2px solid #28a745;">
+                                    <h3 style="color: #28a745;">🌟 شهادة إعفاء عام (صفوف غير منتهية)</h3>
+                                    <p>جمهورية العراق - وزارة التربية</p>
+                                </div>
+                                <div class="student-meta" style="background: #d4edda; color: #155724;">
+                                    <div>اسم الطالب: ${sName}</div>
+                                    <div>الصف: ${className} (${sectionName})</div>
+                                    <div>الحالة: معفى إعفاءً عاماً ✨</div>
+                                </div>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>المادة</th>
+                                            <th>فصل 1</th>
+                                            <th>نصف السنة</th>
+                                            <th>فصل 2</th>
+                                            <th>السعي السنوي</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${rows}</tbody>
+                                </table>
+                                <div style="margin-top: 15px; font-weight: bold; display: flex; justify-content: space-between;">
+                                    <div>المجموع الكلي: ${totalSaei}</div>
+                                    <div>المعدل العام: ${avgSaei}%</div>
+                                </div>
+                                <div class="footer-note">
+                                    <div>توقيع إدارة المدرسة</div>
+                                    <div>ختم الإدارة</div>
+                                </div>
+                            </div>`;
+                        }
+                    });
+
+                    if (!htmlOutput) {
+                        htmlOutput = "<p style='text-align:center; color:#dc3545; font-weight:bold; margin-top:20px;'>لا يوجد طلاب مشمولين بالإعفاء العام في هذا الصف والشعبة بناءً على شروط المعدل (85% فأكثر) وعدم هبوط أي مادة عن 75%.</p>";
+                    }
+                }
 
                 container.innerHTML = htmlOutput;
                 document.getElementById('printAllBtn').style.display = "block";
 
             } catch (err) {
-                container.innerHTML = `<p style='text-align:center; color:red;'>حدث خطأ أثناء جلب البيانات: ${err.message}</p>`;
+                container.innerHTML = `<p style='text-align:center; color:red;'>حدث خطأ: ${err.message}</p>`;
                 document.getElementById('printAllBtn').style.display = "none";
             }
         }
+
+        // تشغيل التحقق عند البدء
+        toggleStageOptions();
     </script>
 </body>
 </html>
