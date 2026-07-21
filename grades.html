@@ -77,6 +77,8 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        let originalTeacherName = ""; // متغير لحفظ اسم المدرس الحقيقي للمادة
+
         async function checkAuth() {
             const user = document.getElementById('loginUser').value;
             const pass = document.getElementById('loginPass').value;
@@ -125,11 +127,22 @@
             const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
             const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
             const doc = await docRef.get();
-            if (doc.exists) { const pass = prompt("أدخل كلمة المرور للتعديل:"); if (pass !== "123") { alert("كلمة مرور خاطئة!"); return; } }
+            if (doc.exists) { 
+                const pass = prompt("أدخل كلمة المرور للتعديل:"); 
+                if (pass !== "123") { alert("كلمة مرور خاطئة!"); return; } 
+            }
             const rows = document.querySelectorAll('#gradesBody tr');
-            const dataToSave = { teacher: document.getElementById('teacherName').value };
+            
+            // تحديد اسم المدرس المناسب للحفظ: إذا كان المدير هو من يعدل، نثبت اسم المدرس الأصلي ولا نجعله "مدير"
+            let teacherToSave = document.getElementById('teacherName').value;
+            if (teacherToSave === "مدير" && originalTeacherName && originalTeacherName !== "مدير") {
+                teacherToSave = originalTeacherName;
+            }
+
+            const dataToSave = { teacher: teacherToSave };
             rows.forEach((row) => { dataToSave[row.cells[0].innerText] = Array.from(row.querySelectorAll('input')).map(i => i.value); });
-            await docRef.set(dataToSave); alert("تم الحفظ بنجاح!");
+            await docRef.set(dataToSave); 
+            alert("تم الحفظ بنجاح!");
         }
 
         function getVal(v) { 
@@ -148,34 +161,33 @@
         }
 
         function calculate(row) {
-    const sub = document.getElementById('subject').value;
-    const i = row.querySelectorAll('input');
-    if (sub === "الإنكليزي" || sub === "الحاسوب") {
-        i[4].value = (i[0].value && i[1].value) ? (getVal(i[0].value) + getVal(i[1].value)) : "";
-        i[5].value = (i[2].value && i[3].value) ? (getVal(i[2].value) + getVal(i[3].value)) : "";
-        i[6].value = (i[4].value !== "" && i[5].value !== "") ? Math.round((getVal(i[4].value) + getVal(i[5].value)) / 2) : "";
-        i[12].value = (i[8].value && i[9].value) ? (getVal(i[8].value) + getVal(i[9].value)) : "";
-        i[13].value = (i[10].value && i[11].value) ? (getVal(i[10].value) + getVal(i[11].value)) : "";
-        i[14].value = (i[12].value !== "" && i[13].value !== "") ? Math.round((getVal(i[12].value) + getVal(i[13].value)) / 2) : "";
-        i[15].value = (i[6].value !== "" && i[7].value !== "" && i[14].value !== "") ? Math.round((getVal(i[6].value) + getVal(i[7].value) + getVal(i[14].value)) / 3) : "";
-    } else {
-        if (i[0].value !== "" && i[1].value !== "") i[2].value = Math.round((getVal(i[0].value) + getVal(i[1].value)) / 2);
-        else i[2].value = ""; 
-        if (i[2].value !== "" && i[3].value !== "") i[4].value = Math.round((getVal(i[2].value) + getVal(i[3].value)) / 2);
-        else i[4].value = ""; 
-        if (i[6].value !== "" && i[7].value !== "") i[8].value = Math.round((getVal(i[6].value) + getVal(i[7].value)) / 2);
-        else i[8].value = ""; 
-        if (i[8].value !== "" && i[9].value !== "") i[10].value = Math.round((getVal(i[8].value) + getVal(i[9].value)) / 2);
-        else i[10].value = ""; 
-        if (i[4].value !== "" && i[6].value !== "" && i[10].value !== "") {
-            i[11].value = Math.round((getVal(i[4].value) + getVal(i[6].value) + getVal(i[10].value)) / 3);
-        } else {
-            i[11].value = "";
+            const sub = document.getElementById('subject').value;
+            const i = row.querySelectorAll('input');
+            if (sub === "الإنكليزي" || sub === "الحاسوب") {
+                i[4].value = (i[0].value && i[1].value) ? (getVal(i[0].value) + getVal(i[1].value)) : "";
+                i[5].value = (i[2].value && i[3].value) ? (getVal(i[2].value) + getVal(i[3].value)) : "";
+                i[6].value = (i[4].value !== "" && i[5].value !== "") ? Math.round((getVal(i[4].value) + getVal(i[5].value)) / 2) : "";
+                i[12].value = (i[8].value && i[9].value) ? (getVal(i[8].value) + getVal(i[9].value)) : "";
+                i[13].value = (i[10].value && i[11].value) ? (getVal(i[10].value) + getVal(i[11].value)) : "";
+                i[14].value = (i[12].value !== "" && i[13].value !== "") ? Math.round((getVal(i[12].value) + getVal(i[13].value)) / 2) : "";
+                i[15].value = (i[6].value !== "" && i[7].value !== "" && i[14].value !== "") ? Math.round((getVal(i[6].value) + getVal(i[7].value) + getVal(i[14].value)) / 3) : "";
+            } else {
+                if (i[0].value !== "" && i[1].value !== "") i[2].value = Math.round((getVal(i[0].value) + getVal(i[1].value)) / 2);
+                else i[2].value = ""; 
+                if (i[2].value !== "" && i[3].value !== "") i[4].value = Math.round((getVal(i[2].value) + getVal(i[3].value)) / 2);
+                else i[4].value = ""; 
+                if (i[6].value !== "" && i[7].value !== "") i[8].value = Math.round((getVal(i[6].value) + getVal(i[7].value)) / 2);
+                else i[8].value = ""; 
+                if (i[8].value !== "" && i[9].value !== "") i[10].value = Math.round((getVal(i[8].value) + getVal(i[9].value)) / 2);
+                else i[10].value = ""; 
+                if (i[4].value !== "" && i[6].value !== "" && i[10].value !== "") {
+                    i[11].value = Math.round((getVal(i[4].value) + getVal(i[6].value) + getVal(i[10].value)) / 3);
+                } else {
+                    i[11].value = "";
+                }
+            }
+            i.forEach((input, idx) => checkFail(input, idx));
         }
-    }
-    i.forEach((input, idx) => checkFail(input, idx));
-}
-
 
         function loadGrades() {
             if(!validateInputs()) return;
@@ -202,7 +214,13 @@
                 db.collection("grades").doc(`${cls}_${sec}_${sub}`).get().then(doc => {
                     if (doc.exists) {
                         const data = doc.data(); 
-                        if (currentUser !== "مدير") document.getElementById('teacherName').value = data.teacher;
+                        // حفظ اسم المدرس الأصلي لكي لا يضيع عند تعديل المدير
+                        if (data.teacher) {
+                            originalTeacherName = data.teacher;
+                        }
+                        if (currentUser !== "مدير" && data.teacher) {
+                            document.getElementById('teacherName').value = data.teacher;
+                        }
                         document.querySelectorAll('#gradesBody tr').forEach(row => {
                             const name = row.cells[0].innerText;
                             if (data[name]) { 
