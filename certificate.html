@@ -106,7 +106,6 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // الترتيب الدقيق حسب طلبك تماماً لكل مرحلة
         const subjectOrders = {
             "السادس العلمي": ["الاسلامية", "العربي", "الانكليزي", "رياضيات", "الاحياء", "الكيمياء", "الفيزياء", "الرياضة", "الفنية"],
             "السادس الادبي": ["الاسلامية", "العربي", "الانكليزي", "رياضيات", "التاريخ", "الجغرافية", "الاقتصاد", "الرياضة", "الفنية"],
@@ -131,27 +130,26 @@
             document.getElementById('failDiv').style.display = (stage === 'sixth') ? "block" : "none";
         }
 
-        // دالة استخراج قيم الفصل الأول، نصف السنة، الفصل الثاني، والسعي بدقة مطابقة لسجل الدرجات
+        // دالة دقيقة ومضبوطة تماماً لاستخراج حقول الفصل الأول، نصف السنة، الفصل الثاني، والسعي بناءً على صور سجل الدرجات الفعلية
         function extractSubjectMarks(sub, subObj) {
             let f1 = '-', mid = '-', f2 = '-', saei = 0;
             if (!subObj) return { f1, mid, f2, saei };
 
             if (Array.isArray(subObj)) {
                 if (sub === "الانكليزي" || sub === "الحاسوب") {
-                    // هيكلة الإنكليزي والحاسوب كما تظهر في سجل الدرجات:
-                    // 0:ش1, 1:يومي1, 2:ش2, 3:م.ش1, 4:ن.سنة, 5:ش1(ف2), 6:يومي2, 7:ش2(ف2), 8:م.ش2, 9:فصل2, 10:السعي
-                    // بناءً على الصورة: [ش1, يومي, ش2, م.ش1, ن.سنة, ش1, يومي, ش2, م.ش2, فصل2, السعي]
-                    f1 = subObj[3] !== undefined && subObj[3] !== "" ? subObj[3] : (subObj[0] !== undefined ? subObj[0] : '-'); // مجموع شهر أول أو الشهر الأول
-                    mid = subObj[4] !== undefined && subObj[4] !== "" ? subObj[4] : '-'; // نصف السنة
-                    f2 = subObj[9] !== undefined && subObj[9] !== "" ? subObj[9] : '-'; // فصل 2
-                    saei = subObj[10] !== undefined && subObj[10] !== "" ? Number(subObj[10]) || 0 : (subObj[subObj.length - 1] ? Number(subObj[subObj.length - 1]) || 0 : 0);
+                    // الإنكليزي والحاسوب حسب شاشة الإدخال:
+                    // 0: شهر1, 1: شهر2, 2: يومي, 3: مجموع شهر 1 (فصل 1), 4: نصف السنة, 5: شهر1(ف2), 6: شهر2(ف2), 7: يومي(ف2), 8: مجموع شهر 2 (فصل 2), 9: السعي
+                    f1 = subObj[3] !== undefined && subObj[3] !== "" ? subObj[3] : '-';
+                    mid = subObj[4] !== undefined && subObj[4] !== "" ? subObj[4] : '-';
+                    f2 = subObj[8] !== undefined && subObj[8] !== "" ? subObj[8] : '-';
+                    saei = subObj[9] !== undefined && subObj[9] !== "" ? Number(subObj[9]) || 0 : (subObj[subObj.length - 1] ? Number(subObj[subObj.length - 1]) || 0 : 0);
                 } else {
-                    // هيكلة بقية المواد الاعتيادية بناءً على الصورة:
-                    // 0:ش1, 1:ش2, 2:م.ش1, 3:ن.سنة, 4:ش1, 5:ش2, 6:م.ش2, 7:فصل2, 8:السعي
-                    f1 = subObj[2] !== undefined && subObj[2] !== "" ? subObj[2] : (subObj[0] !== undefined ? subObj[0] : '-'); // مجموع شهر أول
-                    mid = subObj[3] !== undefined && subObj[3] !== "" ? subObj[3] : '-'; // نصف السنة
-                    f2 = subObj[7] !== undefined && subObj[7] !== "" ? subObj[7] : '-'; // فصل 2
-                    saei = subObj[8] !== undefined && subObj[8] !== "" ? Number(subObj[8]) || 0 : (subObj[subObj.length - 1] ? Number(subObj[subObj.length - 1]) || 0 : 0);
+                    // المواد الاعتيادية (الإسلامية، العربي، إلخ) حسب شاشة الإدخال:
+                    // 0: شهر1, 1: شهر2, 2: مجموع شهر 1 (فصل 1), 3: نصف السنة, 4: شهر1(ف2), 5: شهر2(ف2), 6: مجموع شهر 2 (فصل 2), 7: السعي
+                    f1 = subObj[2] !== undefined && subObj[2] !== "" ? subObj[2] : '-';
+                    mid = subObj[3] !== undefined && subObj[3] !== "" ? subObj[3] : '-';
+                    f2 = subObj[6] !== undefined && subObj[6] !== "" ? subObj[6] : '-';
+                    saei = subObj[7] !== undefined && subObj[7] !== "" ? Number(subObj[7]) || 0 : (subObj[subObj.length - 1] ? Number(subObj[subObj.length - 1]) || 0 : 0);
                 }
             } else {
                 saei = Number(subObj) || 0;
