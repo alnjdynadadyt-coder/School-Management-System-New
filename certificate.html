@@ -19,7 +19,6 @@
         .card-header h3 { margin: 0; color: #007bff; font-size: 18px; }
         .student-meta { display: flex; justify-content: space-between; margin-bottom: 12px; font-weight: bold; background: #f1f8ff; padding: 8px; border-radius: 6px; font-size: 13px; }
         
-        /* تصغير الجدول وحقوله لاستيعاب جميع المواد */
         table { width: 100%; border-collapse: collapse; margin-top: 8px; table-layout: auto; }
         th, td { border: 1px solid #ddd; padding: 5px 2px; text-align: center; font-size: 11px; word-break: break-all; }
         th { background-color: #007bff; color: white; font-size: 11px; }
@@ -224,7 +223,14 @@
 
                                 let displayName = (sub === "رياضيات") ? "الرياضيات" : (sub === "الاسلامية" ? "الإسلامية" : (sub === "الانكليزي" ? "الإنكليزي" : sub));
 
-                                let displayFinalText = isHelped ? `${saei} <span style="color:blue;">(${finalMark} ق)</span>` : `<b>${saei}</b>`;
+                                let displayFinalText = "";
+                                if (isHelped) {
+                                    displayFinalText = `${saei} <span style="color:blue;">(50 ق)</span>`;
+                                } else if (finalMark < 50) {
+                                    displayFinalText = `<span style="color:red; font-weight:bold;">${saei}</span>`;
+                                } else {
+                                    displayFinalText = `<b>${saei}</b>`;
+                                }
 
                                 rows += `<tr>
                                     <td>${displayName}</td>
@@ -248,7 +254,7 @@
                             htmlOutput += `
                             <div class="result-card">
                                 <div class="card-header">
-                                    <h3>  اعدادية النجدين للبنين- جمهورية العراق - وزارة التربية</h3>
+                                <h3>إدارة اعدادية النجدين للبنين</h3>
                                     <p>نتيجة الطالب النهائية (الصف السادس)</p>
                                 </div>
                                 <div class="student-meta">
@@ -308,7 +314,15 @@
 
                                 if (finalMark < 50) failCount++;
 
-                                let cellText = isHelped ? `${saei} <span style="color:blue;">(50 ق)</span>` : `${saei}`;
+                                let cellText = "";
+                                if (isHelped) {
+                                    cellText = `${saei} <span style="color:blue;">(50 ق)</span>`;
+                                } else if (finalMark < 50) {
+                                    cellText = `<span style="color:red; font-weight:bold;">${saei}</span>`;
+                                } else {
+                                    cellText = `${saei}`;
+                                }
+
                                 subCells += `<td>${cellText}</td>`;
                             });
 
