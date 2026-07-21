@@ -51,7 +51,6 @@
     </div>
 
     <script>
-        // إعدادات الربط للمشروع الجديد (School 2 2026)
         const firebaseConfig = {
             apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw",
             authDomain: "school-2-2026.firebaseapp.com",
@@ -105,12 +104,22 @@
                     document.getElementById('subjectSelect').value = doc.data().subject || "إسلامية";
                 }
                 db.collection("students").where("class", "==", classSelect.value).where("section", "==", sectionSelect.value).get().then(snap => {
-                    const body = document.getElementById('attendanceBody'); body.innerHTML = "";
+                    let students = [];
                     snap.forEach(s => {
+                        students.push({ id: s.id, name: s.data().name });
+                    });
+                    
+                    // ترتيب الطلاب أبجدياً باللغة العربية
+                    students.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+
+                    const body = document.getElementById('attendanceBody'); 
+                    body.innerHTML = "";
+                    
+                    students.forEach(s => {
                         const status = isSubmitted ? (savedData[s.id] || "حاضر") : "حاضر";
                         const color = status === "حاضر" ? "#28a745" : (status === "غائب" ? "#dc3545" : "#ffc107");
                         const presentClass = status === "حاضر" ? "is-present" : "";
-                        body.innerHTML += `<tr class="${presentClass}"><td>${s.data().name}</td><td><button class="status-btn" style="background:${color}" ${(isSubmitted && !isAdmin) ? 'disabled' : ''} onclick="toggleStatus(this)" data-id="${s.id}">${status}</button></td></tr>`;
+                        body.innerHTML += `<tr class="${presentClass}"><td>${s.name}</td><td><button class="status-btn" style="background:${color}" ${(isSubmitted && !isAdmin) ? 'disabled' : ''} onclick="toggleStatus(this)" data-id="${s.id}">${status}</button></td></tr>`;
                     });
                     document.getElementById('saveBtn').style.display = (isSubmitted && !isAdmin) ? "none" : "block";
                     document.getElementById('pdfBtn').style.display = isSubmitted ? "block" : "none";
