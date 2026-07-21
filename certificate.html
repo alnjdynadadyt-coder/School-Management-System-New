@@ -14,15 +14,25 @@
         .btn-load { background: #28a745; }
         .btn-print { background: #007bff; margin-top: 20px; display: none; }
         
-        /* تنسيق الشهادات والجداول */
+        /* تنسيق الشهادات والجداول بدون عمود الحالة */
         .result-card { border: 3px solid #007bff; padding: 25px; margin-top: 20px; border-radius: 12px; background: #fff; display: none; }
         .card-header { text-align: center; border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 15px; }
         .card-header h3 { margin: 0; color: #007bff; }
-        .student-meta { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; background: #f1f8ff; padding: 10px; border-radius: 6px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 13px; }
+        .student-meta { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; background: #f1f8ff; padding: 10px; border-radius: 6px; font-size: 14px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
+        th, td { border: 1px solid #ddd; padding: 8px 4px; text-align: center; font-size: 13px; word-wrap: break-word; }
         th { background-color: #007bff; color: white; }
-        .footer-note { margin-top: 20px; display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; }
+        
+        /* توزيع عرض 6 أعمدة بانتظام تام (بدون عمود الحالة) */
+        th:nth-child(1), td:nth-child(1) { width: 25%; } /* اسم المادة */
+        th:nth-child(2), td:nth-child(2) { width: 15%; } /* فصل 1 */
+        th:nth-child(3), td:nth-child(3) { width: 15%; } /* نصف السنة */
+        th:nth-child(4), td:nth-child(4) { width: 15%; } /* فصل 2 */
+        th:nth-child(5), td:nth-child(5) { width: 15%; } /* السعي السنوي */
+        th:nth-child(6), td:nth-child(6) { width: 15%; } /* الدرجة النهائية */
+
+        .footer-note { margin-top: 25px; display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; border-top: 1px dashed #ccc; padding-top: 15px; }
         
         #backBtn { display: inline-block; margin-bottom: 15px; color: #6c757d; text-decoration: none; font-weight: bold; }
 
@@ -109,6 +119,16 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        // تعريف الترتيب الثابت للمواد حسب طلبك
+        const subjectOrders = {
+            "السادس العلمي": ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "الاحياء", "الكيمياء", "الفيزياء", "الرياضة", "الفنية"],
+            "السادس الادبي": ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "التاريخ", "الجغرافية", "الاقتصاد", "الرياضة", "الفنية"],
+            "الرابع العلمي": ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "الاحياء", "الكيمياء", "الفيزياء", "الحاسوب", "الرياضة", "الفنية"],
+            "الخامس العلمي": ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "الاحياء", "الكيمياء", "الفيزياء", "الحاسوب", "الرياضة", "الفنية"],
+            "الرابع الادبي": ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "التاريخ", "الجغرافية", "الاقتصاد", "الحاسوب", "الرياضة", "الفنية"],
+            "الخامس الادبي": ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "التاريخ", "الجغرافية", "الاقتصاد", "الحاسوب", "الرياضة", "الفنية"]
+        };
+
         function toggleStageOptions() {
             const stage = document.getElementById('stageSelect').value;
             const viewModeDiv = document.getElementById('viewModeDiv');
@@ -165,28 +185,30 @@
 
                 container.innerHTML = "";
                 let htmlOutput = "";
+                const standardOrder = subjectOrders[className] || [];
 
                 if (stage === 'sixth') {
-                    // حسابات الصف السادس
                     const viewMode = document.getElementById('viewMode').value;
                     const decisionVal = parseInt(document.getElementById('decisionDegree').value);
                     const maxFailVal = document.getElementById('maxFailSubjects').value;
 
                     if (viewMode === 'individual') {
-                        // نتيجة فردية تفصيلية لكل طالب
                         studentsSnap.forEach(studentDoc => {
                             const sName = studentDoc.data().name;
                             const sGrades = studentGradesMap[sName] || {};
                             let failCount = 0;
                             let rows = "";
 
-                            for (let sub in sGrades) {
+                            // ترتيب المواد حسب القائمة المعيارية المحددة، ثم أي مواد إضافية إن وجدت
+                            let availableSubs = Object.keys(sGrades);
+                            let sortedSubs = [...standardOrder.filter(sub => availableSubs.includes(sub)), ...availableSubs.filter(sub => !standardOrder.includes(sub))];
+
+                            sortedSubs.forEach(sub => {
                                 let subObj = sGrades[sub];
                                 let f1 = '-', mid = '-', f2 = '-', saei = 0;
 
-                                // قراءة البيانات الدقيقة من مصفوفة الدرجات المخزنة
                                 if (Array.isArray(subObj)) {
-                                    if (sub === "الإنكليزي" || sub === "الحاسوب") {
+                                    if (sub === "الانكليزي" || sub === "الحاسوب") {
                                         f1 = subObj[6] !== undefined && subObj[6] !== "" ? subObj[6] : '-';
                                         mid = subObj[7] !== undefined && subObj[7] !== "" ? subObj[7] : '-';
                                         f2 = subObj[14] !== undefined && subObj[14] !== "" ? subObj[14] : '-';
@@ -208,10 +230,8 @@
                                     isHelped = true;
                                 }
 
-                                let status = "ناجح";
                                 if (finalMark < 50) {
                                     failCount++;
-                                    status = "راسب/مكمل";
                                 }
 
                                 rows += `<tr>
@@ -221,9 +241,8 @@
                                     <td>${f2}</td>
                                     <td><b>${saei}</b></td>
                                     <td><b>${finalMark}</b> ${isHelped ? '<small style="color:blue;">(قرار)</small>' : ''}</td>
-                                    <td>${status}</td>
                                 </tr>`;
-                            }
+                            });
 
                             let finalRes = "ناجح";
                             if (failCount > 0) {
@@ -254,10 +273,9 @@
                                             <th>فصل 2</th>
                                             <th>السعي السنوي</th>
                                             <th>الدرجة النهائية</th>
-                                            <th>الحالة</th>
                                         </tr>
                                     </thead>
-                                    <tbody>${rows || "<tr><td colspan='7'>لا توجد درجات مسجلة.</td></tr>"}</tbody>
+                                    <tbody>${rows || "<tr><td colspan='6'>لا توجد درجات مسجلة.</td></tr>"}</tbody>
                                 </table>
                                 <div class="footer-note">
                                     <div>توقيع اللجنة الامتحانية</div>
@@ -266,7 +284,16 @@
                             </div>`;
                         });
                     } else {
-                        // نتيجة للكل في جدول واحد
+                        // جدول عام
+                        let tableHeaders = "<th>اسم الطالب</th>";
+                        let sampleStudent = studentsSnap.docs[0];
+                        let sampleGrades = studentGradesMap[sampleStudent.data().name] || {};
+                        let availableSubs = Object.keys(sampleGrades);
+                        let sortedSubs = [...standardOrder.filter(sub => availableSubs.includes(sub)), ...availableSubs.filter(sub => !standardOrder.includes(sub))];
+
+                        sortedSubs.forEach(sub => { tableHeaders += `<th>${sub}</th>`; });
+                        tableHeaders += "<th>النتيجة النهائية</th>";
+
                         let tableRows = "";
                         studentsSnap.forEach(studentDoc => {
                             const sName = studentDoc.data().name;
@@ -274,17 +301,19 @@
                             let failCount = 0;
                             let subCells = "";
                             
-                            for (let sub in sGrades) {
+                            sortedSubs.forEach(sub => {
                                 let subObj = sGrades[sub];
                                 let saei = 0;
-                                if (Array.isArray(subObj)) {
-                                    saei = (sub === "الإنكليزي" || sub === "الحاسوب") ? (Number(subObj[15]) || 0) : (Number(subObj[11]) || 0);
-                                } else {
-                                    saei = Number(subObj) || 0;
+                                if (subObj) {
+                                    if (Array.isArray(subObj)) {
+                                        saei = (sub === "الانكليزي" || sub === "الحاسوب") ? (Number(subObj[15]) || 0) : (Number(subObj[11]) || 0);
+                                    } else {
+                                        saei = Number(subObj) || 0;
+                                    }
                                 }
                                 if (saei < 50) failCount++;
                                 subCells += `<td>${saei}</td>`;
-                            }
+                            });
 
                             let finalRes = failCount === 0 ? "ناجح" : (failCount <= parseInt(maxFailVal) || maxFailVal === "all" ? `مكمل (${failCount})` : "راسب");
 
@@ -302,20 +331,14 @@
                                 <p>الصف: ${className} - الشعبة: ${sectionName}</p>
                             </div>
                             <table>
-                                <thead>
-                                    <tr>
-                                        <th>اسم الطالب</th>
-                                        <th>المواد الدراسية (درجة السعي)</th>
-                                        <th>النتيجة النهائية</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${tableRows || "<tr><td colspan='3'>لا توجد بيانات.</td></tr>"}</tbody>
+                                <thead><tr>${tableHeaders}</tr></thead>
+                                <tbody>${tableRows || "<tr><td colspan='10'>لا توجد بيانات.</td></tr>"}</tbody>
                             </table>
                         </div>`;
                     }
 
                 } else {
-                    // حسابات الصفوف الرابع والخامس (الإعفاء العام)
+                    // صفوف غير منتهية (الرابع والخامس للإعفاء العام)
                     studentsSnap.forEach(studentDoc => {
                         const sName = studentDoc.data().name;
                         const sGrades = studentGradesMap[sName] || {};
@@ -326,12 +349,15 @@
                         let rows = "";
                         let hasFailedSubject = false;
 
-                        for (let sub in sGrades) {
+                        let availableSubs = Object.keys(sGrades);
+                        let sortedSubs = [...standardOrder.filter(sub => availableSubs.includes(sub)), ...availableSubs.filter(sub => !standardOrder.includes(sub))];
+
+                        sortedSubs.forEach(sub => {
                             let subObj = sGrades[sub];
                             let f1 = '-', mid = '-', f2 = '-', saei = 0;
 
                             if (Array.isArray(subObj)) {
-                                if (sub === "الإنكليزي" || sub === "الحاسوب") {
+                                if (sub === "الانكليزي" || sub === "الحاسوب") {
                                     f1 = subObj[6] !== undefined && subObj[6] !== "" ? subObj[6] : '-';
                                     mid = subObj[7] !== undefined && subObj[7] !== "" ? subObj[7] : '-';
                                     f2 = subObj[14] !== undefined && subObj[14] !== "" ? subObj[14] : '-';
@@ -357,8 +383,9 @@
                                 <td>${mid}</td>
                                 <td>${f2}</td>
                                 <td><b>${saei}</b></td>
+                                <td><b>${saei >= 75 ? 'معفى' : 'غير معفى'}</b></td>
                             </tr>`;
-                        }
+                        });
 
                         let avgSaei = countSubs > 0 ? (totalSaei / countSubs).toFixed(1) : 0;
                         let isExempted = (avgSaei >= 85 && !hasFailedSubject && countSubs > 0);
@@ -383,6 +410,7 @@
                                             <th>نصف السنة</th>
                                             <th>فصل 2</th>
                                             <th>السعي السنوي</th>
+                                            <th>موقف المادة</th>
                                         </tr>
                                     </thead>
                                     <tbody>${rows}</tbody>
