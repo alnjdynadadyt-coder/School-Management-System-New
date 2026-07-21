@@ -14,7 +14,6 @@
         .btn-load { background: #28a745; }
         .btn-print { background: #007bff; margin-top: 20px; display: none; }
         
-        /* تنسيق الشهادات والجداول بدون عمود الحالة */
         .result-card { border: 3px solid #007bff; padding: 25px; margin-top: 20px; border-radius: 12px; background: #fff; display: none; }
         .card-header { text-align: center; border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 15px; }
         .card-header h3 { margin: 0; color: #007bff; }
@@ -23,17 +22,8 @@
         table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
         th, td { border: 1px solid #ddd; padding: 8px 4px; text-align: center; font-size: 13px; word-wrap: break-word; }
         th { background-color: #007bff; color: white; }
-        
-        /* توزيع عرض 6 أعمدة بانتظام تام (بدون عمود الحالة) */
-        th:nth-child(1), td:nth-child(1) { width: 25%; } /* اسم المادة */
-        th:nth-child(2), td:nth-child(2) { width: 15%; } /* فصل 1 */
-        th:nth-child(3), td:nth-child(3) { width: 15%; } /* نصف السنة */
-        th:nth-child(4), td:nth-child(4) { width: 15%; } /* فصل 2 */
-        th:nth-child(5), td:nth-child(5) { width: 15%; } /* السعي السنوي */
-        th:nth-child(6), td:nth-child(6) { width: 15%; } /* الدرجة النهائية */
 
         .footer-note { margin-top: 25px; display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; border-top: 1px dashed #ccc; padding-top: 15px; }
-        
         #backBtn { display: inline-block; margin-bottom: 15px; color: #6c757d; text-decoration: none; font-weight: bold; }
 
         @media print {
@@ -49,7 +39,6 @@
         <a href="index.html" id="backBtn">⬅️ العودة للرئيسية</a>
         <h2>🎓 نظام استخراج النتائج والشهادات المدرسية</h2>
         
-        <!-- لوحة التحكم -->
         <div class="controls">
             <div>
                 <label>اختر المرحلة:</label>
@@ -101,9 +90,7 @@
             </div>
         </div>
 
-        <!-- منطقة عرض النتائج -->
         <div id="resultsContainer"></div>
-        
         <button class="btn btn-print" id="printAllBtn" onclick="window.print()">🖨️ طباعة النتائج المعروضة</button>
     </div>
 
@@ -119,31 +106,29 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // تعريف الترتيب الثابت للمواد حسب طلبك
+        // الترتيب الدقيق حسب طلبك تماماً (مع توحيد الهمزات لضمان التطابق)
         const subjectOrders = {
-            "السادس العلمي": ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "الاحياء", "الكيمياء", "الفيزياء", "الرياضة", "الفنية"],
-            "السادس الادبي": ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "التاريخ", "الجغرافية", "الاقتصاد", "الرياضة", "الفنية"],
-            "الرابع العلمي": ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "الاحياء", "الكيمياء", "الفيزياء", "الحاسوب", "الرياضة", "الفنية"],
-            "الخامس العلمي": ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "الاحياء", "الكيمياء", "الفيزياء", "الحاسوب", "الرياضة", "الفنية"],
-            "الرابع الادبي": ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "التاريخ", "الجغرافية", "الاقتصاد", "الحاسوب", "الرياضة", "الفنية"],
-            "الخامس الادبي": ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "التاريخ", "الجغرافية", "الاقتصاد", "الحاسوب", "الرياضة", "الفنية"]
+            "السادس العلمي": ["الاسلامية", "العربي", "الانكليزي", "رياضيات", "الاحياء", "الكيمياء", "الفيزياء", "الرياضة", "الفنية"],
+            "السادس الادبي": ["الاسلامية", "العربي", "الانكليزي", "رياضيات", "التاريخ", "الجغرافية", "الاقتصاد", "الرياضة", "الفنية"],
+            "الرابع العلمي": ["الاسلامية", "العربي", "الانكليزي", "رياضيات", "الاحياء", "الكيمياء", "الفيزياء", "الحاسوب", "الرياضة", "الفنية"],
+            "الخامس العلمي": ["الاسلامية", "العربي", "الانكليزي", "رياضيات", "الاحياء", "الكيمياء", "الفيزياء", "الحاسوب", "الرياضة", "الفنية"],
+            "الرابع الادبي": ["الاسلامية", "العربي", "الانكليزي", "رياضيات", "التاريخ", "الجغرافية", "الاقتصاد", "الحاسوب", "الرياضة", "الفنية"],
+            "الخامس الادبي": ["الاسلامية", "العربي", "الانكليزي", "رياضيات", "التاريخ", "الجغرافية", "الاقتصاد", "الحاسوب", "الرياضة", "الفنية"]
         };
+
+        function normalizeSubjectName(name) {
+            if (!name) return "";
+            return name.trim()
+                .replace(/^الإسلامية$/, "الاسلامية")
+                .replace(/^الإنكليزي$/, "الانكليزي")
+                .replace(/^الرياضيات$/, "رياضيات");
+        }
 
         function toggleStageOptions() {
             const stage = document.getElementById('stageSelect').value;
-            const viewModeDiv = document.getElementById('viewModeDiv');
-            const decisionDiv = document.getElementById('decisionDiv');
-            const failDiv = document.getElementById('failDiv');
-
-            if (stage === 'sixth') {
-                viewModeDiv.style.display = "block";
-                decisionDiv.style.display = "block";
-                failDiv.style.display = "block";
-            } else {
-                viewModeDiv.style.display = "none";
-                decisionDiv.style.display = "none";
-                failDiv.style.display = "none";
-            }
+            document.getElementById('viewModeDiv').style.display = (stage === 'sixth') ? "block" : "none";
+            document.getElementById('decisionDiv').style.display = (stage === 'sixth') ? "block" : "none";
+            document.getElementById('failDiv').style.display = (stage === 'sixth') ? "block" : "none";
         }
 
         async function processResults() {
@@ -155,7 +140,6 @@
             container.innerHTML = "<p style='text-align:center;'>جاري جلب بيانات الطلاب والدرجات...</p>";
 
             try {
-                // 1. جلب الطلاب
                 const studentsSnap = await db.collection("students")
                     .where("class", "==", className)
                     .where("section", "==", sectionName)
@@ -167,13 +151,13 @@
                     return;
                 }
 
-                // 2. جلب جميع درجات المواد
                 let studentGradesMap = {};
                 const allGradesSnap = await db.collection("grades").get();
                 
                 allGradesSnap.forEach(doc => {
                     const data = doc.data();
-                    let subName = doc.id.split('_').slice(2).join('_') || "مادة";
+                    let rawSubName = doc.id.split('_').slice(2).join('_') || "مادة";
+                    let subName = normalizeSubjectName(rawSubName);
                     
                     for(let studentName in data) {
                         if(studentName !== "class" && studentName !== "section" && studentName !== "subject" && studentName !== "teacher") {
@@ -199,7 +183,6 @@
                             let failCount = 0;
                             let rows = "";
 
-                            // ترتيب المواد حسب القائمة المعيارية المحددة، ثم أي مواد إضافية إن وجدت
                             let availableSubs = Object.keys(sGrades);
                             let sortedSubs = [...standardOrder.filter(sub => availableSubs.includes(sub)), ...availableSubs.filter(sub => !standardOrder.includes(sub))];
 
@@ -208,16 +191,17 @@
                                 let f1 = '-', mid = '-', f2 = '-', saei = 0;
 
                                 if (Array.isArray(subObj)) {
+                                    // تصحيح مؤشرات الاستخراج حسب هيكلة درجات الإنكليزي والمواد الأخرى بدقة
                                     if (sub === "الانكليزي" || sub === "الحاسوب") {
-                                        f1 = subObj[6] !== undefined && subObj[6] !== "" ? subObj[6] : '-';
-                                        mid = subObj[7] !== undefined && subObj[7] !== "" ? subObj[7] : '-';
-                                        f2 = subObj[14] !== undefined && subObj[14] !== "" ? subObj[14] : '-';
-                                        saei = subObj[15] !== undefined && subObj[15] !== "" ? Number(subObj[15]) || 0 : 0;
+                                        f1 = subObj[1] !== undefined && subObj[1] !== "" ? subObj[1] : '-';
+                                        mid = subObj[2] !== undefined && subObj[2] !== "" ? subObj[2] : '-';
+                                        f2 = subObj[4] !== undefined && subObj[4] !== "" ? subObj[4] : '-';
+                                        saei = subObj[5] !== undefined && subObj[5] !== "" ? Number(subObj[5]) || 0 : (subObj[15] ? Number(subObj[15]) || 0 : 0);
                                     } else {
-                                        f1 = subObj[4] !== undefined && subObj[4] !== "" ? subObj[4] : '-';
-                                        mid = subObj[5] !== undefined && subObj[5] !== "" ? subObj[5] : '-';
-                                        f2 = subObj[10] !== undefined && subObj[10] !== "" ? subObj[10] : '-';
-                                        saei = subObj[11] !== undefined && subObj[11] !== "" ? Number(subObj[11]) || 0 : 0;
+                                        f1 = subObj[1] !== undefined && subObj[1] !== "" ? subObj[1] : '-';
+                                        mid = subObj[2] !== undefined && subObj[2] !== "" ? subObj[2] : '-';
+                                        f2 = subObj[4] !== undefined && subObj[4] !== "" ? subObj[4] : '-';
+                                        saei = subObj[5] !== undefined && subObj[5] !== "" ? Number(subObj[5]) || 0 : (subObj[11] ? Number(subObj[11]) || 0 : 0);
                                     }
                                 } else {
                                     saei = Number(subObj) || 0;
@@ -230,12 +214,12 @@
                                     isHelped = true;
                                 }
 
-                                if (finalMark < 50) {
-                                    failCount++;
-                                }
+                                if (finalMark < 50) failCount++;
+
+                                let displayName = (sub === "رياضيات") ? "الرياضيات" : (sub === "الاسلامية" ? "الإسلامية" : (sub === "الانكليزي" ? "الإنكليزي" : sub));
 
                                 rows += `<tr>
-                                    <td>${sub}</td>
+                                    <td>${displayName}</td>
                                     <td>${f1}</td>
                                     <td>${mid}</td>
                                     <td>${f2}</td>
@@ -284,14 +268,17 @@
                             </div>`;
                         });
                     } else {
-                        // جدول عام
-                        let tableHeaders = "<th>اسم الطالب</th>";
+                        // الجدول العام
                         let sampleStudent = studentsSnap.docs[0];
                         let sampleGrades = studentGradesMap[sampleStudent.data().name] || {};
                         let availableSubs = Object.keys(sampleGrades);
                         let sortedSubs = [...standardOrder.filter(sub => availableSubs.includes(sub)), ...availableSubs.filter(sub => !standardOrder.includes(sub))];
 
-                        sortedSubs.forEach(sub => { tableHeaders += `<th>${sub}</th>`; });
+                        let tableHeaders = "<th>اسم الطالب</th>";
+                        sortedSubs.forEach(sub => {
+                            let displayName = (sub === "رياضيات") ? "الرياضيات" : (sub === "الاسلامية" ? "الإسلامية" : (sub === "الانكليزي" ? "الإنكليزي" : sub));
+                            tableHeaders += `<th>${displayName}</th>`;
+                        });
                         tableHeaders += "<th>النتيجة النهائية</th>";
 
                         let tableRows = "";
@@ -306,7 +293,7 @@
                                 let saei = 0;
                                 if (subObj) {
                                     if (Array.isArray(subObj)) {
-                                        saei = (sub === "الانكليزي" || sub === "الحاسوب") ? (Number(subObj[15]) || 0) : (Number(subObj[11]) || 0);
+                                        saei = (sub === "الانكليزي" || sub === "الحاسوب") ? (Number(subObj[5]) || Number(subObj[15]) || 0) : (Number(subObj[5]) || Number(subObj[11]) || 0);
                                     } else {
                                         saei = Number(subObj) || 0;
                                     }
@@ -336,100 +323,6 @@
                             </table>
                         </div>`;
                     }
-
-                } else {
-                    // صفوف غير منتهية (الرابع والخامس للإعفاء العام)
-                    studentsSnap.forEach(studentDoc => {
-                        const sName = studentDoc.data().name;
-                        const sGrades = studentGradesMap[sName] || {};
-                        
-                        let totalSaei = 0;
-                        let countSubs = 0;
-                        let lowestSaei = 100;
-                        let rows = "";
-                        let hasFailedSubject = false;
-
-                        let availableSubs = Object.keys(sGrades);
-                        let sortedSubs = [...standardOrder.filter(sub => availableSubs.includes(sub)), ...availableSubs.filter(sub => !standardOrder.includes(sub))];
-
-                        sortedSubs.forEach(sub => {
-                            let subObj = sGrades[sub];
-                            let f1 = '-', mid = '-', f2 = '-', saei = 0;
-
-                            if (Array.isArray(subObj)) {
-                                if (sub === "الانكليزي" || sub === "الحاسوب") {
-                                    f1 = subObj[6] !== undefined && subObj[6] !== "" ? subObj[6] : '-';
-                                    mid = subObj[7] !== undefined && subObj[7] !== "" ? subObj[7] : '-';
-                                    f2 = subObj[14] !== undefined && subObj[14] !== "" ? subObj[14] : '-';
-                                    saei = subObj[15] !== undefined && subObj[15] !== "" ? Number(subObj[15]) || 0 : 0;
-                                } else {
-                                    f1 = subObj[4] !== undefined && subObj[4] !== "" ? subObj[4] : '-';
-                                    mid = subObj[5] !== undefined && subObj[5] !== "" ? subObj[5] : '-';
-                                    f2 = subObj[10] !== undefined && subObj[10] !== "" ? subObj[10] : '-';
-                                    saei = subObj[11] !== undefined && subObj[11] !== "" ? Number(subObj[11]) || 0 : 0;
-                                }
-                            } else {
-                                saei = Number(subObj) || 0;
-                            }
-
-                            totalSaei += saei;
-                            countSubs++;
-                            if (saei < lowestSaei) lowestSaei = saei;
-                            if (saei < 75) hasFailedSubject = true;
-
-                            rows += `<tr>
-                                <td>${sub}</td>
-                                <td>${f1}</td>
-                                <td>${mid}</td>
-                                <td>${f2}</td>
-                                <td><b>${saei}</b></td>
-                                <td><b>${saei >= 75 ? 'معفى' : 'غير معفى'}</b></td>
-                            </tr>`;
-                        });
-
-                        let avgSaei = countSubs > 0 ? (totalSaei / countSubs).toFixed(1) : 0;
-                        let isExempted = (avgSaei >= 85 && !hasFailedSubject && countSubs > 0);
-
-                        if (isExempted) {
-                            htmlOutput += `
-                            <div class="result-card">
-                                <div class="card-header" style="border-bottom: 2px solid #28a745;">
-                                    <h3 style="color: #28a745;">🌟 شهادة إعفاء عام (صفوف غير منتهية)</h3>
-                                    <p>جمهورية العراق - وزارة التربية</p>
-                                </div>
-                                <div class="student-meta" style="background: #d4edda; color: #155724;">
-                                    <div>اسم الطالب: ${sName}</div>
-                                    <div>الصف: ${className} (${sectionName})</div>
-                                    <div>الحالة: معفى إعفاءً عاماً ✨</div>
-                                </div>
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>المادة</th>
-                                            <th>فصل 1</th>
-                                            <th>نصف السنة</th>
-                                            <th>فصل 2</th>
-                                            <th>السعي السنوي</th>
-                                            <th>موقف المادة</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>${rows}</tbody>
-                                </table>
-                                <div style="margin-top: 15px; font-weight: bold; display: flex; justify-content: space-between;">
-                                    <div>المجموع الكلي: ${totalSaei}</div>
-                                    <div>المعدل العام: ${avgSaei}%</div>
-                                </div>
-                                <div class="footer-note">
-                                    <div>توقيع إدارة المدرسة</div>
-                                    <div>ختم الإدارة</div>
-                                </div>
-                            </div>`;
-                        }
-                    });
-
-                    if (!htmlOutput) {
-                        htmlOutput = "<p style='text-align:center; color:#dc3545; font-weight:bold; margin-top:20px;'>لا يوجد طلاب مشمولين بالإعفاء العام في هذا الصف والشعبة.</p>";
-                    }
                 }
 
                 container.innerHTML = htmlOutput;
@@ -445,4 +338,3 @@
     </script>
 </body>
 </html>
- 
