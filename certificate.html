@@ -254,7 +254,7 @@
                             htmlOutput += `
                             <div class="result-card">
                                 <div class="card-header">
-                                <h3>إدارة اعدادية النجدين للبنين</h3>
+                                    <h3>اعدادية النجدين للبنين- جمهورية العراق - وزارة التربية</h3>
                                     <p>نتيجة الطالب النهائية (الصف السادس)</p>
                                 </div>
                                 <div class="student-meta">
@@ -372,12 +372,14 @@
 
                             let displayName = (sub === "رياضيات") ? "الرياضيات" : (sub === "الاسلامية" ? "الإسلامية" : (sub === "الانكليزي" ? "الإنكليزي" : sub));
 
+                            let saeiText = saei < 50 ? `<span style="color:red; font-weight:bold;">${saei}</span>` : `<b>${saei}</b>`;
+
                             rows += `<tr>
                                 <td>${displayName}</td>
                                 <td>${f1}</td>
                                 <td>${mid}</td>
                                 <td>${f2}</td>
-                                <td><b>${saei}</b></td>
+                                <td>${saeiText}</td>
                                 <td><b>${saei >= 75 ? 'معفى' : 'غير معفى'}</b></td>
                             </tr>`;
                         });
