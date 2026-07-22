@@ -35,24 +35,29 @@
         .footer-note { margin-top: 20px; display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; border-top: 1px dashed #ccc; padding-top: 10px; }
         #backBtn { display: inline-block; margin-bottom: 15px; color: #6c757d; text-decoration: none; font-weight: bold; }
 
+        /* إعدادات الطباعة الدقيقة لكي تطبع النافذة الفردية لوحدها فقط بدون تداخل مع الجدول العام */
         @media print {
-            body { background: white; padding: 0; }
-            .container { box-shadow: none; width: 100%; padding: 0; border: none; }
-            .controls, #backBtn, .btn-print, .modal { display: none !important; }
-            .result-card { border: 1px solid #000; }
+            body * { visibility: hidden !important; }
+            body.printing-modal .modal, 
+            body.printing-modal .modal * { visibility: visible !important; }
+            body.printing-modal .modal { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; background: white !important; z-index: 99999 !important; }
+            body.printing-modal .close-btn, 
+            body.printing-modal .btn { display: none !important; }
             
-            /* تخصيص طباعة النافذة الفردية لتأخذ الصفحة كاملة وبدون أجزاء مقطوعة */
-            body.printing-modal .container { display: none !important; }
-            body.printing-modal .modal { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; height: auto !important; background: white !important; z-index: 9999 !important; }
-            body.printing-modal .modal-content { box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 !important; max-height: none !important; }
-            body.printing-modal .close-btn, body.printing-modal button { display: none !important; }
+            /* طباعة الجدول العام الطبيعي عند عدم تفعيل طباعة النافذة الفردية */
+            body:not(.printing-modal) .container * { visibility: visible !important; }
+            body:not(.printing-modal) .controls, 
+            body:not(.printing-modal) #backBtn, 
+            body:not(.printing-modal) .btn-print, 
+            body:not(.printing-modal) .modal { display: none !important; }
+            body:not(.printing-modal) .container { width: 100% !important; padding: 0 !important; box-shadow: none !important; border: none !important; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <a href="index.html" id="backBtn">⬅️ العودة للرئيسية</a>
-        <h2>🌟 سجل درجات السعي السنوي وحالات الإعفاء العام</h2>
+        <h2>🌟 سجل درجات السعي والمعدلات وحالات الإعفاء العام</h2>
         
         <div class="controls">
             <div>
@@ -187,7 +192,7 @@
                     }
                 });
 
-                // توحيد وترتيب المواد بالنسق المطلوب تماماً
+                // ترتيب المواد بناءً على مصفوفة الترتيب المعتمدة حصراً وبنفس الترتيب
                 globalSubjects = [];
                 targetSubjectOrder.forEach(tSub => {
                     let found = Array.from(rawSubjectsSet).find(r => r.includes(tSub) || tSub.includes(r));
@@ -254,10 +259,10 @@
                         else if (lowestMark < minSub) statusText = "غير مشمول (درجة مادة)";
                     }
 
-                    // إخفاء المجموع والمعدل للطالب غير المشمول تماماً بوضع علامة شرطة (-)
+                    // إخفاء المجموع والمعدل بوضع شرطة (-) تماماً إذا لم يكن الطالب مشمولاً بالإعفاء
                     let isExempt = statusClass.includes("exempt");
-                    let displayTotal = isExempt ? `<td style="font-weight:bold; background:#eef9fa;">${totalSum}</td>` : `<td style="color:#aaa;">-</td>`;
-                    let displayAvg = isExempt ? `<td style="font-weight:bold; background:#f1f1f1;">${average.toFixed(2)}</td>` : `<td style="color:#aaa;">-</td>`;
+                    let displayTotal = isExempt ? `<td style="font-weight:bold; background:#eef9fa;">${totalSum}</td>` : `<td style="color:#aaa; font-weight:bold;">-</td>`;
+                    let displayAvg = isExempt ? `<td style="font-weight:bold; background:#f1f1f1;">${average.toFixed(2)}</td>` : `<td style="color:#aaa; font-weight:bold;">-</td>`;
                     let rowClickAttr = isExempt ? `onclick="openStudentModal('${sName}')" title="انقر لعرض الاستعراض الفردي الشامل"` : "";
 
                     tableRows += `<tr ${rowClickAttr}>
@@ -303,7 +308,7 @@
             }
         }
 
-        // دالة عرض الاستعراض الفردي بنفس ترتيب المواد المعتمد تماماً
+        // دالة عرض الاستعراض الفردي بنفس ترتيب المواد المعتمد تماماً وبدون أي اختلاف
         function openStudentModal(sName) {
             let sGrades = globalStudentGrades[sName] || {};
             let modalBody = document.getElementById('printableModalBody');
