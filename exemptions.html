@@ -36,7 +36,7 @@
 <body>
     <div class="container">
         <a href="index.html" id="backBtn">⬅️ العودة للرئيسية</a>
-        <h2>🌟 قائمة قاصدي الإعفاء العام (الصفوف غير المنتهية)</h2>
+        <h2>🌟 قائمة الإعفاء العام (الصفوف غير المنتهية)</h2>
         
         <div class="controls">
             <div>
@@ -83,14 +83,12 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // تحويل القيمة النصية أو الغيابات إلى أرقام بنفس منطق نظام الدرجات
         function getVal(v) { 
             if (v === "غ" || v === "G" || v === "٠" || v === "0" || !v) return 0;
             let clean = v.toString().replace(/[٠-٩]/g, d => "0123456789".indexOf(d));
             return parseFloat(clean) || 0; 
         }
 
-        // استخراج درجة السعي بدقة حسب هيكلة مصفوفة المادة (الفهرس 15 للإنكليزي/الحاسوب أو 11 لبقية المواد)
         function extractFinalGrade(subName, arr) {
             if (!Array.isArray(arr)) return 0;
             if (subName.includes("الإنكليزي") || subName.includes("الحاسوب")) {
@@ -110,7 +108,7 @@
             container.innerHTML = "<p style='text-align:center;'>جاري جلب بيانات الطلاب واحتساب الإعفاء...</p>";
 
             try {
-                // 1. جلب الطلاب المطابقين للصف والشعبة
+                // 1. جلب الطلاب المطابقين للشعبة والصف
                 const studentsSnap = await db.collection("students")
                     .where("class", "==", className)
                     .get();
@@ -124,50 +122,54 @@
                 });
 
                 if(students.length === 0) {
-                    container.innerHTML = "<p style='text-align:center; color:red;'>لا يوجد طلاب مسجلين في هذا الصف والشعبة.</p>";
+                    container.innerHTML = "<p style='text-align:center; color:red;'>لا يوجد طلاب مسجلين في هذا الصف والشعبة في مجموعة students.</p>";
                     document.getElementById('printAllBtn').style.display = "none";
                     return;
                 }
 
-                // 2. جلب جميع درجات المواد المخزنة في مجموعة grades
+                // 2. جلب كافة سجلات الدرجات وفحصها بمرونة مطابقة للمعرّف أو محتوى الوثيقة
                 const allGradesSnap = await db.collection("grades").get();
-                
-                // هيكل لتخزين درجات كل طالب: studentGradesMap[studentName][subjectName] = array of grades
                 let studentGradesMap = {};
                 let subjectsList = new Set();
 
                 allGradesSnap.forEach(doc => {
-                    const docId = doc.id; // صيغة المعرف: className_sectionName_subjectName
-                    // نتحقق أن الوثيقة تخص نفس الصف والشعبة المختارين
-                    if (docId.startsWith(`${className}_${sectionName}_`)) {
-                        let subName = docId.split('_').slice(2).join('_');
+                    const docId = doc.id; // مثال: الرابع العلمي_أ_الرياضيات
+                    const data = doc.data();
+
+                    // التحقق مما إذا كانت الوثيقة تخص الصف والشعبة المختارين سواء من المعرّف أو من اسم المادة/الصف
+                    if (docId.includes(className) && docId.includes(sectionName)) {
+                        let parts = docId.split('_');
+                        let subName = parts.slice(2).join('_') || data.subject || "مادة";
                         subjectsList.add(subName);
-                        const data = doc.data();
 
                         for (let key in data) {
                             if (key !== "class" && key !== "section" && key !== "subject" && key !== "teacher") {
                                 let studentName = key;
                                 if (!studentGradesMap[studentName]) studentGradesMap[studentName] = {};
-                                studentGradesMap[studentName][subName] = data[studentName];
+                                studentGradesMap[studentName][subName] = data[key];
                             }
                         }
                     }
                 });
 
+                if (subjectsList.size === 0) {
+                    container.innerHTML = `<div class="result-card"><p style='text-align:center; color:orange;'>لم يتم العثور على درجات مسجلة مطابقة لـ (${className} - الشعبة ${sectionName}) في قاعدة البيانات.</p></div>`;
+                    document.getElementById('printAllBtn').style.display = "none";
+                    return;
+                }
+
                 let exemptRows = "";
                 let count = 0;
 
-                // 3. تقييم كل طالب وحساب السعي العام
                 students.forEach(sName => {
                     let sGrades = studentGradesMap[sName];
-                    if (!sGrades) return; // الطالب ليس لديه درجات مسجلة
+                    if (!sGrades) return;
 
                     let totalSum = 0;
                     let subCount = 0;
                     let lowestMark = 100;
                     let isEligible = true;
 
-                    // فحص جميع المواد التي تم جلبها لهذا الصف والشعبة
                     subjectsList.forEach(sub => {
                         let gradeArr = sGrades[sub];
                         let finalMark = gradeArr ? extractFinalGrade(sub, gradeArr) : 0;
@@ -177,14 +179,13 @@
 
                         if (finalMark < lowestMark) lowestMark = finalMark;
                         if (finalMark < minSub) {
-                            isEligible = false; // توجد مادة تقل عن الحد الأدنى المسموح به للإعفاء
+                            isEligible = false; 
                         }
                     });
 
                     if (subCount === 0) return;
                     let average = totalSum / subCount;
 
-                    // شرط الإعفاء: ألا تقل أي مادة عن الحد الأدنى، والمعدل العام >= الحد الأدنى للمعدل
                     if (isEligible && average >= minAvg) {
                         count++;
                         exemptRows += `<tr>
@@ -197,7 +198,7 @@
                 });
 
                 if(count === 0) {
-                    container.innerHTML = `<div class="result-card"><p style='text-align:center; color:orange;'>لا يوجد طلاب مشمولين بالإعفاء العام وفق الشروط المحددة (تأكد من إكمال رصد درجات المواد لهذا الصف والشعبة).</p></div>`;
+                    container.innerHTML = `<div class="result-card"><p style='text-align:center; color:orange;'>يوجد طلاب ودرجات مسجلة، لكن لا يوجد أي طالب محقق لشروط الإعفاء (المعدل $\ge ${minAvg}$ وأقل درجة $\ge ${minSub}$).</p></div>`;
                     document.getElementById('printAllBtn').style.display = "none";
                     return;
                 }
