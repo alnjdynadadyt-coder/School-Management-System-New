@@ -45,7 +45,7 @@
                 <label>اختر المرحلة:</label>
                 <select id="stageSelect" onchange="toggleStageOptions()">
                     <option value="sixth">الصف السادس (منتهٍ - سعي + قرار + إكمال)</option>
-                    <option value="other">الرابع والخامس (غير منتهٍ - الإعفاء العام)</option>
+                    <option value="other">الرابع والخامس (غير منتهٍ - الإعفاء العام والفردي)</option>
                 </select>
             </div>
             <div id="viewModeDiv">
@@ -348,6 +348,7 @@
                         </div>`;
                     }
                 } else {
+                    // صفوف غير منتهية (الرابع والخامس) مع إعفاء عام وفردي
                     studentsSnap.forEach(studentDoc => {
                         const sName = studentDoc.data().name;
                         const sGrades = studentGradesMap[sName] || {};
@@ -368,11 +369,23 @@
                             totalSaei += saei;
                             countSubs++;
                             if (saei < lowestSaei) lowestSaei = saei;
-                            if (saei < 75) hasFailedSubject = true;
+                            if (saei < 50) hasFailedSubject = true; // الرسوب الحقيقي دون 50
 
                             let displayName = (sub === "رياضيات") ? "الرياضيات" : (sub === "الاسلامية" ? "الإسلامية" : (sub === "الانكليزي" ? "الإنكليزي" : sub));
 
-                            let saeiText = saei < 50 ? `<span style="color:red; font-weight:bold;">${saei}</span>` : `<b>${saei}</b>`;
+                            let saeiText = "";
+                            let subjectStatus = "";
+
+                            if (saei < 50) {
+                                saeiText = `<span style="color:red; font-weight:bold;">${saei}</span>`;
+                                subjectStatus = `<span style="color:red; font-weight:bold;">راسب</span>`;
+                            } else if (saei >= 90) {
+                                saeiText = `<span style="color:green; font-weight:bold;">${saei}</span>`;
+                                subjectStatus = `<span style="color:green; font-weight:bold;">معفى (فردي)</span>`;
+                            } else {
+                                saeiText = `<b>${saei}</b>`;
+                                subjectStatus = `غير معفى`;
+                            }
 
                             rows += `<tr>
                                 <td>${displayName}</td>
@@ -380,16 +393,17 @@
                                 <td>${mid}</td>
                                 <td>${f2}</td>
                                 <td>${saeiText}</td>
-                                <td><b>${saei >= 75 ? 'معفى' : 'غير معفى'}</b></td>
+                                <td>${subjectStatus}</td>
                             </tr>`;
                         });
 
                         let avgSaei = countSubs > 0 ? (totalSaei / countSubs).toFixed(1) : 0;
+                        // شرط الإعفاء العام: المعدل 85 فما فوق ولا توجد مادة راسبة (تحت 50)
                         let isExempted = (avgSaei >= 85 && !hasFailedSubject && countSubs > 0);
 
                         if (isExempted) {
                             htmlOutput += `
-                            <div class="result-card">
+                            <div class="result-card" style="display:block;">
                                 <div class="card-header" style="border-bottom: 2px solid #28a745;">
                                     <h3 style="color: #28a745;">🌟 شهادة إعفاء عام (صفوف غير منتهية)</h3>
                                     <p>جمهورية العراق - وزارة التربية</p>
