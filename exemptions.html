@@ -48,24 +48,21 @@
 
         /* إعدادات الطباعة المخصصة */
         @media print {
-            @page {
-                size: A4 landscape;
-                margin: 10mm;
-            }
+            @page { size: A4 landscape; margin: 10mm; }
             body { background: #fff; padding: 0; font-size: 10px; }
             .top-nav, .control-panel, .global-print-btn, .close-modal { display: none !important; }
             .main-wrapper { box-shadow: none; padding: 0; border: none; width: 100%; margin: 0; }
             
             body.print-mode-single {
-                @page { size: A4 portrait; margin: 15mm; }
+                @page { size: A4 portrait; margin: 12mm; }
             }
             body.print-mode-single .main-wrapper { display: none !important; }
             body.print-mode-single .modal-overlay { display: flex !important; position: static !important; background: none !important; }
-            body.print-mode-single .modal-box { box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; border: 2px solid #2c3e50 !important; border-radius: 12px !important; }
+            body.print-mode-single .modal-box { box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 15px !important; border: 3px double #2c3e50 !important; border-radius: 10px !important; }
             body.print-mode-single .btn-action { display: none !important; }
             
-            table { font-size: 12px; }
-            th, td { padding: 8px 6px; }
+            table { font-size: 13px; }
+            th, td { padding: 9px 7px; }
         }
     </style>
 </head>
@@ -176,7 +173,7 @@
         const minSub = parseFloat(document.getElementById('boxMinSub').value) || 75;
         const outputArea = document.getElementById('dynamicOutputArea');
 
-        outputArea.innerHTML = "<p style='text-align:center; padding:20px; font-weight:bold; color:#7f8c8d;'>جاري سحب ومطابقة البيانات من الخادم...</p>";
+        outputArea.innerHTML = "<p style='text-align:center; padding:20px; font-weight:bold; color:#7f8c8d;'>🔄 جاري سحب ومطابقة البيانات من الخادم...</p>";
         document.getElementById('printFullSheetBtn').style.display = "none";
 
         try {
@@ -184,11 +181,13 @@
             let studentNames = [];
             studentSnapshot.forEach(doc => {
                 let data = doc.data();
-                if(data.section == sectionName) studentNames.name = studentNames.push(data.name);
+                if(data.section == sectionName) {
+                    studentNames.push(data.name);
+                }
             });
 
             if(studentNames.length === 0) {
-                outputArea.innerHTML = `<p style='text-align:center; color:var(--danger-color); font-weight:bold;'>لا يوجد طلاب مسجلين في ${className} - الشعبة (${sectionName}).</p>`;
+                outputArea.innerHTML = `<p style='text-align:center; color:var(--danger-color); font-weight:bold;'>⚠️ لا يوجد طلاب مسجلين في ${className} - الشعبة (${sectionName}).</p>`;
                 return;
             }
             studentNames.sort((a, b) => a.localeCompare(b, 'ar'));
@@ -228,7 +227,7 @@
             });
 
             if(activeSubjects.length === 0) {
-                outputArea.innerHTML = `<p style='text-align:center; color:var(--danger-color); font-weight:bold;'>لا توجد سجلات درجات مرصودة لهذه الشعبة حتى الآن.</p>`;
+                outputArea.innerHTML = `<p style='text-align:center; color:var(--danger-color); font-weight:bold;'>⚠️ لا توجد سجلات درجات مرصودة لهذه الشعبة حتى الآن.</p>`;
                 return;
             }
 
@@ -245,7 +244,7 @@
             buildMasterTableUI();
 
         } catch (error) {
-            outputArea.innerHTML = `<p style='text-align:center; color:var(--danger-color);'>حدث خطأ تقني: ${error.message}</p>`;
+            outputArea.innerHTML = `<p style='text-align:center; color:var(--danger-color);'>❌ حدث خطأ تقني: ${error.message}</p>`;
         }
     }
 
@@ -376,9 +375,9 @@
         innerHtmlContainer.innerHTML = `
             <span class="close-modal" onclick="closeStudentModal()">&times;</span>
             <div style="text-align:center; border-bottom: 2px solid var(--accent-color); padding-bottom: 12px; margin-bottom: 15px;">
-                <h3 style="margin:0 0 5px 0; color:var(--primary-color); font-size: 18px;">🌟 إدارة الإعفاء العام المدرسي 🌟</h3>
-                <h4 style="margin:0; color:var(--accent-color); font-size: 16px;">كشف درجات السعي السنوي الفردي</h4>
-                <p style="margin:8px 0 0 0; font-weight:bold; font-size:14px; color:#555;">الطالب: ${studentName} &nbsp;|&nbsp; الصف: ${cachedMasterData.className} &nbsp;|&nbsp; الشعبة: (${cachedMasterData.sectionName})</p>
+                <h3 style="margin:0 0 5px 0; color:var(--primary-color); font-size: 19px;">🌟 شهادة التميز والاستحقاق للإعفاء العام 🌟</h3>
+                <h4 style="margin:0; color:var(--accent-color); font-size: 15px;">كشف درجات السعي السنوي الفردي</h4>
+                <p style="margin:8px 0 0 0; font-weight:bold; font-size:14px; color:#444;">الطالب المميز: ${studentName} &nbsp;|&nbsp; الصف: ${cachedMasterData.className} &nbsp;|&nbsp; الشعبة: (${cachedMasterData.sectionName})</p>
             </div>
             <table>
                 <thead>
