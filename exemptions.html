@@ -47,16 +47,21 @@
         .global-print-btn { background: #27ae60; margin-top: 20px; display: none; }
         .global-print-btn:hover { background: #219653; }
 
-        /* إعدادات الطباعة المخصصة للشهادة الفردية */
+        /* إعدادات الطباعة المخصصة */
         @media print {
-            @page { size: A4 portrait; margin: 8mm; }
+            @page { size: A4 landscape; margin: 8mm; } /* طباعة السجل الكلي بالعرض لتناسب الجداول الكبيرة */
             body { background: #fff; padding: 0; font-size: 11px; }
-            .top-nav, .control-panel, .global-print-btn, .close-modal { display: none !important; }
-            .main-wrapper { display: none !important; }
+            .top-nav, .control-panel, .global-print-btn, .close-modal, .btn-action { display: none !important; }
             
+            /* وضع طباعة الشهادة الفردية */
+            body.print-mode-single .main-wrapper { display: none !important; }
             body.print-mode-single .modal-overlay { display: flex !important; position: static !important; background: none !important; }
             body.print-mode-single .modal-box { box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 5px !important; border: 3px double #2c3e50 !important; border-radius: 8px !important; margin: 0 !important; }
-            body.print-mode-single .btn-action { display: none !important; }
+            
+            /* وضع طباعة السجل الكلي */
+            body:not(.print-mode-single) .modal-overlay { display: none !important; }
+            body:not(.print-mode-single) .main-wrapper { box-shadow: none !important; padding: 0 !important; max-width: 100% !important; }
+            body:not(.print-mode-single) .sheet-container { border: none !important; overflow: visible !important; }
             
             table { font-size: 11px; width: 100% !important; }
             th, td { padding: 5px 4px; }
@@ -349,7 +354,7 @@
             let rawVal = sGrades[sub];
             if(!rawVal) {
                 let altKey = Object.keys(sGrades).find(k => k.includes(sub));
-                if(altKey) rawVal = sGrales[altKey] || sGrades[altKey];
+                if(altKey) rawVal = sGrades[altKey];
             }
 
             let parsed = parseSubjectDetails(sub, rawVal);
@@ -372,7 +377,6 @@
         innerHtmlContainer.innerHTML = `
             <span class="close-modal" onclick="closeStudentModal()">&times;</span>
             
-            <!-- 1. عبارة الشكر والتشجيع في المقدمة بألوان براقة -->
             <div style="background: linear-gradient(135deg, #fef9e7, #fcf3cf); padding: 12px 15px; border-radius: 10px; border: 2px solid #f39c12; text-align: center; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(243, 156, 18, 0.15);">
                 <h3 style="margin: 0 0 5px 0; color: #b7950b; font-size: 16px;">✨ شهادة التميز والاستحقاق للإعفاء العام ✨</h3>
                 <p style="margin: 0; font-size: 12px; font-weight: bold; color: #7d6608; line-height: 1.5;">
@@ -380,13 +384,11 @@
                 </p>
             </div>
 
-            <!-- 2. معلومات الطالب -->
             <div style="text-align:center; background: #eaf2f8; padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #d4e6f1;">
-                <h4 style="margin:0; color:var(--accent-color); font-size: 14px;">كشف درجات السعي السنوي الفردي</h4>
-                <p style="margin:5px 0 0 0; font-weight:bold; font-size:13px; color:#2c3e50;">الطالب المميز: <span style="color:#1b4f72;">${studentName}</span> &nbsp;|&nbsp; الصف: ${cachedMasterData.className} &nbsp;|&nbsp; الشعبة: (${cachedMasterData.sectionName})</p>
+                <h4 style="margin:0; color:var(--accent-color); font-size: 14px;">اعدادية النجدين للبنين </h4>
+                <p style="margin:5px 0 0 0; font-weight:bold; font-size:13px; color:#2c3e50;">الطالب المتميز: <span style="color:#1b4f72;">${studentName}</span> &nbsp;|&nbsp; الصف: ${cachedMasterData.className} &nbsp;|&nbsp; الشعبة: (${cachedMasterData.sectionName})</p>
             </div>
 
-            <!-- 3. جدول الدرجات بتنسيق أنيق ومضغوط -->
             <table>
                 <thead>
                     <tr>
@@ -400,7 +402,6 @@
                 <tbody>${rowsBuilder}</tbody>
             </table>
 
-            <!-- 4. شريط النتائج والمعدل -->
             <div style="margin-top: 12px; display: flex; justify-content: space-around; background: #f2f4f4; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 12px; border: 1px solid #d5dbdb;">
                 <div>المجموع الكلي: <span style="color:#117a65;">${totalSum}</span></div>
                 <div>المعدل العام: <span style="color:#117a65;">${finalAverage}</span></div>
