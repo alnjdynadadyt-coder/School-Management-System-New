@@ -86,10 +86,18 @@
         const db = firebase.firestore();
 
         function extractMark(subObj) {
-            if (!subObj) return 0;
+            if (subObj === undefined || subObj === null) return 0;
+            // إذا كانت مصفوفة، نبحث عن الرقم الأكبر أو السعي الموجود داخلها
             if (Array.isArray(subObj)) {
-                // استخراج السعي السنوي أو الدرجة النهائية حسب هيكلة صفوفكم غير المنتهية
-                return Number(subObj[11]) || Number(subObj[15]) || Number(subObj[0]) || 0;
+                let validNumbers = subObj.map(item => Number(item)).filter(num => !isNaN(num) && num > 0);
+                if (validNumbers.length > 0) {
+                    // عادة السعي السنوي أو الدرجة النهائية تكون في مواقع محددة أو هي القيمة الأكبر المعقولة
+                    // نجرب الفهارس المعتادة أولاً (مثل 11 أو 15 أو أخر عنصر)، وإلا نأخذ أقصى رقم مقنع
+                    let targeted = subObj[15] !== undefined ? Number(subObj[15]) : (subObj[11] !== undefined ? Number(subObj[11]) : null);
+                    if (!isNaN(targeted) && targeted > 0) return targeted;
+                    return Math.max(...validNumbers);
+                }
+                return 0;
             }
             return Number(subObj) || 0;
         }
@@ -149,7 +157,7 @@
                         totalSum += mark;
                         if(mark < lowestMark) lowestMark = mark;
                         if(mark < minSub) {
-                            isEligible = false; // توجد مادة أقل من الحد الأدنى للإعفاء (مثلاً 75)
+                            isEligible = false; 
                         }
                     });
 
@@ -167,7 +175,7 @@
                 });
 
                 if(count === 0) {
-                    container.innerHTML = `<div class="result-card"><p style='text-align:center; color:orange;'>لا يوجد طلاب مشمولين بالإعفاء العام وفق الشروط المحددة.</p></div>`;
+                    container.innerHTML = `<div class="result-card"><p style='text-align:center; color:orange;'>لا يوجد طلاب مشمولين بالإعفاء العام وفق الشروط المحددة (تأكد من مطابقة الصف والشعبة وسجل الدرجات).</p></div>`;
                     document.getElementById('printAllBtn').style.display = "none";
                     return;
                 }
