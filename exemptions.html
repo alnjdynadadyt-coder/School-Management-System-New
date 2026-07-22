@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>نظام إدارة الإعفاء العام - الإصدار الجديد</title>
+    <title>نظام إدارة الإعفاء العام - الإصدار المطور</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
@@ -46,13 +46,25 @@
         .global-print-btn { background: #27ae60; margin-top: 20px; display: none; }
         .global-print-btn:hover { background: #219653; }
 
+        /* إعدادات الطباعة المخصصة لمنع القطع */
         @media print {
-            body { background: #fff; padding: 0; }
+            @page {
+                size: A4 landscape; /* فرض الاتجاه الأفقي للطباعة الكلية */
+                margin: 10mm;
+            }
+            body { background: #fff; padding: 0; font-size: 10px; }
             .top-nav, .control-panel, .global-print-btn, .close-modal { display: none !important; }
-            .main-wrapper { box-shadow: none; padding: 0; border: none; width: 100%; }
+            .main-wrapper { box-shadow: none; padding: 0; border: none; width: 100%; margin: 0; }
+            
+            body.print-mode-single {
+                @page { size: A4 portrait; } /* إرجاعها عمودي فقط عند طباعة النتيجة الفردية للطالب */
+            }
             body.print-mode-single .main-wrapper { display: none !important; }
             body.print-mode-single .modal-overlay { display: flex !important; position: static !important; background: none !important; }
             body.print-mode-single .modal-box { box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; }
+            
+            table { font-size: 10px; }
+            th, td { padding: 4px 3px; }
         }
     </style>
 </head>
@@ -116,7 +128,6 @@
     if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // مصفوفة الترتيب القياسية الثابتة (من اليمين لليسار في الجدول)
     const FIXED_SUBJECT_ORDER = [
         "الاسلامية", "الإسلامية", "العربي", "الانكليزي", "الإنكليزي", 
         "الرياضيات", "الحاسوب", "الاحياء", "الأحياء", "الكيمياء", 
@@ -204,7 +215,6 @@
                 }
             });
 
-            // ترتيب المواد بفرض الترتيب الثابت بدقة متناهية
             let activeSubjects = [];
             FIXED_SUBJECT_ORDER.forEach(target => {
                 let found = Array.from(rawSubSet).find(item => item === target || item.includes(target) || target.includes(item));
@@ -212,7 +222,6 @@
                     activeSubjects.push(found);
                 }
             });
-            // إضافة أي مواد أخرى لم تذكر في المصفوفة الثابتة بالخلف
             rawSubSet.forEach(item => {
                 if(!activeSubjects.includes(item)) activeSubjects.push(item);
             });
