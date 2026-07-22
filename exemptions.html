@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>نظام استخراج الإعفاء العام - الصفوف غير المنتهية</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; color: #333; }
+        .container { max-width: 950px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; background: #f8f9fa; padding: 20px; border-radius: 10px; border: 1px solid #ddd; }
+        select, input { padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%; font-size: 14px; }
+        .btn { padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; width: 100%; font-size: 16px; }
+        .btn-load { background: #17a2b8; }
+        .btn-print { background: #007bff; margin-top: 20px; display: none; }
+        
+        .result-card { border: 3px solid #17a2b8; padding: 20px; margin-top: 20px; border-radius: 12px; background: #fff; }
+        .card-header { text-align: center; border-bottom: 2px solid #17a2b8; padding-bottom: 8px; margin-bottom: 12px; }
+        .card-header h3 { margin: 0; color: #17a2b8; font-size: 18px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 13px; }
+        th { background-color: #17a2b8; color: white; font-size: 13px; }
+
+        .footer-note { margin-top: 20px; display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; border-top: 1px dashed #ccc; padding-top: 10px; }
+        #backBtn { display: inline-block; margin-bottom: 15px; color: #6c757d; text-decoration: none; font-weight: bold; }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .container { box-shadow: none; width: 100%; padding: 0; border: none; }
+            .controls, #backBtn, .btn-print, header { display: none !important; }
+            .result-card { border: 2px solid #000; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" id="backBtn">⬅️ العودة للرئيسية</a>
+        <h2>🌟 قائمة قاصدي الإعفاء العام (الصفوف غير المنتهية)</h2>
+        
+        <div class="controls">
+            <div>
+                <label>الصف:</label>
+                <select id="classSelect">
+                    <option>الأول متوسط</option>
+                    <option>الثاني متوسط</option>
+                    <option>الرابع العلمي</option>
+                    <option>الخامس العلمي</option>
+                    <option>الرابع الأدبي</option>
+                    <option>الخامس الأدبي</option>
+                </select>
+            </div>
+            <div>
+                <label>الشعبة:</label>
+                <select id="sectionSelect">
+                    <option>أ</option><option>ب</option><option>ج</option><option>د</option>
+                </select>
+            </div>
+            <div>
+                <label>الحد الأدنى لمعدل الإعفاء العام:</label>
+                <input type="number" id="minAverage" value="85" min="50" max="100">
+            </div>
+            <div>
+                <label>أقل درجات مسموحة في أي مادة:</label>
+                <input type="number" id="minSubjectMark" value="75" min="50" max="100">
+            </div>
+            <div style="grid-column: span 2;">
+                <button class="btn btn-load" onclick="processExemptions()">عرض قائمة المشمولين بالإعفاء العام</button>
+            </div>
+        </div>
+
+        <div id="resultsContainer"></div>
+        <button class="btn btn-print" id="printAllBtn" onclick="window.print()">🖨️ طباعة القائمة المعروضة</button>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw",
+            authDomain: "school-2-2026.firebaseapp.com",
+            projectId: "school-2-2026",
+            storageBucket: "school-2-2026.firebasestorage.app",
+            messagingSenderId: "283472829932",
+            appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9"
+        };
+        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        function extractMark(subObj) {
+            if (!subObj) return 0;
+            if (Array.isArray(subObj)) {
+                // استخراج السعي السنوي أو الدرجة النهائية حسب هيكلة صفوفكم غير المنتهية
+                return Number(subObj[11]) || Number(subObj[15]) || Number(subObj[0]) || 0;
+            }
+            return Number(subObj) || 0;
+        }
+
+        async function processExemptions() {
+            const className = document.getElementById('classSelect').value;
+            const sectionName = document.getElementById('sectionSelect').value;
+            const minAvg = parseFloat(document.getElementById('minAverage').value) || 85;
+            const minSub = parseFloat(document.getElementById('minSubjectMark').value) || 75;
+            const container = document.getElementById('resultsContainer');
+            
+            container.innerHTML = "<p style='text-align:center;'>جاري جلب بيانات الطلاب واحتساب الإعفاء...</p>";
+
+            try {
+                const studentsSnap = await db.collection("students")
+                    .where("class", "==", className)
+                    .where("section", "==", sectionName)
+                    .get();
+
+                if(studentsSnap.empty) {
+                    container.innerHTML = "<p style='text-align:center; color:red;'>لا يوجد طلاب مسجلين في هذا الصف والشعبة.</p>";
+                    document.getElementById('printAllBtn').style.display = "none";
+                    return;
+                }
+
+                let studentGradesMap = {};
+                const allGradesSnap = await db.collection("grades").get();
+                
+                allGradesSnap.forEach(doc => {
+                    const data = doc.data();
+                    let rawSubName = doc.id.split('_').slice(2).join('_') || "مادة";
+                    
+                    for(let studentName in data) {
+                        if(studentName !== "class" && studentName !== "section" && studentName !== "subject" && studentName !== "teacher") {
+                            if(!studentGradesMap[studentName]) studentGradesMap[studentName] = {};
+                            studentGradesMap[studentName][rawSubName] = data[studentName];
+                        }
+                    }
+                });
+
+                let exemptRows = "";
+                let count = 0;
+
+                studentsSnap.forEach(studentDoc => {
+                    const sName = studentDoc.data().name;
+                    const sGrades = studentGradesMap[sName] || {};
+                    
+                    let subjects = Object.keys(sGrades);
+                    if(subjects.length === 0) return;
+
+                    let totalSum = 0;
+                    let lowestMark = 100;
+                    let isEligible = true;
+
+                    subjects.forEach(sub => {
+                        let mark = extractMark(sGrades[sub]);
+                        totalSum += mark;
+                        if(mark < lowestMark) lowestMark = mark;
+                        if(mark < minSub) {
+                            isEligible = false; // توجد مادة أقل من الحد الأدنى للإعفاء (مثلاً 75)
+                        }
+                    });
+
+                    let average = totalSum / subjects.length;
+
+                    if(isEligible && average >= minAvg) {
+                        count++;
+                        exemptRows += `<tr>
+                            <td>${count}</td>
+                            <td><b>${sName}</b></td>
+                            <td>${average.toFixed(2)}</td>
+                            <td><span style="color:green; font-weight:bold;">مشمول بالإعفاء العام</span></td>
+                        </tr>`;
+                    }
+                });
+
+                if(count === 0) {
+                    container.innerHTML = `<div class="result-card"><p style='text-align:center; color:orange;'>لا يوجد طلاب مشمولين بالإعفاء العام وفق الشروط المحددة.</p></div>`;
+                    document.getElementById('printAllBtn').style.display = "none";
+                    return;
+                }
+
+                container.innerHTML = `
+                <div class="result-card">
+                    <div class="card-header">
+                        <h3>قائمة الطلاب المشمولين بالإعفاء العام</h3>
+                        <p>الصف: ${className} - الشعبة: ${sectionName} | (المعدل المطلوب: $\ge ${minAvg}$ | أقل درجات المادة: $\ge ${minSub}$)</p>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ت</th>
+                                <th>اسم الطالب</th>
+                                <th>المعدل العام</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>${exemptRows}</tbody>
+                    </table>
+                    <div class="footer-note">
+                        <div>توقيع إدارة المدرسة</div>
+                        <div>ختم المدرسة</div>
+                    </div>
+                </div>`;
+                
+                document.getElementById('printAllBtn').style.display = "block";
+
+            } catch (err) {
+                container.innerHTML = `<p style='text-align:center; color:red;'>حدث خطأ: ${err.message}</p>`;
+                document.getElementById('printAllBtn').style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
