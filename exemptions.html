@@ -47,22 +47,14 @@
         .global-print-btn { background: #27ae60; margin-top: 20px; display: none; }
         .global-print-btn:hover { background: #219653; }
 
-        /* إعدادات الطباعة المخصصة */
+        /* إعدادات طباعة السجل الكلي */
         @media print {
-            @page { size: A4 landscape; margin: 8mm; } /* طباعة السجل الكلي بالعرض لتناسب الجداول الكبيرة */
+            @page { size: A4 landscape; margin: 8mm; }
             body { background: #fff; padding: 0; font-size: 11px; }
             .top-nav, .control-panel, .global-print-btn, .close-modal, .btn-action { display: none !important; }
-            
-            /* وضع طباعة الشهادة الفردية */
-            body.print-mode-single .main-wrapper { display: none !important; }
-            body.print-mode-single .modal-overlay { display: flex !important; position: static !important; background: none !important; }
-            body.print-mode-single .modal-box { box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 5px !important; border: 3px double #2c3e50 !important; border-radius: 8px !important; margin: 0 !important; }
-            
-            /* وضع طباعة السجل الكلي */
-            body:not(.print-mode-single) .modal-overlay { display: none !important; }
-            body:not(.print-mode-single) .main-wrapper { box-shadow: none !important; padding: 0 !important; max-width: 100% !important; }
-            body:not(.print-mode-single) .sheet-container { border: none !important; overflow: visible !important; }
-            
+            .modal-overlay { display: none !important; }
+            .main-wrapper { box-shadow: none !important; padding: 0 !important; max-width: 100% !important; }
+            .sheet-container { border: none !important; overflow: visible !important; }
             table { font-size: 11px; width: 100% !important; }
             th, td { padding: 5px 4px; }
         }
@@ -377,38 +369,40 @@
         innerHtmlContainer.innerHTML = `
             <span class="close-modal" onclick="closeStudentModal()">&times;</span>
             
-            <div style="background: linear-gradient(135deg, #fef9e7, #fcf3cf); padding: 12px 15px; border-radius: 10px; border: 2px solid #f39c12; text-align: center; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(243, 156, 18, 0.15);">
-                <h3 style="margin: 0 0 5px 0; color: #b7950b; font-size: 16px;">✨ شهادة التميز والاستحقاق للإعفاء العام ✨</h3>
-                <p style="margin: 0; font-size: 12px; font-weight: bold; color: #7d6608; line-height: 1.5;">
-                    "إلى الطالب المتألق، مبارك لك هذا التميز والنجاح الباهر. جهودك المبذولة أثمرت تفوقاً تفتخر به المدرسة، مع تمنياتنا لك دوام التألق والابداع في مسيرتك العلمية." 🌸🎓
-                </p>
+            <div id="printableCertificateArea">
+                <div style="background: linear-gradient(135deg, #fef9e7, #fcf3cf); padding: 12px 15px; border-radius: 10px; border: 2px solid #f39c12; text-align: center; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(243, 156, 18, 0.15);">
+                    <h3 style="margin: 0 0 5px 0; color: #b7950b; font-size: 16px;">✨ شهادة التميز والاستحقاق للإعفاء العام ✨</h3>
+                    <p style="margin: 0; font-size: 12px; font-weight: bold; color: #7d6608; line-height: 1.5;">
+                        "إلى الطالب المتألق، مبارك لك هذا التميز والنجاح الباهر. جهودك المبذولة أثمرت تفوقاً تفتخر به المدرسة، مع تمنياتنا لك دوام التألق والابداع في مسيرتك العلمية." 🌸🎓
+                    </p>
+                </div>
+
+                <div style="text-align:center; background: #eaf2f8; padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #d4e6f1;">
+                    <h4 style="margin:0; color:var(--accent-color); font-size: 14px;">كشف درجات السعي السنوي الفردي</h4>
+                    <p style="margin:5px 0 0 0; font-weight:bold; font-size:13px; color:#2c3e50;">الطالب المميز: <span style="color:#1b4f72;">${studentName}</span> &nbsp;|&nbsp; الصف: ${cachedMasterData.className} &nbsp;|&nbsp; الشعبة: (${cachedMasterData.sectionName})</p>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="background: #2e4053;">المادة الدراسية</th>
+                            <th style="background: #2e4053;">الفصل الأول</th>
+                            <th style="background: #2e4053;">نصف السنة</th>
+                            <th style="background: #2e4053;">الفصل الثاني</th>
+                            <th style="background: #1f618d;">السعي السنوي</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rowsBuilder}</tbody>
+                </table>
+
+                <div style="margin-top: 12px; display: flex; justify-content: space-around; background: #f2f4f4; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 12px; border: 1px solid #d5dbdb;">
+                    <div>المجموع الكلي: <span style="color:#117a65;">${totalSum}</span></div>
+                    <div>المعدل العام: <span style="color:#117a65;">${finalAverage}</span></div>
+                    <div style="color: var(--success-color);">الحالة: مشمول بالإعفاء العام ✨</div>
+                </div>
             </div>
 
-            <div style="text-align:center; background: #eaf2f8; padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #d4e6f1;">
-                <h4 style="margin:0; color:var(--accent-color); font-size: 14px;">اعدادية النجدين للبنين </h4>
-                <p style="margin:5px 0 0 0; font-weight:bold; font-size:13px; color:#2c3e50;">الطالب المتميز: <span style="color:#1b4f72;">${studentName}</span> &nbsp;|&nbsp; الصف: ${cachedMasterData.className} &nbsp;|&nbsp; الشعبة: (${cachedMasterData.sectionName})</p>
-            </div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th style="background: #2e4053;">المادة الدراسية</th>
-                        <th style="background: #2e4053;">الفصل الأول</th>
-                        <th style="background: #2e4053;">نصف السنة</th>
-                        <th style="background: #2e4053;">الفصل الثاني</th>
-                        <th style="background: #1f618d;">السعي السنوي</th>
-                    </tr>
-                </thead>
-                <tbody>${rowsBuilder}</tbody>
-            </table>
-
-            <div style="margin-top: 12px; display: flex; justify-content: space-around; background: #f2f4f4; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 12px; border: 1px solid #d5dbdb;">
-                <div>المجموع الكلي: <span style="color:#117a65;">${totalSum}</span></div>
-                <div>المعدل العام: <span style="color:#117a65;">${finalAverage}</span></div>
-                <div style="color: var(--success-color);">الحالة: مشمول بالإعفاء العام ✨</div>
-            </div>
-
-            <div style="text-align: center; margin-top: 15px;">
+            <div style="text-align: center; margin-top: 15px;" id="hideOnPrintBtnContainer">
                 <button class="btn-action" style="width: auto; padding: 10px 25px; font-size: 13px;" onclick="triggerSinglePrint()">🖨️ طباعة الشهادة الفردية المنسقة</button>
             </div>
         `;
@@ -421,9 +415,35 @@
     }
 
     function triggerSinglePrint() {
-        document.body.classList.add('print-mode-single');
-        window.print();
-        document.body.classList.remove('print-mode-single');
+        let certificateContent = document.getElementById('printableCertificateArea').innerHTML;
+        let printWindow = window.open('', '_blank', 'width=800,height=900');
+        
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html lang="ar" dir="rtl">
+            <head>
+                <meta charset="UTF-8">
+                <title>طباعة الشهادة الفردية</title>
+                <style>
+                    body { font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 15px; color: #2c3e50; background: #fff; }
+                    table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; margin-top: 10px; }
+                    th, td { border: 1px solid #bbb; padding: 6px; }
+                    th { background-color: #2e4053 !important; color: #fff !important; -webkit-print-color-adjust: exact; }
+                    @page { size: A4 portrait; margin: 10mm; }
+                </style>
+            </head>
+            <body>
+                ${certificateContent}
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        window.close();
+                    };
+                <\/script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
     }
 
     window.onclick = function(event) {
