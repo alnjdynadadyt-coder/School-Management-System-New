@@ -39,7 +39,6 @@
         .status-badge-yes { background-color: #d4edda; color: #155724; font-weight: bold; }
         .status-badge-no { background-color: #f8d7da; color: #721c24; }
 
-        /* نافذة الاستعراض الفردي العائمة */
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center; }
         .modal-box { background: #fff; width: 90%; max-width: 800px; padding: 30px; border-radius: 14px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; position: relative; }
         .close-modal { position: absolute; left: 20px; top: 15px; font-size: 26px; font-weight: bold; cursor: pointer; color: #e74c3c; }
@@ -47,13 +46,10 @@
         .global-print-btn { background: #27ae60; margin-top: 20px; display: none; }
         .global-print-btn:hover { background: #219653; }
 
-        /* إعدادات الطباعة الدقيقة (تعزل تماماً نافذة الفردي أو تطبع السجل الكلي بنظافة) */
         @media print {
             body { background: #fff; padding: 0; }
             .top-nav, .control-panel, .global-print-btn, .close-modal { display: none !important; }
             .main-wrapper { box-shadow: none; padding: 0; border: none; width: 100%; }
-            
-            /* إذا كانت طباعة فردية مفعلة */
             body.print-mode-single .main-wrapper { display: none !important; }
             body.print-mode-single .modal-overlay { display: flex !important; position: static !important; background: none !important; }
             body.print-mode-single .modal-box { box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; }
@@ -101,7 +97,6 @@
     <button class="btn-action global-print-btn" id="printFullSheetBtn" onclick="window.print()">🖨️ طباعة السجل الكلي</button>
 </div>
 
-<!-- نافذة التفاصيل الفردية للطالب -->
 <div class="modal-overlay" id="studentModalOverlay">
     <div class="modal-box" id="studentModalContentBox">
         <span class="close-modal" onclick="closeStudentModal()">&times;</span>
@@ -121,11 +116,11 @@
     if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // القائمة القياسية والموحدة لترتيب المواد في الجدولين العام والفردي
+    // مصفوفة الترتيب القياسية الثابتة (من اليمين لليسار في الجدول)
     const FIXED_SUBJECT_ORDER = [
-        "الاسلامية", "العربي", "الانكليزي", "الرياضيات", 
-        "الحاسوب", "الاحياء", "الكيمياء", "الفيزياء", 
-        "الجرائم", "الرياضة", "الفنية"
+        "الاسلامية", "الإسلامية", "العربي", "الانكليزي", "الإنكليزي", 
+        "الرياضيات", "الحاسوب", "الاحياء", "الأحياء", "الكيمياء", 
+        "الفيزياء", "الجرائم", "الرياضة", "الفنية"
     ];
 
     let cachedMasterData = {
@@ -138,7 +133,6 @@
         minSubLimit: 75
     };
 
-    // استخلاص الدرجات بدقة من بيانات الحقول المخزنة
     function parseSubjectDetails(subName, rawData) {
         let f1 = '-', mid = '-', f2 = '-', finalScore = 0;
         if (!rawData) return { f1, mid, f2, finalScore };
@@ -174,12 +168,11 @@
         document.getElementById('printFullSheetBtn').style.display = "none";
 
         try {
-            // 1. جلب الطلاب
             const studentSnapshot = await db.collection("students").where("class", "==", className).get();
             let studentNames = [];
             studentSnapshot.forEach(doc => {
                 let data = doc.data();
-                if(data.section == sectionName) studentNames.push(data.name);
+                if(data.section == sectionName) studentNames.name = studentNames.push(data.name);
             });
 
             if(studentNames.length === 0) {
@@ -188,7 +181,6 @@
             }
             studentNames.sort((a, b) => a.localeCompare(b, 'ar'));
 
-            // 2. جلب الدرجات
             const gradesSnapshot = await db.collection("grades").get();
             let rawSubSet = new Set();
             let gradesMap = {};
@@ -212,12 +204,15 @@
                 }
             });
 
-            // 3. ترتيب المواد بناءً على المصفوفة القياسية الثابتة
+            // ترتيب المواد بفرض الترتيب الثابت بدقة متناهية
             let activeSubjects = [];
             FIXED_SUBJECT_ORDER.forEach(target => {
-                let found = Array.from(rawSubSet).find(item => item.includes(target) || target.includes(item));
-                if(found && !activeSubjects.includes(found)) activeSubjects.push(found);
+                let found = Array.from(rawSubSet).find(item => item === target || item.includes(target) || target.includes(item));
+                if(found && !activeSubjects.includes(found)) {
+                    activeSubjects.push(found);
+                }
             });
+            // إضافة أي مواد أخرى لم تذكر في المصفوفة الثابتة بالخلف
             rawSubSet.forEach(item => {
                 if(!activeSubjects.includes(item)) activeSubjects.push(item);
             });
@@ -227,7 +222,6 @@
                 return;
             }
 
-            // تخزين مؤقت للاستخدام في النوافذ الفردية
             cachedMasterData = {
                 students: studentNames,
                 gradesMap: gradesMap,
@@ -299,7 +293,6 @@
                 else statusText = "غير مشمول (درجة مادة)";
             }
 
-            // القاعدة الحاسمة: المجموع والمعدل لا يظهران أبداً إلا إذا كان الطالب مشمولاً تماماً
             let totalColContent = isQualified ? `<td style="font-weight:bold; background:#e8f8f5;">${sumMarks}</td>` : `<td style="color:#b2babb; font-weight:bold;">-</td>`;
             let avgColContent = isQualified ? `<td style="font-weight:bold; background:#e8f8f5;">${averageVal.toFixed(2)}</td>` : `<td style="color:#b2babb; font-weight:bold;">-</td>`;
             let clickEventAttr = isQualified ? `onclick="openIndividualStudentModal('${student}')" title="انقر لعرض الاستعراض الفردي الشامل"` : "";
@@ -337,7 +330,6 @@
         document.getElementById('printFullSheetBtn').style.display = "block";
     }
 
-    // دالة عرض النافذة الفردية للطالب مع نفس ترتيب المواد القياسي تماماً
     function openIndividualStudentModal(studentName) {
         let sGrades = cachedMasterData.gradesMap[studentName] || {};
         let subjectsList = cachedMasterData.subjectsList;
