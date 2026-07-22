@@ -38,7 +38,7 @@
 <body>
     <div class="container">
         <a href="index.html" id="backBtn">⬅️ العودة للرئيسية</a>
-        <h2>🎓 نظام استخراج النتائج والشهادات (الصف السادس الابتدائي/الإعدادي)</h2>
+        <h2>🎓 نظام استخراج النتائج والشهادات (الصف السادس الإعدادي)</h2>
         
         <div class="controls">
             <div>
@@ -186,15 +186,21 @@
                         let availableSubs = Object.keys(sGrades);
                         let sortedSubs = [...standardOrder.filter(sub => availableSubs.includes(sub)), ...availableSubs.filter(sub => !standardOrder.includes(sub))];
 
-                        // الخطوة 1: حساب الرسوب الفعلي (بدون قرار لمعرفة ما إذا كان الطالب مستحقاً للقرار أصلاً)
-                        let rawFailCount = 0;
+                        // الخطوة 1: محاكاة تطبيق القرار لمعرفة ما إذا كان القرار سيجعل الطالب ضمن حدود الإكمال المطلوبة
+                        let simulatedFailCount = 0;
                         sortedSubs.forEach(sub => {
                             let marks = extractSubjectMarks(sub, sGrades[sub]);
-                            if (marks.saei < 50) rawFailCount++;
+                            let mark = marks.saei;
+                            if (decisionVal > 0 && mark < 50 && mark >= (50 - decisionVal)) {
+                                mark = 50; // يتم مساعدته بالقرار افتراضياً للمحاكاة
+                            }
+                            if (mark < 50) {
+                                simulatedFailCount++;
+                            }
                         });
 
-                        // هل يستحق القرار؟ (إذا كان عدد الرسوب الفعلي ضمن حدود الإكمال أو ناجح)
-                        let isEligibleForDecision = (rawFailCount <= maxFailLimit);
+                        // هل الاستفادة من القرار تجعل الطالب ضمن حد الإكمال أو النجاح؟
+                        let isEligibleForDecision = (simulatedFailCount <= maxFailLimit);
 
                         let failCount = 0;
                         let rows = "";
@@ -248,7 +254,7 @@
                         htmlOutput += `
                         <div class="result-card">
                             <div class="card-header">
-                                <h3>اعدادية النجدين للبنين- جمهورية العراق - وزارة التربية</h3>
+                                <h3>اعدادية النجدين للبنين</h3>
                                 <p>نتيجة الطالب النهائية (الصف السادس)</p>
                             </div>
                             <div class="student-meta">
@@ -293,13 +299,17 @@
                         const sName = studentDoc.data().name;
                         const sGrades = studentGradesMap[sName] || {};
                         
-                        let rawFailCount = 0;
+                        let simulatedFailCount = 0;
                         sortedSubs.forEach(sub => {
                             let marks = extractSubjectMarks(sub, sGrades[sub]);
-                            if (marks.saei < 50) rawFailCount++;
+                            let mark = marks.saei;
+                            if (decisionVal > 0 && mark < 50 && mark >= (50 - decisionVal)) {
+                                mark = 50;
+                            }
+                            if (mark < 50) simulatedFailCount++;
                         });
 
-                        let isEligibleForDecision = (rawFailCount <= maxFailLimit);
+                        let isEligibleForDecision = (simulatedFailCount <= maxFailLimit);
                         let failCount = 0;
                         let subCells = "";
                         
