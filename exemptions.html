@@ -19,7 +19,7 @@
         .card-header h3 { margin: 0; color: #17a2b8; font-size: 18px; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
-        th, td { border: 1px solid #ddd; padding: 6px; text-align: center; white-space: nowrap; }
+        th, td { border: 1px solid #ddd; padding: 5px 8px; text-align: center; white-space: nowrap; }
         th { background-color: #17a2b8; color: white; }
 
         .exempt { background-color: #d4edda !important; color: #155724; font-weight: bold; }
@@ -93,7 +93,6 @@
             return parseFloat(clean) || 0; 
         }
 
-        // استخراج درجة السعي السنوي للمادة فقط
         function extractFinalGrade(subName, arr) {
             if (!Array.isArray(arr)) return 0;
             if (subName.includes("الإنكليزي") || subName.includes("الحاسوب")) {
@@ -130,7 +129,7 @@
                 }
                 students.sort((a, b) => a.localeCompare(b, 'ar'));
 
-                // 2. جلب درجات المواد
+                // 2. جلب درجات المواد وتصفية أي مستندات وهمية أو فارغة
                 const allGradesSnap = await db.collection("grades").get();
                 let studentGradesMap = {};
                 let subjectsListSet = new Set();
@@ -139,7 +138,11 @@
                     const docId = doc.id;
                     const data = doc.data();
                     if (docId.includes(className) && docId.includes(sectionName)) {
-                        let subName = docId.split('_').slice(2).join('_') || data.subject || "مادة";
+                        let subName = docId.split('_').slice(2).join('_') || data.subject || "";
+                        
+                        // استبعاد المستندات الوهمية التي لا تحمل اسم مادة حقيقي
+                        if (!subName || subName === "مادة" || subName.trim() === "") return;
+
                         subjectsListSet.add(subName);
 
                         for (let key in data) {
@@ -153,12 +156,12 @@
 
                 let subjects = Array.from(subjectsListSet);
                 if (subjects.length === 0) {
-                    container.innerHTML = `<div class="result-card"><p style='text-align:center; color:orange;'>لم يتم العثور على درجات مسجلة لهذا الصف والشعبة.</p></div>`;
+                    container.innerHTML = `<div class="result-card"><p style='text-align:center; color:orange;'>لم يتم العثور على درجات مواد حقيقية مسجلة لهذا الصف والشعبة.</p></div>`;
                     document.getElementById('printAllBtn').style.display = "none";
                     return;
                 }
 
-                // بناء عناوين جدول المواد (درجة السعي)
+                // بناء عناوين جدول المواد
                 let subHeaders = "";
                 subjects.forEach(sub => {
                     subHeaders += `<th>سعي ${sub}</th>`;
@@ -171,7 +174,7 @@
                     count++;
                     let sGrades = studentGradesMap[sName] || {};
                     let totalSum = 0;
-                    let subCount = 0;
+                    let validSubjectsCount = 0; // عداد المواد التي لديه درجات فيها فعلياً
                     let lowestMark = 100;
                     let isEligible = true;
                     let subCells = "";
@@ -180,27 +183,31 @@
                         let gradeArr = sGrades[sub];
                         let finalMark = gradeArr ? extractFinalGrade(sub, gradeArr) : 0;
                         
-                        totalSum += finalMark;
-                        subCount++;
-
-                        if (finalMark < lowestMark) lowestMark = finalMark;
-                        if (finalMark < minSub) {
-                            isEligible = false;
+                        if (gradeArr && finalMark > 0) {
+                            totalSum += finalMark;
+                            validSubjectsCount++;
+                            if (finalMark < lowestMark) lowestMark = finalMark;
+                            if (finalMark < minSub) {
+                                isEligible = false;
+                            }
                         }
 
-                        let markColor = (finalMark < 50) ? "color: red; font-weight: bold;" : "";
+                        let markColor = (finalMark < 50 && finalMark > 0) ? "color: red; font-weight: bold;" : "";
                         subCells += `<td style="${markColor}">${finalMark > 0 ? finalMark : '-'}</td>`;
                     });
 
-                    let average = subCount > 0 ? (totalSum / subCount) : 0;
+                    // حساب المعدل بناءً على عدد المواد الفعلية التي تم رصدها للطالب لتجنب القسمة الخاطئة
+                    let average = validSubjectsCount > 0 ? (totalSum / validSubjectsCount) : 0;
                     let statusClass = "not-exempt";
                     let statusText = "غير مشمول";
 
-                    if (isEligible && average >= minAvg) {
+                    if (validSubjectsCount > 0 && isEligible && average >= minAvg) {
                         statusClass = "exempt";
                         statusText = "مشمول بالإعفاء";
                     } else {
-                        if (average < minAvg && lowestMark >= minSub) {
+                        if (validSubjectsCount === 0) {
+                            statusText = "لا توجد درجات";
+                        } else if (average < minAvg && lowestMark >= minSub) {
                             statusText = "غير مشمول (المعدل)";
                         } else if (lowestMark < minSub) {
                             statusText = "غير مشمول (درجة مادة)";
