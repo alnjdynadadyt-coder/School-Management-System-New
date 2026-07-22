@@ -7,7 +7,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; color: #333; }
-        .container { max-width: 1200px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .container { max-width: 1300px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; background: #f8f9fa; padding: 20px; border-radius: 10px; border: 1px solid #ddd; }
         select, input { padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%; font-size: 14px; }
         .btn { padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; width: 100%; font-size: 16px; }
@@ -18,21 +18,28 @@
         .card-header { text-align: center; border-bottom: 2px solid #17a2b8; padding-bottom: 8px; margin-bottom: 12px; }
         .card-header h3 { margin: 0; color: #17a2b8; font-size: 18px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
-        th, td { border: 1px solid #ddd; padding: 5px 8px; text-align: center; white-space: nowrap; }
-        th { background-color: #17a2b8; color: white; }
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11px; }
+        th, td { border: 1px solid #ddd; padding: 4px 6px; text-align: center; white-space: nowrap; max-width: 90px; overflow: hidden; text-overflow: ellipsis; }
+        th { background-color: #17a2b8; color: white; font-size: 11px; }
 
-        .exempt { background-color: #d4edda !important; color: #155724; font-weight: bold; }
+        .exempt { background-color: #d4edda !important; color: #155724; font-weight: bold; cursor: pointer; }
+        .exempt:hover { background-color: #c3e6cb !important; text-decoration: underline; }
         .not-exempt { background-color: #f8d7da !important; color: #721c24; }
+
+        /* تنسيق نافذة الاستعراض الفردي للطالب */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 85%; max-width: 800px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; }
+        .close-btn { float: left; font-size: 22px; font-weight: bold; cursor: pointer; color: #aaa; }
+        .close-btn:hover { color: #000; }
 
         .footer-note { margin-top: 20px; display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; border-top: 1px dashed #ccc; padding-top: 10px; }
         #backBtn { display: inline-block; margin-bottom: 15px; color: #6c757d; text-decoration: none; font-weight: bold; }
 
         @media print {
             @page { size: A4 landscape; margin: 10mm; }
-            body { background: white; padding: 0; font-size: 10px; }
+            body { background: white; padding: 0; font-size: 9px; }
             .container { box-shadow: none; width: 100%; padding: 0; border: none; }
-            .controls, #backBtn, .btn-print { display: none !important; }
+            .controls, #backBtn, .btn-print, .modal { display: none !important; }
             .result-card { border: 1px solid #000; }
         }
     </style>
@@ -40,7 +47,7 @@
 <body>
     <div class="container">
         <a href="index.html" id="backBtn">⬅️ العودة للرئيسية</a>
-        <h2>🌟 السجل الشامل لدرجات السعي والمجاميع والمعدلات (الإعفاء العام)</h2>
+        <h2>🌟 سجل درجات السعي والمعدلات وحالات الإعفاء العام</h2>
         
         <div class="controls">
             <div>
@@ -67,12 +74,20 @@
                 <input type="number" id="minSubjectMark" value="75" min="50" max="100">
             </div>
             <div style="grid-column: span 2; display: flex; align-items: flex-end;">
-                <button class="btn btn-load" onclick="processExemptions()">عرض السجل الكلي والمجاميع والمعدلات</button>
+                <button class="btn btn-load" onclick="processExemptions()">عرض السجل الكلي والنتائج</button>
             </div>
         </div>
 
         <div id="resultsContainer"></div>
         <button class="btn btn-print" id="printAllBtn" onclick="window.print()">🖨️ طباعة السجل</button>
+    </div>
+
+    <!-- نافذة الاستعراض الفردي الشامل للطالب المشمول -->
+    <div id="studentModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <div id="modalBody"></div>
+        </div>
     </div>
 
     <script>
@@ -87,10 +102,25 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        // الترتيب الوزاري المطلوب للمواد
+        const orderFourthScientific = ["الاسلامية", "العربي", "الإنكليزي", "الرياضيات", "الحاسوب", "الاحياء", "الكيمياء", " الفيزياء", "الجرائم", "الرياضة", "الفنية"];
+        const orderFifthScientific = ["الاسلامية", "العربي", "الإنكليزي", "الرياضيات", "الحاسوب", "الاحياء", "الكيمياء", " الفيزياء", "الرياضة", "الفنية"];
+
         function getVal(v) { 
             if (v === "غ" || v === "G" || v === "٠" || v === "0" || !v) return 0;
             let clean = v.toString().replace(/[٠-٩]/g, d => "0123456789".indexOf(d));
             return parseFloat(clean) || 0; 
+        }
+
+        // استخراج درجات التفاصيل (فصل 1، نصف سنة، فصل 2، سعي)
+        function getDetailedMarks(arr) {
+            if (!Array.isArray(arr)) return { f1: 0, mid: 0, f2: 0, saei: 0 };
+            return {
+                f1: getVal(arr[3]),
+                mid: getVal(arr[7]),
+                f2: getVal(arr[11]),
+                saei: getVal(arr[15]) // أو الحقل 11 حسب هيكل المادة ولكن السعي عادة بالآخر أو 11
+            };
         }
 
         function extractFinalGrade(subName, arr) {
@@ -102,18 +132,21 @@
             }
         }
 
+        let globalStudentGrades = {};
+        let globalSubjects = [];
+        let currentClassName = "";
+
         async function processExemptions() {
-            const className = document.getElementById('classSelect').value;
+            currentClassName = document.getElementById('classSelect').value;
             const sectionName = document.getElementById('sectionSelect').value;
             const minAvg = parseFloat(document.getElementById('minAverage').value) || 85;
             const minSub = parseFloat(document.getElementById('minSubjectMark').value) || 75;
             const container = document.getElementById('resultsContainer');
             
-            container.innerHTML = "<p style='text-align:center;'>جاري جلب بيانات السعي السنوي للطلاب...</p>";
+            container.innerHTML = "<p style='text-align:center;'>جاري جلب البيانات...</p>";
 
             try {
-                // 1. جلب الطلاب
-                const studentsSnap = await db.collection("students").where("class", "==", className).get();
+                const studentsSnap = await db.collection("students").where("class", "==", currentClassName).get();
                 let students = [];
                 studentsSnap.forEach(s => {
                     let data = s.data();
@@ -129,42 +162,46 @@
                 }
                 students.sort((a, b) => a.localeCompare(b, 'ar'));
 
-                // 2. جلب درجات المواد وتصفية أي مستندات وهمية أو فارغة
                 const allGradesSnap = await db.collection("grades").get();
-                let studentGradesMap = {};
-                let subjectsListSet = new Set();
+                globalStudentGrades = {};
+                let subjectsSet = new Set();
 
                 allGradesSnap.forEach(doc => {
                     const docId = doc.id;
                     const data = doc.data();
-                    if (docId.includes(className) && docId.includes(sectionName)) {
+                    if (docId.includes(currentClassName) && docId.includes(sectionName)) {
                         let subName = docId.split('_').slice(2).join('_') || data.subject || "";
-                        
-                        // استبعاد المستندات الوهمية التي لا تحمل اسم مادة حقيقي
                         if (!subName || subName === "مادة" || subName.trim() === "") return;
 
-                        subjectsListSet.add(subName);
+                        subjectsSet.add(subName);
 
                         for (let key in data) {
                             if (key !== "class" && key !== "section" && key !== "subject" && key !== "teacher") {
-                                if (!studentGradesMap[key]) studentGradesMap[key] = {};
-                                studentGradesMap[key][subName] = data[key];
+                                if (!globalStudentGrades[key]) globalStudentGrades[key] = {};
+                                globalStudentGrades[key][subName] = data[key];
                             }
                         }
                     }
                 });
 
-                let subjects = Array.from(subjectsListSet);
-                if (subjects.length === 0) {
-                    container.innerHTML = `<div class="result-card"><p style='text-align:center; color:orange;'>لم يتم العثور على درجات مواد حقيقية مسجلة لهذا الصف والشعبة.</p></div>`;
+                let rawSubjects = Array.from(subjectsSet);
+                let templateOrder = currentClassName.includes("الرابع") ? orderFourthScientific : orderFifthScientific;
+                
+                // ترتيب المواد بناءً على القائمة المحددة
+                globalSubjects = templateOrder.filter(tSub => rawSubjects.some(r => r.includes(tSub)));
+                rawSubjects.forEach(r => {
+                    if (!globalSubjects.includes(r)) globalSubjects.push(r);
+                });
+
+                if (globalSubjects.length === 0) {
+                    container.innerHTML = `<div class="result-card"><p style='text-align:center; color:orange;'>لم يتم العثور على درجات مواد حقيقية.</p></div>`;
                     document.getElementById('printAllBtn').style.display = "none";
                     return;
                 }
 
-                // بناء عناوين جدول المواد
                 let subHeaders = "";
-                subjects.forEach(sub => {
-                    subHeaders += `<th>سعي ${sub}</th>`;
+                globalSubjects.forEach(sub => {
+                    subHeaders += `<th>${sub}</th>`;
                 });
 
                 let tableRows = "";
@@ -172,54 +209,59 @@
 
                 students.forEach(sName => {
                     count++;
-                    let sGrades = studentGradesMap[sName] || {};
+                    let sGrades = globalStudentGrades[sName] || {};
                     let totalSum = 0;
-                    let validSubjectsCount = 0; // عداد المواد التي لديه درجات فيها فعلياً
+                    let validSubjectsCount = 0;
                     let lowestMark = 100;
                     let isEligible = true;
                     let subCells = "";
 
-                    subjects.forEach(sub => {
+                    globalSubjects.forEach(sub => {
                         let gradeArr = sGrades[sub];
+                        // محاولة البحث بالاسم الجزئي لو لم يتم المطابقة التامة
+                        if (!gradeArr) {
+                            let foundKey = Object.keys(sGrades).find(k => k.includes(sub));
+                            if (foundKey) gradeArr = sGrades[foundKey];
+                        }
+
                         let finalMark = gradeArr ? extractFinalGrade(sub, gradeArr) : 0;
                         
                         if (gradeArr && finalMark > 0) {
                             totalSum += finalMark;
                             validSubjectsCount++;
                             if (finalMark < lowestMark) lowestMark = finalMark;
-                            if (finalMark < minSub) {
-                                isEligible = false;
-                            }
+                            if (finalMark < minSub) isEligible = false;
                         }
 
                         let markColor = (finalMark < 50 && finalMark > 0) ? "color: red; font-weight: bold;" : "";
                         subCells += `<td style="${markColor}">${finalMark > 0 ? finalMark : '-'}</td>`;
                     });
 
-                    // حساب المعدل بناءً على عدد المواد الفعلية التي تم رصدها للطالب لتجنب القسمة الخاطئة
                     let average = validSubjectsCount > 0 ? (totalSum / validSubjectsCount) : 0;
                     let statusClass = "not-exempt";
                     let statusText = "غير مشمول";
 
                     if (validSubjectsCount > 0 && isEligible && average >= minAvg) {
-                        statusClass = "exempt";
-                        statusText = "مشمول بالإعفاء";
+                        statusClass = "exempt text-exempt";
+                        statusText = "مشمول بالإعفاء (انقر للاستعراض)";
                     } else {
-                        if (validSubjectsCount === 0) {
-                            statusText = "لا توجد درجات";
-                        } else if (average < minAvg && lowestMark >= minSub) {
-                            statusText = "غير مشمول (المعدل)";
-                        } else if (lowestMark < minSub) {
-                            statusText = "غير مشمول (درجة مادة)";
-                        }
+                        if (validSubjectsCount === 0) statusText = "لا توجد درجات";
+                        else if (average < minAvg && lowestMark >= minSub) statusText = "غير مشمول (المعدل)";
+                        else if (lowestMark < minSub) statusText = "غير مشمول (درجة مادة)";
                     }
 
-                    tableRows += `<tr>
+                    // إخفاء المجموع للغير مشمولين بناءً على الطلب، وعرضه للمشمولين
+                    let displayTotal = (statusClass.includes("exempt")) ? `<td style="font-weight:bold; background:#eef9fa;">${totalSum}</td>` : `<td style="color:#999;">-</td>`;
+                    let displayAvg = (statusClass.includes("exempt")) ? `<td style="font-weight:bold; background:#f1f1f1;">${average.toFixed(2)}</td>` : `<td style="color:#999;">-</td>`;
+
+                    let rowClickAttr = statusClass.includes("exempt") ? `onclick="openStudentModal('${sName}')" title="انقر لعرض الاستعراض الفردي الشامل"` : "";
+
+                    tableRows += `<tr ${rowClickAttr}>
                         <td>${count}</td>
                         <td style="text-align:right; font-weight:bold;">${sName}</td>
                         ${subCells}
-                        <td style="font-weight:bold; background:#eef9fa;">${totalSum}</td>
-                        <td style="font-weight:bold; background:#f1f1f1;">${average.toFixed(2)}</td>
+                        ${displayTotal}
+                        ${displayAvg}
                         <td class="${statusClass}">${statusText}</td>
                     </tr>`;
                 });
@@ -227,8 +269,8 @@
                 container.innerHTML = `
                 <div class="result-card">
                     <div class="card-header">
-                        <h3>سجل درجات السعي السنوي والمجاميع والمعدلات - الصف: ${className} (${sectionName})</h3>
-                        <p>الحد الأدنى للإعفاء: معدل $\ge ${minAvg}$ | أقل درجة سعي $\ge ${minSub}$</p>
+                        <h3>سجل درجات السعي والمعدلات - الصف: ${currentClassName} (${sectionName})</h3>
+                        <p>الحد الأدنى للإعفاء: معدل $\ge ${minAvg}$ | أقل درجة $\ge ${minSub}$ (انقر على اسم الطالب المشمول لاستعراض تفاصيله)</p>
                     </div>
                     <table>
                         <thead>
@@ -254,6 +296,84 @@
             } catch (err) {
                 container.innerHTML = `<p style='text-align:center; color:red;'>حدث خطأ: ${err.message}</p>`;
                 document.getElementById('printAllBtn').style.display = "none";
+            }
+        }
+
+        // دالة عرض نافذة الاستعراض الفردي الشامل للطالب المشمول
+        function openStudentModal(sName) {
+            let sGrades = globalStudentGrades[sName] || {};
+            let modalBody = document.getElementById('modalBody');
+            
+            let detailsRows = "";
+            let totalSum = 0;
+            let count = 0;
+
+            globalSubjects.forEach(sub => {
+                let gradeArr = sGrades[sub];
+                if (!gradeArr) {
+                    let foundKey = Object.keys(sGrades).find(k => k.includes(sub));
+                    if (foundKey) gradeArr = sGrades[foundKey];
+                }
+
+                // محاولة استخراج الفصل الأول، نصف السنة، الفصل الثاني، والسعي
+                // بناءً على المصفوفة القياسية المعتمدة في النظام
+                let f1 = gradeArr && gradeArr.length > 3 ? getVal(gradeArr[3]) : 0;
+                let mid = gradeArr && gradeArr.length > 7 ? getVal(gradeArr[7]) : 0;
+                let f2 = gradeArr && gradeArr.length > 11 ? getVal(gradeArr[11]) : 0;
+                let saei = gradeArr && gradeArr.length > 15 ? getVal(gradeArr[15]) : (f2 || 0);
+
+                totalSum += saei;
+                count++;
+
+                detailsRows += `<tr>
+                    <td style="font-weight:bold; text-align:right;">${sub}</td>
+                    <td>${f1 > 0 ? f1 : '-'}</td>
+                    <td>${mid > 0 ? mid : '-'}</td>
+                    <td>${f2 > 0 ? f2 : '-'}</td>
+                    <td style="font-weight:bold; background:#eef9fa;">${saei > 0 ? saei : '-'}</td>
+                </tr>`;
+            });
+
+            let avg = count > 0 ? (totalSum / count).toFixed(2) : 0;
+
+            modalBody.innerHTML = `
+                <div style="text-align:center; border-bottom: 2px solid #17a2b8; padding-bottom: 10px; margin-bottom: 15px;">
+                    <h3 style="margin:0; color:#17a2b8;">🎓 الاستعراض الفردي الشامل للطالب المشمول بالإعفاء</h3>
+                    <p style="margin:5px 0; font-weight:bold; font-size:16px;">الطالب: ${sName} | الصف: ${currentClassName}</p>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>المادة</th>
+                            <th>الفصل الأول</th>
+                            <th>نصف السنة</th>
+                            <th>الفصل الثاني</th>
+                            <th>السعي السنوي</th>
+                        </tr>
+                    </thead>
+                    <tbody>${detailsRows}</tbody>
+                </table>
+                <div style="margin-top: 15px; display: flex; justify-content: space-around; background: #f8f9fa; padding: 10px; border-radius: 8px; font-weight: bold;">
+                    <div>المجموع الكلي: ${totalSum}</div>
+                    <div>المعدل العام: ${avg}</div>
+                    <div style="color: #155724;">الحالة: مشمول بالإعفاء العام 🌟</div>
+                </div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn btn-load" style="width: auto; padding: 8px 20px;" onclick="window.print()">🖨️ طباعة النتيجة الفردية</button>
+                </div>
+            `;
+
+            document.getElementById('studentModal').style.display = "flex";
+        }
+
+        function closeModal() {
+            document.getElementById('studentModal').style.display = "none";
+        }
+
+        window.onclick = function(event) {
+            let modal = document.getElementById('studentModal');
+            if (event.target == modal) {
+                modal.style.display = "none";
             }
         }
     </script>
