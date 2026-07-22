@@ -36,11 +36,16 @@
         #backBtn { display: inline-block; margin-bottom: 15px; color: #6c757d; text-decoration: none; font-weight: bold; }
 
         @media print {
-            @page { size: A4 landscape; margin: 10mm; }
-            body { background: white; padding: 0; font-size: 9px; }
+            body { background: white; padding: 0; }
             .container { box-shadow: none; width: 100%; padding: 0; border: none; }
             .controls, #backBtn, .btn-print, .modal { display: none !important; }
             .result-card { border: 1px solid #000; }
+            
+            /* تخصيص طباعة النافذة الفردية فقط عند فتحها */
+            body.printing-modal .container { display: none !important; }
+            body.printing-modal .modal { display: flex !important; position: static !important; background: white !important; width: 100% !important; height: auto !important; }
+            body.printing-modal .modal-content { box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; }
+            body.printing-modal .close-btn, body.printing-modal button { display: none !important; }
         }
     </style>
 </head>
@@ -102,16 +107,9 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        const orderFourthScientific = ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "الحاسوب", "الاحياء", "الكيمياء", "الفيزياء", "الجرائم", "الرياضة", "الفنية"];
-        const orderFifthScientific = ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "الحاسوب", "الاحياء", "الكيمياء", "الفيزياء", "الرياضة", "الفنية"];
+        // الترتيب المطلوب بدقة للمواد
+        const targetSubjectOrder = ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "الحاسوب", "الاحياء", "الكيمياء", "الفيزياء", "الجرائم", "الرياضة", "الفنية"];
 
-        function getVal(v) { 
-            if (v === "غ" || v === "G" || v === "٠" || v === "0" || !v) return 0;
-            let clean = v.toString().replace(/[٠-٩]/g, d => "0123456789".indexOf(d));
-            return parseFloat(clean) || 0; 
-        }
-
-        // مطابقة دالة استخراج درجات المواد تماماً مثل ملف الصف السادس (Certificate.html)
         function extractSubjectMarks(sub, subObj) {
             let f1 = '-', mid = '-', f2 = '-', saei = 0;
             if (!subObj) return { f1, mid, f2, saei };
@@ -176,7 +174,7 @@
                     if (docId.includes(currentClassName) && docId.includes(sectionName)) {
                         let subName = docId.split('_').slice(2).join('_') || data.subject || "";
                         subName = subName.replace(/سعي/g, "").trim();
-                        if (!subName || subName === "مادة" || subName === "") return;
+                        if (!subName || subName === "مادة") return;
 
                         rawSubjectsSet.add(subName);
 
@@ -189,12 +187,11 @@
                     }
                 });
 
-                let templateOrder = currentClassName.includes("الرابع") ? orderFourthScientific : orderFifthScientific;
-                
+                // ترتيب المواد بناءً على الترتيب المطلوب تماماً
                 globalSubjects = [];
-                templateOrder.forEach(tSub => {
-                    let found = Array.from(rawSubjectsSet).find(r => r.includes(tSub));
-                    if (found) globalSubjects.push(found);
+                targetSubjectOrder.forEach(tSub => {
+                    let found = Array.from(rawSubjectsSet).find(r => r.includes(tSub) || tSub.includes(r));
+                    if (found && !globalSubjects.includes(found)) globalSubjects.push(found);
                 });
                 rawSubjectsSet.forEach(r => {
                     if (!globalSubjects.includes(r)) globalSubjects.push(r);
@@ -257,6 +254,7 @@
                         else if (lowestMark < minSub) statusText = "غير مشمول (درجة مادة)";
                     }
 
+                    // إخفاء المجموع والمعدل للطالب غير المشمول (إظهار -) بناءً على طلبك
                     let displayTotal = statusClass.includes("exempt") ? `<td style="font-weight:bold; background:#eef9fa;">${totalSum}</td>` : `<td style="color:#aaa;">-</td>`;
                     let displayAvg = statusClass.includes("exempt") ? `<td style="font-weight:bold; background:#f1f1f1;">${average.toFixed(2)}</td>` : `<td style="color:#aaa;">-</td>`;
                     let rowClickAttr = statusClass.includes("exempt") ? `onclick="openStudentModal('${sName}')" title="انقر لعرض الاستعراض الفردي الشامل"` : "";
@@ -304,7 +302,7 @@
             }
         }
 
-        // دالة عرض الاستعراض الفردي الشامل مع جلب الحقول بدقة مطابقة لصفحة السادس
+        // دالة عرض الاستعراض الفردي مع ترتيب المواد والطباعة المخصصة للطالب فقط
         function openStudentModal(sName) {
             let sGrades = globalStudentGrades[sName] || {};
             let modalBody = document.getElementById('printableModalBody');
@@ -364,11 +362,17 @@
                     <div style="color: #155724;">الحالة: مشمول بالإعفاء العام 🌟</div>
                 </div>
                 <div style="text-align: center; margin-top: 20px;">
-                    <button class="btn btn-load" style="width: auto; padding: 8px 20px;" onclick="window.print()">🖨️ طباعة النتيجة الفردية</button>
+                    <button class="btn btn-load" style="width: auto; padding: 8px 20px;" onclick="printSingleStudent()">🖨️ طباعة النتيجة الفردية</button>
                 </div>
             `;
 
             document.getElementById('studentModal').style.display = "flex";
+        }
+
+        function printSingleStudent() {
+            document.body.classList.add('printing-modal');
+            window.print();
+            document.body.classList.remove('printing-modal');
         }
 
         function closeModal() {
