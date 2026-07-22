@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة الشهادات والنتائج المدرسية</title>
+    <title>إدارة الشهادات والنتائج المدرسية - الصف السادس</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
@@ -38,24 +38,17 @@
 <body>
     <div class="container">
         <a href="index.html" id="backBtn">⬅️ العودة للرئيسية</a>
-        <h2>🎓 نظام استخراج النتائج والشهادات المدرسية</h2>
+        <h2>🎓 نظام استخراج النتائج والشهادات (الصف السادس الابتدائي/الإعدادي)</h2>
         
         <div class="controls">
             <div>
-                <label>اختر المرحلة:</label>
-                <select id="stageSelect" onchange="toggleStageOptions()">
-                    <option value="sixth">الصف السادس (منتهٍ - سعي + قرار + إكمال)</option>
-                    <option value="other">الرابع والخامس (غير منتهٍ - الإعفاء العام والفردي)</option>
-                </select>
-            </div>
-            <div id="viewModeDiv">
-                <label>طريقة العرض (للصف السادس):</label>
+                <label>طريقة العرض:</label>
                 <select id="viewMode">
                     <option value="individual">نتيجة فردية (تفصيلية لكل طالب)</option>
                     <option value="all-table">نتيجة عامة للجميع (جدول السعي والمواد)</option>
                 </select>
             </div>
-            <div id="decisionDiv">
+            <div>
                 <label>درجة القرار:</label>
                 <select id="decisionDegree">
                     <option value="0">بدون قرار (0)</option>
@@ -63,7 +56,7 @@
                     <option value="10">10 درجات</option>
                 </select>
             </div>
-            <div id="failDiv">
+            <div>
                 <label>الحد الأقصى لمواد الإكمال:</label>
                 <select id="maxFailSubjects">
                     <option value="1">درس واحد</option>
@@ -75,9 +68,8 @@
             <div>
                 <label>الصف:</label>
                 <select id="classSelect">
-                    <option>السادس العلمي</option><option>السادس الادبي</option>
-                    <option>الرابع العلمي</option><option>الخامس العلمي</option>
-                    <option>الرابع الادبي</option><option>الخامس الادبي</option>
+                    <option>السادس العلمي</option>
+                    <option>السادس الادبي</option>
                 </select>
             </div>
             <div>
@@ -109,11 +101,7 @@
 
         const subjectOrders = {
             "السادس العلمي": ["الاسلامية", "العربي", "الانكليزي", "رياضيات", "الاحياء", "الكيمياء", "الفيزياء", "الرياضة", "الفنية"],
-            "السادس الادبي": ["الاسلامية", "العربي", "الانكليزي", "رياضيات", "التاريخ", "الجغرافية", "الاقتصاد", "الرياضة", "الفنية"],
-            "الرابع العلمي": ["الاسلامية", "العربي", "الانكليزي", "رياضيات", "الاحياء", "الكيمياء", "الفيزياء", "الحاسوب", "الرياضة", "الفنية"],
-            "الخامس العلمي": ["الاسلامية", "العربي", "الانكليزي", "رياضيات", "الاحياء", "الكيمياء", "الفيزياء", "الحاسوب", "الرياضة", "الفنية"],
-            "الرابع الادبي": ["الاسلامية", "العربي", "الانكليزي", "رياضيات", "التاريخ", "الجغرافية", "الاقتصاد", "الحاسوب", "الرياضة", "الفنية"],
-            "الخامس الادبي": ["الاسلامية", "العربي", "الانكليزي", "رياضيات", "التاريخ", "الجغرافية", "الاقتصاد", "الحاسوب", "الرياضة", "الفنية"]
+            "السادس الادبي": ["الاسلامية", "العربي", "الانكليزي", "رياضيات", "التاريخ", "الجغرافية", "الاقتصاد", "الرياضة", "الفنية"]
         };
 
         function normalizeSubjectName(name) {
@@ -122,13 +110,6 @@
                 .replace(/^الإسلامية$/, "الاسلامية")
                 .replace(/^الإنكليزي$/, "الانكليزي")
                 .replace(/^الرياضيات$/, "رياضيات");
-        }
-
-        function toggleStageOptions() {
-            const stage = document.getElementById('stageSelect').value;
-            document.getElementById('viewModeDiv').style.display = (stage === 'sixth') ? "block" : "none";
-            document.getElementById('decisionDiv').style.display = (stage === 'sixth') ? "block" : "none";
-            document.getElementById('failDiv').style.display = (stage === 'sixth') ? "block" : "none";
         }
 
         function extractSubjectMarks(sub, subObj) {
@@ -154,7 +135,6 @@
         }
 
         async function processResults() {
-            const stage = document.getElementById('stageSelect').value;
             const className = document.getElementById('classSelect').value;
             const sectionName = document.getElementById('sectionSelect').value;
             const container = document.getElementById('resultsContainer');
@@ -193,171 +173,16 @@
                 let htmlOutput = "";
                 const standardOrder = subjectOrders[className] || [];
 
-                if (stage === 'sixth') {
-                    const viewMode = document.getElementById('viewMode').value;
-                    const decisionVal = parseInt(document.getElementById('decisionDegree').value);
-                    const maxFailVal = document.getElementById('maxFailSubjects').value;
+                const viewMode = document.getElementById('viewMode').value;
+                const decisionVal = parseInt(document.getElementById('decisionDegree').value);
+                const maxFailVal = document.getElementById('maxFailSubjects').value;
 
-                    if (viewMode === 'individual') {
-                        studentsSnap.forEach(studentDoc => {
-                            const sName = studentDoc.data().name;
-                            const sGrades = studentGradesMap[sName] || {};
-                            let failCount = 0;
-                            let rows = "";
-
-                            let availableSubs = Object.keys(sGrades);
-                            let sortedSubs = [...standardOrder.filter(sub => availableSubs.includes(sub)), ...availableSubs.filter(sub => !standardOrder.includes(sub))];
-
-                            sortedSubs.forEach(sub => {
-                                let marks = extractSubjectMarks(sub, sGrades[sub]);
-                                let f1 = marks.f1, mid = marks.mid, f2 = marks.f2, saei = marks.saei;
-
-                                let finalMark = saei;
-                                let isHelped = false;
-                                if (finalMark < 50 && finalMark >= (50 - decisionVal)) {
-                                    finalMark = 50;
-                                    isHelped = true;
-                                }
-
-                                if (finalMark < 50) failCount++;
-
-                                let displayName = (sub === "رياضيات") ? "الرياضيات" : (sub === "الاسلامية" ? "الإسلامية" : (sub === "الانكليزي" ? "الإنكليزي" : sub));
-
-                                let displayFinalText = "";
-                                if (isHelped) {
-                                    displayFinalText = `${saei} <span style="color:blue;">(50 ق)</span>`;
-                                } else if (finalMark < 50) {
-                                    displayFinalText = `<span style="color:red; font-weight:bold;">${saei}</span>`;
-                                } else {
-                                    displayFinalText = `<b>${saei}</b>`;
-                                }
-
-                                rows += `<tr>
-                                    <td>${displayName}</td>
-                                    <td>${f1}</td>
-                                    <td>${mid}</td>
-                                    <td>${f2}</td>
-                                    <td><b>${saei}</b></td>
-                                    <td>${displayFinalText}</td>
-                                </tr>`;
-                            });
-
-                            let finalRes = "ناجح";
-                            if (failCount > 0) {
-                                if (maxFailVal === "all" || failCount <= parseInt(maxFailVal)) {
-                                    finalRes = `مكمل (${failCount} مواد)`;
-                                } else {
-                                    finalRes = "راسب";
-                                }
-                            }
-
-                            htmlOutput += `
-                            <div class="result-card">
-                                <div class="card-header">
-                                    <h3>اعدادية النجدين للبنين- جمهورية العراق - وزارة التربية</h3>
-                                    <p>نتيجة الطالب النهائية (الصف السادس)</p>
-                                </div>
-                                <div class="student-meta">
-                                    <div>اسم الطالب: ${sName}</div>
-                                    <div>الصف: ${className} (${sectionName})</div>
-                                    <div>النتيجة: <span style="color:${failCount===0?'green':'red'}">${finalRes}</span></div>
-                                </div>
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>المادة</th>
-                                            <th>فصل 1</th>
-                                            <th>نصف السنة</th>
-                                            <th>فصل 2</th>
-                                            <th>السعي السنوي</th>
-                                            <th>الدرجة النهائية</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>${rows || "<tr><td colspan='6'>لا توجد درجات مسجلة.</td></tr>"}</tbody>
-                                </table>
-                                <div class="footer-note">
-                                    <div>توقيع اللجنة الامتحانية</div>
-                                    <div>ختم المدرسة</div>
-                                </div>
-                            </div>`;
-                        });
-                    } else {
-                        let sampleStudent = studentsSnap.docs[0];
-                        let sampleGrades = studentGradesMap[sampleStudent.data().name] || {};
-                        let availableSubs = Object.keys(sampleGrades);
-                        let sortedSubs = [...standardOrder.filter(sub => availableSubs.includes(sub)), ...availableSubs.filter(sub => !standardOrder.includes(sub))];
-
-                        let tableHeaders = "<th>اسم الطالب</th>";
-                        sortedSubs.forEach(sub => {
-                            let displayName = (sub === "رياضيات") ? "الرياضيات" : (sub === "الاسلامية" ? "الإسلامية" : (sub === "الانكليزي" ? "الإنكليزي" : sub));
-                            tableHeaders += `<th>${displayName}</th>`;
-                        });
-                        tableHeaders += "<th>النتيجة النهائية</th>";
-
-                        let tableRows = "";
-                        studentsSnap.forEach(studentDoc => {
-                            const sName = studentDoc.data().name;
-                            const sGrades = studentGradesMap[sName] || {};
-                            let failCount = 0;
-                            let subCells = "";
-                            
-                            sortedSubs.forEach(sub => {
-                                let marks = extractSubjectMarks(sub, sGrades[sub]);
-                                let saei = marks.saei;
-
-                                let finalMark = saei;
-                                let isHelped = false;
-                                if (finalMark < 50 && finalMark >= (50 - decisionVal)) {
-                                    finalMark = 50;
-                                    isHelped = true;
-                                }
-
-                                if (finalMark < 50) failCount++;
-
-                                let cellText = "";
-                                if (isHelped) {
-                                    cellText = `${saei} <span style="color:blue;">(50 ق)</span>`;
-                                } else if (finalMark < 50) {
-                                    cellText = `<span style="color:red; font-weight:bold;">${saei}</span>`;
-                                } else {
-                                    cellText = `${saei}`;
-                                }
-
-                                subCells += `<td>${cellText}</td>`;
-                            });
-
-                            let finalRes = failCount === 0 ? "ناجح" : (failCount <= parseInt(maxFailVal) || maxFailVal === "all" ? `مكمل (${failCount})` : "راسب");
-
-                            tableRows += `<tr>
-                                <td>${sName}</td>
-                                ${subCells}
-                                <td style="font-weight:bold; color:${failCount===0?'green':'red'}">${finalRes}</td>
-                            </tr>`;
-                        });
-
-                        htmlOutput = `
-                        <div class="result-card" style="display:block;">
-                            <div class="card-header">
-                                <h3>جدول درجات السعي السنوي والنتائج النهائية - الصف السادس</h3>
-                                <p>الصف: ${className} - الشعبة: ${sectionName}</p>
-                            </div>
-                            <table>
-                                <thead><tr>${tableHeaders}</tr></thead>
-                                <tbody>${tableRows || "<tr><td colspan='10'>لا توجد بيانات.</td></tr>"}</tbody>
-                            </table>
-                        </div>`;
-                    }
-                } else {
-                    // صفوف غير منتهية (الرابع والخامس) مع إعفاء عام وفردي
+                if (viewMode === 'individual') {
                     studentsSnap.forEach(studentDoc => {
                         const sName = studentDoc.data().name;
                         const sGrades = studentGradesMap[sName] || {};
-                        
-                        let totalSaei = 0;
-                        let countSubs = 0;
-                        let lowestSaei = 100;
+                        let failCount = 0;
                         let rows = "";
-                        let hasFailedSubject = false;
 
                         let availableSubs = Object.keys(sGrades);
                         let sortedSubs = [...standardOrder.filter(sub => availableSubs.includes(sub)), ...availableSubs.filter(sub => !standardOrder.includes(sub))];
@@ -366,25 +191,24 @@
                             let marks = extractSubjectMarks(sub, sGrades[sub]);
                             let f1 = marks.f1, mid = marks.mid, f2 = marks.f2, saei = marks.saei;
 
-                            totalSaei += saei;
-                            countSubs++;
-                            if (saei < lowestSaei) lowestSaei = saei;
-                            if (saei < 50) hasFailedSubject = true; // الرسوب الحقيقي دون 50
+                            let finalMark = saei;
+                            let isHelped = false;
+                            if (finalMark < 50 && finalMark >= (50 - decisionVal)) {
+                                finalMark = 50;
+                                isHelped = true;
+                            }
+
+                            if (finalMark < 50) failCount++;
 
                             let displayName = (sub === "رياضيات") ? "الرياضيات" : (sub === "الاسلامية" ? "الإسلامية" : (sub === "الانكليزي" ? "الإنكليزي" : sub));
 
-                            let saeiText = "";
-                            let subjectStatus = "";
-
-                            if (saei < 50) {
-                                saeiText = `<span style="color:red; font-weight:bold;">${saei}</span>`;
-                                subjectStatus = `<span style="color:red; font-weight:bold;">راسب</span>`;
-                            } else if (saei >= 90) {
-                                saeiText = `<span style="color:green; font-weight:bold;">${saei}</span>`;
-                                subjectStatus = `<span style="color:green; font-weight:bold;">معفى (فردي)</span>`;
+                            let displayFinalText = "";
+                            if (isHelped) {
+                                displayFinalText = `${saei} <span style="color:blue;">(50 ق)</span>`;
+                            } else if (finalMark < 50) {
+                                displayFinalText = `<span style="color:red; font-weight:bold;">${saei}</span>`;
                             } else {
-                                saeiText = `<b>${saei}</b>`;
-                                subjectStatus = `غير معفى`;
+                                displayFinalText = `<b>${saei}</b>`;
                             }
 
                             rows += `<tr>
@@ -392,55 +216,115 @@
                                 <td>${f1}</td>
                                 <td>${mid}</td>
                                 <td>${f2}</td>
-                                <td>${saeiText}</td>
-                                <td>${subjectStatus}</td>
+                                <td><b>${saei}</b></td>
+                                <td>${displayFinalText}</td>
                             </tr>`;
                         });
 
-                        let avgSaei = countSubs > 0 ? (totalSaei / countSubs).toFixed(1) : 0;
-                        // شرط الإعفاء العام: المعدل 85 فما فوق ولا توجد مادة راسبة (تحت 50)
-                        let isExempted = (avgSaei >= 85 && !hasFailedSubject && countSubs > 0);
-
-                        if (isExempted) {
-                            htmlOutput += `
-                            <div class="result-card" style="display:block;">
-                                <div class="card-header" style="border-bottom: 2px solid #28a745;">
-                                    <h3 style="color: #28a745;">🌟 شهادة إعفاء عام (صفوف غير منتهية)</h3>
-                                    <p>جمهورية العراق - وزارة التربية</p>
-                                </div>
-                                <div class="student-meta" style="background: #d4edda; color: #155724;">
-                                    <div>اسم الطالب: ${sName}</div>
-                                    <div>الصف: ${className} (${sectionName})</div>
-                                    <div>الحالة: معفى إعفاءً عاماً ✨</div>
-                                </div>
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>المادة</th>
-                                            <th>فصل 1</th>
-                                            <th>نصف السنة</th>
-                                            <th>فصل 2</th>
-                                            <th>السعي السنوي</th>
-                                            <th>موقف المادة</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>${rows}</tbody>
-                                </table>
-                                <div style="margin-top: 15px; font-weight: bold; display: flex; justify-content: space-between;">
-                                    <div>المجموع الكلي: ${totalSaei}</div>
-                                    <div>المعدل العام: ${avgSaei}%</div>
-                                </div>
-                                <div class="footer-note">
-                                    <div>توقيع إدارة المدرسة</div>
-                                    <div>ختم الإدارة</div>
-                                </div>
-                            </div>`;
+                        let finalRes = "ناجح";
+                        if (failCount > 0) {
+                            if (maxFailVal === "all" || failCount <= parseInt(maxFailVal)) {
+                                finalRes = `مكمل (${failCount} مواد)`;
+                            } else {
+                                finalRes = "راسب";
+                            }
                         }
+
+                        htmlOutput += `
+                        <div class="result-card">
+                            <div class="card-header">
+                                <h3>اعدادية النجدين للبنين- جمهورية العراق - وزارة التربية</h3>
+                                <p>نتيجة الطالب النهائية (الصف السادس)</p>
+                            </div>
+                            <div class="student-meta">
+                                <div>اسم الطالب: ${sName}</div>
+                                <div>الصف: ${className} (${sectionName})</div>
+                                <div>النتيجة: <span style="color:${failCount===0?'green':'red'}">${finalRes}</span></div>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>المادة</th>
+                                        <th>فصل 1</th>
+                                        <th>نصف السنة</th>
+                                        <th>فصل 2</th>
+                                        <th>السعي السنوي</th>
+                                        <th>الدرجة النهائية</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${rows || "<tr><td colspan='6'>لا توجد درجات مسجلة.</td></tr>"}</tbody>
+                            </table>
+                            <div class="footer-note">
+                                <div>توقيع اللجنة الامتحانية</div>
+                                <div>ختم المدرسة</div>
+                            </div>
+                        </div>`;
+                    });
+                } else {
+                    let sampleStudent = studentsSnap.docs[0];
+                    let sampleGrades = studentGradesMap[sampleStudent.data().name] || {};
+                    let availableSubs = Object.keys(sampleGrades);
+                    let sortedSubs = [...standardOrder.filter(sub => availableSubs.includes(sub)), ...availableSubs.filter(sub => !standardOrder.includes(sub))];
+
+                    let tableHeaders = "<th>اسم الطالب</th>";
+                    sortedSubs.forEach(sub => {
+                        let displayName = (sub === "رياضيات") ? "الرياضيات" : (sub === "الاسلامية" ? "الإسلامية" : (sub === "الانكليزي" ? "الإنكليزي" : sub));
+                        tableHeaders += `<th>${displayName}</th>`;
+                    });
+                    tableHeaders += "<th>النتيجة النهائية</th>";
+
+                    let tableRows = "";
+                    studentsSnap.forEach(studentDoc => {
+                        const sName = studentDoc.data().name;
+                        const sGrades = studentGradesMap[sName] || {};
+                        let failCount = 0;
+                        let subCells = "";
+                        
+                        sortedSubs.forEach(sub => {
+                            let marks = extractSubjectMarks(sub, sGrades[sub]);
+                            let saei = marks.saei;
+
+                            let finalMark = saei;
+                            let isHelped = false;
+                            if (finalMark < 50 && finalMark >= (50 - decisionVal)) {
+                                finalMark = 50;
+                                isHelped = true;
+                            }
+
+                            if (finalMark < 50) failCount++;
+
+                            let cellText = "";
+                            if (isHelped) {
+                                cellText = `${saei} <span style="color:blue;">(50 ق)</span>`;
+                            } else if (finalMark < 50) {
+                                cellText = `<span style="color:red; font-weight:bold;">${saei}</span>`;
+                            } else {
+                                cellText = `${saei}`;
+                            }
+
+                            subCells += `<td>${cellText}</td>`;
+                        });
+
+                        let finalRes = failCount === 0 ? "ناجح" : (failCount <= parseInt(maxFailVal) || maxFailVal === "all" ? `مكمل (${failCount})` : "راسب");
+
+                        tableRows += `<tr>
+                            <td>${sName}</td>
+                            ${subCells}
+                            <td style="font-weight:bold; color:${failCount===0?'green':'red'}">${finalRes}</td>
+                        </tr>`;
                     });
 
-                    if (!htmlOutput) {
-                        htmlOutput = "<p style='text-align:center; color:#dc3545; font-weight:bold; margin-top:20px;'>لا يوجد طلاب مشمولين بالإعفاء العام في هذا الصف والشعبة.</p>";
-                    }
+                    htmlOutput = `
+                    <div class="result-card" style="display:block;">
+                        <div class="card-header">
+                            <h3>جدول درجات السعي السنوي والنتائج النهائية - الصف السادس</h3>
+                            <p>الصف: ${className} - الشعبة: ${sectionName}</p>
+                        </div>
+                        <table>
+                            <thead><tr>${tableHeaders}</tr></thead>
+                            <tbody>${tableRows || "<tr><td colspan='10'>لا توجد بيانات.</td></tr>"}</tbody>
+                        </table>
+                    </div>`;
                 }
 
                 container.innerHTML = htmlOutput;
@@ -451,8 +335,6 @@
                 document.getElementById('printAllBtn').style.display = "none";
             }
         }
-
-        toggleStageOptions();
     </script>
 </body>
 </html>
