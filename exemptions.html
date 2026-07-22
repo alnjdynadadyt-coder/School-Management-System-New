@@ -40,16 +40,16 @@
         .status-badge-no { background-color: #f8d7da; color: #721c24; }
 
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center; }
-        .modal-box { background: #fff; width: 90%; max-width: 800px; padding: 30px; border-radius: 14px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; position: relative; }
+        .modal-box { background: #fff; width: 95%; max-width: 850px; padding: 35px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-height: 95vh; overflow-y: auto; position: relative; }
         .close-modal { position: absolute; left: 20px; top: 15px; font-size: 26px; font-weight: bold; cursor: pointer; color: #e74c3c; }
 
         .global-print-btn { background: #27ae60; margin-top: 20px; display: none; }
         .global-print-btn:hover { background: #219653; }
 
-        /* إعدادات الطباعة المخصصة لمنع القطع */
+        /* إعدادات الطباعة المخصصة */
         @media print {
             @page {
-                size: A4 landscape; /* فرض الاتجاه الأفقي للطباعة الكلية */
+                size: A4 landscape;
                 margin: 10mm;
             }
             body { background: #fff; padding: 0; font-size: 10px; }
@@ -57,14 +57,15 @@
             .main-wrapper { box-shadow: none; padding: 0; border: none; width: 100%; margin: 0; }
             
             body.print-mode-single {
-                @page { size: A4 portrait; } /* إرجاعها عمودي فقط عند طباعة النتيجة الفردية للطالب */
+                @page { size: A4 portrait; margin: 15mm; }
             }
             body.print-mode-single .main-wrapper { display: none !important; }
             body.print-mode-single .modal-overlay { display: flex !important; position: static !important; background: none !important; }
-            body.print-mode-single .modal-box { box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; }
+            body.print-mode-single .modal-box { box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; border: 2px solid #2c3e50 !important; border-radius: 12px !important; }
+            body.print-mode-single .btn-action { display: none !important; }
             
-            table { font-size: 10px; }
-            th, td { padding: 4px 3px; }
+            table { font-size: 12px; }
+            th, td { padding: 8px 6px; }
         }
     </style>
 </head>
@@ -375,8 +376,9 @@
         innerHtmlContainer.innerHTML = `
             <span class="close-modal" onclick="closeStudentModal()">&times;</span>
             <div style="text-align:center; border-bottom: 2px solid var(--accent-color); padding-bottom: 12px; margin-bottom: 15px;">
-                <h3 style="margin:0; color:var(--accent-color);">🎓 الاستعراض الفردي الشامل للإعفاء العام</h3>
-                <p style="margin:6px 0; font-weight:bold; font-size:15px;">الطالب: ${studentName} | الصف: ${cachedMasterData.className}</p>
+                <h3 style="margin:0 0 5px 0; color:var(--primary-color); font-size: 18px;">🌟 إدارة الإعفاء العام المدرسي 🌟</h3>
+                <h4 style="margin:0; color:var(--accent-color); font-size: 16px;">كشف درجات السعي السنوي الفردي</h4>
+                <p style="margin:8px 0 0 0; font-weight:bold; font-size:14px; color:#555;">الطالب: ${studentName} &nbsp;|&nbsp; الصف: ${cachedMasterData.className} &nbsp;|&nbsp; الشعبة: (${cachedMasterData.sectionName})</p>
             </div>
             <table>
                 <thead>
@@ -390,13 +392,18 @@
                 </thead>
                 <tbody>${rowsBuilder}</tbody>
             </table>
-            <div style="margin-top: 18px; display: flex; justify-content: space-around; background: #f8f9fa; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 13px;">
+            <div style="margin-top: 15px; display: flex; justify-content: space-around; background: #f8f9fa; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 13px; border: 1px solid #e2e8f0;">
                 <div>المجموع الكلي: ${totalSum}</div>
                 <div>المعدل العام: ${finalAverage}</div>
-                <div style="color: var(--success-color);">الحالة: مشمول بالإعفاء العام 🌟</div>
+                <div style="color: var(--success-color);">الحالة: مشمول بالإعفاء العام ✨</div>
+            </div>
+            <div style="margin-top: 15px; text-align: center; background: #eaf2f8; padding: 12px; border-radius: 8px; border-right: 4px solid var(--accent-color);">
+                <p style="margin: 0; font-size: 13px; font-weight: bold; color: #2c3e50; line-height: 1.6;">
+                    "إلى الطالب المتألق، مبارك لك هذا التميز والنجاح الباهر. جهودك المبذولة أثمرت تفوقاً تفتخر به المدرسة، مع تمنياتنا لك دوام التألق والابداع في مسيرتك العلمية." 🌸🎓
+                </p>
             </div>
             <div style="text-align: center; margin-top: 20px;">
-                <button class="btn-action" style="width: auto; padding: 10px 25px;" onclick="triggerSinglePrint()">🖨️ طباعة النتيجة الفردية فقط</button>
+                <button class="btn-action" style="width: auto; padding: 10px 30px;" onclick="triggerSinglePrint()">🖨️ طباعة الشهادة الفردية المنسقة</button>
             </div>
         `;
 
