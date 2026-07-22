@@ -84,9 +84,9 @@
 
     <!-- نافذة الاستعراض الفردي الشامل -->
     <div id="studentModal" class="modal">
-        <div class="modal-content" id="printableModalContent">
+        <div class="modal-content">
             <span class="close-btn" onclick="closeModal()">&times;</span>
-            <div id="modalBody"></div>
+            <div id="printableModalBody"></div>
         </div>
     </div>
 
@@ -102,8 +102,8 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        const orderFourthScientific = ["الاسلامية", "العربي", "الإنكليزي", "الرياضيات", "الحاسوب", "الاحياء", "الكيمياء", "الفيزياء", "الجرائم", "الرياضة", "الفنية"];
-        const orderFifthScientific = ["الاسلامية", "العربي", "الإنكليزي", "الرياضيات", "الحاسوب", "الاحياء", "الكيمياء", "الفيزياء", "الرياضة", "الفنية"];
+        const orderFourthScientific = ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "الحاسوب", "الاحياء", "الكيمياء", "الفيزياء", "الجرائم", "الرياضة", "الفنية"];
+        const orderFifthScientific = ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "الحاسوب", "الاحياء", "الكيمياء", "الفيزياء", "الرياضة", "الفنية"];
 
         function getVal(v) { 
             if (v === "غ" || v === "G" || v === "٠" || v === "0" || !v) return 0;
@@ -111,15 +111,29 @@
             return parseFloat(clean) || 0; 
         }
 
-        // استخراج الدرجة النهائية (السعي) حسب نوع المادة (عادية أو 16 حقل كالإنكليزي والحاسوب)
-        function extractFinalGrade(subName, arr) {
-            if (!Array.isArray(arr)) return 0;
-            let isExtended = subName.includes("الإنكليزي") || subName.includes("الحاسوب") || arr.length > 13;
-            if (isExtended) {
-                return getVal(arr[15]) || getVal(arr[arr.length - 1]);
+        // مطابقة دالة استخراج درجات المواد تماماً مثل ملف الصف السادس (Certificate.html)
+        function extractSubjectMarks(sub, subObj) {
+            let f1 = '-', mid = '-', f2 = '-', saei = 0;
+            if (!subObj) return { f1, mid, f2, saei };
+
+            let isExtended = sub.includes("الانكليزي") || sub.includes("الإنكليزي") || sub.includes("الحاسوب");
+
+            if (Array.isArray(subObj)) {
+                if (isExtended) {
+                    f1 = subObj[6] !== undefined && subObj[6] !== "" ? subObj[6] : '-';
+                    mid = subObj[7] !== undefined && subObj[7] !== "" ? subObj[7] : '-';
+                    f2 = subObj[14] !== undefined && subObj[14] !== "" ? subObj[14] : '-';
+                    saei = subObj[15] !== undefined && subObj[15] !== "" ? Number(subObj[15]) || 0 : 0;
+                } else {
+                    f1 = subObj[4] !== undefined && subObj[4] !== "" ? subObj[4] : (subObj[2] !== undefined ? subObj[2] : '-');
+                    mid = subObj[5] !== undefined && subObj[5] !== "" ? subObj[5] : '-';
+                    f2 = subObj[10] !== undefined && subObj[10] !== "" ? subObj[10] : '-';
+                    saei = subObj[11] !== undefined && subObj[11] !== "" ? Number(subObj[11]) || 0 : 0;
+                }
             } else {
-                return getVal(arr[11]) || getVal(arr[arr.length - 1]);
+                saei = Number(subObj) || 0;
             }
+            return { f1, mid, f2, saei };
         }
 
         let globalStudentGrades = {};
@@ -216,7 +230,8 @@
                             if (foundKey) gradeArr = sGrades[foundKey];
                         }
 
-                        let finalMark = gradeArr ? extractFinalGrade(sub, gradeArr) : 0;
+                        let marks = extractSubjectMarks(sub, gradeArr);
+                        let finalMark = marks.saei;
                         
                         if (gradeArr && finalMark > 0) {
                             totalSum += finalMark;
@@ -289,10 +304,10 @@
             }
         }
 
-        // دالة عرض الاستعراض الفردي الشامل مع جلب دقيق للحقول לפי نوع المادة
+        // دالة عرض الاستعراض الفردي الشامل مع جلب الحقول بدقة مطابقة لصفحة السادس
         function openStudentModal(sName) {
             let sGrades = globalStudentGrades[sName] || {};
-            let modalBody = document.getElementById('modalBody');
+            let modalBody = document.getElementById('printableModalBody');
             
             let detailsRows = "";
             let totalSum = 0;
@@ -305,31 +320,20 @@
                     if (foundKey) gradeArr = sGrades[foundKey];
                 }
 
-                let isExtended = sub.includes("الإنكليزي") || sub.includes("الحاسوب") || (gradeArr && gradeArr.length > 13);
-                
-                let f1 = 0, mid = 0, f2 = 0, saei = 0;
-                if (Array.isArray(gradeArr)) {
-                    if (isExtended) {
-                        f1 = getVal(gradeArr[3]);
-                        mid = getVal(gradeArr[7]);
-                        f2 = getVal(gradeArr[11]);
-                        saei = getVal(gradeArr[15]);
-                    } else {
-                        f1 = getVal(gradeArr[3]);
-                        mid = getVal(gradeArr[7]);
-                        f2 = getVal(gradeArr[11]);
-                        saei = getVal(gradeArr[11]); // المواد العادية السعي هو نفسه الفصل الثاني أو الحقل 11
-                    }
-                }
+                let marks = extractSubjectMarks(sub, gradeArr);
+                let f1 = marks.f1;
+                let mid = marks.mid;
+                let f2 = marks.f2;
+                let saei = marks.saei;
 
                 totalSum += saei;
                 count++;
 
                 detailsRows += `<tr>
                     <td style="font-weight:bold; text-align:right;">${sub}</td>
-                    <td>${f1 > 0 ? f1 : '-'}</td>
-                    <td>${mid > 0 ? mid : '-'}</td>
-                    <td>${f2 > 0 ? f2 : '-'}</td>
+                    <td>${f1}</td>
+                    <td>${mid}</td>
+                    <td>${f2}</td>
                     <td style="font-weight:bold; background:#eef9fa;">${saei > 0 ? saei : '-'}</td>
                 </tr>`;
             });
@@ -337,6 +341,7 @@
             let avg = count > 0 ? (totalSum / count).toFixed(2) : 0;
 
             modalBody.innerHTML = `
+                <span class="close-btn" onclick="closeModal()">&times;</span>
                 <div style="text-align:center; border-bottom: 2px solid #17a2b8; padding-bottom: 10px; margin-bottom: 15px;">
                     <h3 style="margin:0; color:#17a2b8;">🎓 الاستعراض الفردي الشامل للطالب المشمول بالإعفاء</h3>
                     <p style="margin:5px 0; font-weight:bold; font-size:16px;">الطالب: ${sName} | الصف: ${currentClassName}</p>
@@ -359,22 +364,11 @@
                     <div style="color: #155724;">الحالة: مشمول بالإعفاء العام 🌟</div>
                 </div>
                 <div style="text-align: center; margin-top: 20px;">
-                    <button class="btn btn-load" style="width: auto; padding: 8px 20px;" onclick="printSingleStudent()">🖨️ طباعة النتيجة الفردية</button>
+                    <button class="btn btn-load" style="width: auto; padding: 8px 20px;" onclick="window.print()">🖨️ طباعة النتيجة الفردية</button>
                 </div>
             `;
 
             document.getElementById('studentModal').style.display = "flex";
-        }
-
-        // دالة طباعة النتيجة الفردية وحدها فقط
-        function printSingleStudent() {
-            let modalContent = document.getElementById('printableModalContent').innerHTML;
-            let originalContent = document.body.innerHTML;
-            
-            document.body.innerHTML = `<div style="padding: 20px;" dir="rtl">${modalContent}</div>`;
-            window.print();
-            document.body.innerHTML = originalContent;
-            location.reload(); // إعادة تحميل الصفحة لاستعادة الحالة الافتراضية
         }
 
         function closeModal() {
