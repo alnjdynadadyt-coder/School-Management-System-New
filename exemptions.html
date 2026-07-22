@@ -84,7 +84,7 @@
 
     <!-- نافذة الاستعراض الفردي الشامل -->
     <div id="studentModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" id="printableModalContent">
             <span class="close-btn" onclick="closeModal()">&times;</span>
             <div id="modalBody"></div>
         </div>
@@ -102,7 +102,6 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // الترتيب الوزاري المعتمد للمواد بدون كلمة سعي
         const orderFourthScientific = ["الاسلامية", "العربي", "الإنكليزي", "الرياضيات", "الحاسوب", "الاحياء", "الكيمياء", "الفيزياء", "الجرائم", "الرياضة", "الفنية"];
         const orderFifthScientific = ["الاسلامية", "العربي", "الإنكليزي", "الرياضيات", "الحاسوب", "الاحياء", "الكيمياء", "الفيزياء", "الرياضة", "الفنية"];
 
@@ -112,12 +111,14 @@
             return parseFloat(clean) || 0; 
         }
 
+        // استخراج الدرجة النهائية (السعي) حسب نوع المادة (عادية أو 16 حقل كالإنكليزي والحاسوب)
         function extractFinalGrade(subName, arr) {
             if (!Array.isArray(arr)) return 0;
-            if (subName.includes("الإنكليزي") || subName.includes("الحاسوب")) {
-                return getVal(arr[15]);
+            let isExtended = subName.includes("الإنكليزي") || subName.includes("الحاسوب") || arr.length > 13;
+            if (isExtended) {
+                return getVal(arr[15]) || getVal(arr[arr.length - 1]);
             } else {
-                return getVal(arr[11]);
+                return getVal(arr[11]) || getVal(arr[arr.length - 1]);
             }
         }
 
@@ -160,7 +161,7 @@
                     const data = doc.data();
                     if (docId.includes(currentClassName) && docId.includes(sectionName)) {
                         let subName = docId.split('_').slice(2).join('_') || data.subject || "";
-                        subName = subName.replace(/سعي/g, "").trim(); // إزالة كلمة سعي لو وجدت بالمستند
+                        subName = subName.replace(/سعي/g, "").trim();
                         if (!subName || subName === "مادة" || subName === "") return;
 
                         rawSubjectsSet.add(subName);
@@ -176,13 +177,11 @@
 
                 let templateOrder = currentClassName.includes("الرابع") ? orderFourthScientific : orderFifthScientific;
                 
-                // تطبيق الترتيب الوزاري بدقة
                 globalSubjects = [];
                 templateOrder.forEach(tSub => {
                     let found = Array.from(rawSubjectsSet).find(r => r.includes(tSub));
                     if (found) globalSubjects.push(found);
                 });
-                // إضافة أي مادة إضافية غير موجودة بالنموذج
                 rawSubjectsSet.forEach(r => {
                     if (!globalSubjects.includes(r)) globalSubjects.push(r);
                 });
@@ -243,7 +242,6 @@
                         else if (lowestMark < minSub) statusText = "غير مشمول (درجة مادة)";
                     }
 
-                    // إخفاء المجموع والمعدل تماماً للطلاب غير المشمولين بناءً على طلبك
                     let displayTotal = statusClass.includes("exempt") ? `<td style="font-weight:bold; background:#eef9fa;">${totalSum}</td>` : `<td style="color:#aaa;">-</td>`;
                     let displayAvg = statusClass.includes("exempt") ? `<td style="font-weight:bold; background:#f1f1f1;">${average.toFixed(2)}</td>` : `<td style="color:#aaa;">-</td>`;
                     let rowClickAttr = statusClass.includes("exempt") ? `onclick="openStudentModal('${sName}')" title="انقر لعرض الاستعراض الفردي الشامل"` : "";
@@ -291,7 +289,7 @@
             }
         }
 
-        // دالة عرض نافذة الاستعراض الفردي الشامل للطالب المشمول
+        // دالة عرض الاستعراض الفردي الشامل مع جلب دقيق للحقول לפי نوع المادة
         function openStudentModal(sName) {
             let sGrades = globalStudentGrades[sName] || {};
             let modalBody = document.getElementById('modalBody');
@@ -307,10 +305,22 @@
                     if (foundKey) gradeArr = sGrades[foundKey];
                 }
 
-                let f1 = gradeArr && gradeArr.length > 3 ? getVal(gradeArr[3]) : 0;
-                let mid = gradeArr && gradeArr.length > 7 ? getVal(gradeArr[7]) : 0;
-                let f2 = gradeArr && gradeArr.length > 11 ? getVal(gradeArr[11]) : 0;
-                let saei = gradeArr && gradeArr.length > 15 ? getVal(gradeArr[15]) : (f2 || 0);
+                let isExtended = sub.includes("الإنكليزي") || sub.includes("الحاسوب") || (gradeArr && gradeArr.length > 13);
+                
+                let f1 = 0, mid = 0, f2 = 0, saei = 0;
+                if (Array.isArray(gradeArr)) {
+                    if (isExtended) {
+                        f1 = getVal(gradeArr[3]);
+                        mid = getVal(gradeArr[7]);
+                        f2 = getVal(gradeArr[11]);
+                        saei = getVal(gradeArr[15]);
+                    } else {
+                        f1 = getVal(gradeArr[3]);
+                        mid = getVal(gradeArr[7]);
+                        f2 = getVal(gradeArr[11]);
+                        saei = getVal(gradeArr[11]); // المواد العادية السعي هو نفسه الفصل الثاني أو الحقل 11
+                    }
+                }
 
                 totalSum += saei;
                 count++;
@@ -349,11 +359,22 @@
                     <div style="color: #155724;">الحالة: مشمول بالإعفاء العام 🌟</div>
                 </div>
                 <div style="text-align: center; margin-top: 20px;">
-                    <button class="btn btn-load" style="width: auto; padding: 8px 20px;" onclick="window.print()">🖨️ طباعة النتيجة الفردية</button>
+                    <button class="btn btn-load" style="width: auto; padding: 8px 20px;" onclick="printSingleStudent()">🖨️ طباعة النتيجة الفردية</button>
                 </div>
             `;
 
             document.getElementById('studentModal').style.display = "flex";
+        }
+
+        // دالة طباعة النتيجة الفردية وحدها فقط
+        function printSingleStudent() {
+            let modalContent = document.getElementById('printableModalContent').innerHTML;
+            let originalContent = document.body.innerHTML;
+            
+            document.body.innerHTML = `<div style="padding: 20px;" dir="rtl">${modalContent}</div>`;
+            window.print();
+            document.body.innerHTML = originalContent;
+            location.reload(); // إعادة تحميل الصفحة لاستعادة الحالة الافتراضية
         }
 
         function closeModal() {
@@ -369,4 +390,3 @@
     </script>
 </body>
 </html>
- 
