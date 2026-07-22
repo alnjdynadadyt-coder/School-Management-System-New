@@ -40,7 +40,7 @@
 <body>
     <div class="container">
         <a href="index.html" id="backBtn">⬅️ العودة للرئيسية</a>
-        <h2>🌟 الاستعراض الكلي لدرجات الطلاب ومتابعة الإعفاء العام (الصفوف غير المنتهية)</h2>
+        <h2>🌟 السجل الشامل لدرجات السعي والمجاميع والمعدلات (الإعفاء العام)</h2>
         
         <div class="controls">
             <div>
@@ -59,20 +59,20 @@
                 </select>
             </div>
             <div>
-                <label>الحد الأدنى لمعدل الإعفاء العام:</label>
+                <label>الحد الأدنى لمعدل الإعفاء:</label>
                 <input type="number" id="minAverage" value="85" min="50" max="100">
             </div>
             <div>
-                <label>أقل درجة مسموحة في أي مادة:</label>
+                <label>أقل درجة مسموحة بالمادة:</label>
                 <input type="number" id="minSubjectMark" value="75" min="50" max="100">
             </div>
             <div style="grid-column: span 2; display: flex; align-items: flex-end;">
-                <button class="btn btn-load" onclick="processExemptions()">استعراض درجات ومعدلات جميع الطلاب</button>
+                <button class="btn btn-load" onclick="processExemptions()">عرض السجل الكلي والمجاميع والمعدلات</button>
             </div>
         </div>
 
         <div id="resultsContainer"></div>
-        <button class="btn btn-print" id="printAllBtn" onclick="window.print()">🖨️ طباعة الجدول الكلي</button>
+        <button class="btn btn-print" id="printAllBtn" onclick="window.print()">🖨️ طباعة السجل</button>
     </div>
 
     <script>
@@ -93,6 +93,7 @@
             return parseFloat(clean) || 0; 
         }
 
+        // استخراج درجة السعي السنوي للمادة فقط
         function extractFinalGrade(subName, arr) {
             if (!Array.isArray(arr)) return 0;
             if (subName.includes("الإنكليزي") || subName.includes("الحاسوب")) {
@@ -109,7 +110,7 @@
             const minSub = parseFloat(document.getElementById('minSubjectMark').value) || 75;
             const container = document.getElementById('resultsContainer');
             
-            container.innerHTML = "<p style='text-align:center;'>جاري جلب درجات وبيانات الطلاب...</p>";
+            container.innerHTML = "<p style='text-align:center;'>جاري جلب بيانات السعي السنوي للطلاب...</p>";
 
             try {
                 // 1. جلب الطلاب
@@ -157,10 +158,10 @@
                     return;
                 }
 
-                // بناء أعمدة جدول المواد
+                // بناء عناوين جدول المواد (درجة السعي)
                 let subHeaders = "";
                 subjects.forEach(sub => {
-                    subHeaders += `<th>${sub}</th>`;
+                    subHeaders += `<th>سعي ${sub}</th>`;
                 });
 
                 let tableRows = "";
@@ -210,6 +211,7 @@
                         <td>${count}</td>
                         <td style="text-align:right; font-weight:bold;">${sName}</td>
                         ${subCells}
+                        <td style="font-weight:bold; background:#eef9fa;">${totalSum}</td>
                         <td style="font-weight:bold; background:#f1f1f1;">${average.toFixed(2)}</td>
                         <td class="${statusClass}">${statusText}</td>
                     </tr>`;
@@ -218,8 +220,8 @@
                 container.innerHTML = `
                 <div class="result-card">
                     <div class="card-header">
-                        <h3>استعراض درجات ومعدلات الطلاب - الصف: ${className} (${sectionName})</h3>
-                        <p>الحد الأدنى للإعفاء: معدل $\ge ${minAvg}$ | أقل درجة $\ge ${minSub}$</p>
+                        <h3>سجل درجات السعي السنوي والمجاميع والمعدلات - الصف: ${className} (${sectionName})</h3>
+                        <p>الحد الأدنى للإعفاء: معدل $\ge ${minAvg}$ | أقل درجة سعي $\ge ${minSub}$</p>
                     </div>
                     <table>
                         <thead>
@@ -227,8 +229,9 @@
                                 <th>ت</th>
                                 <th>اسم الطالب</th>
                                 ${subHeaders}
+                                <th>المجموع</th>
                                 <th>المعدل</th>
-                                <th>حالة الإعفاء العام</th>
+                                <th>الحالة</th>
                             </tr>
                         </thead>
                         <tbody>${tableRows}</tbody>
