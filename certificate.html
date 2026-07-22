@@ -176,16 +176,28 @@
                 const viewMode = document.getElementById('viewMode').value;
                 const decisionVal = parseInt(document.getElementById('decisionDegree').value);
                 const maxFailVal = document.getElementById('maxFailSubjects').value;
+                const maxFailLimit = (maxFailVal === "all") ? 999 : parseInt(maxFailVal);
 
                 if (viewMode === 'individual') {
                     studentsSnap.forEach(studentDoc => {
                         const sName = studentDoc.data().name;
                         const sGrades = studentGradesMap[sName] || {};
-                        let failCount = 0;
-                        let rows = "";
-
+                        
                         let availableSubs = Object.keys(sGrades);
                         let sortedSubs = [...standardOrder.filter(sub => availableSubs.includes(sub)), ...availableSubs.filter(sub => !standardOrder.includes(sub))];
+
+                        // الخطوة 1: حساب الرسوب الفعلي (بدون قرار لمعرفة ما إذا كان الطالب مستحقاً للقرار أصلاً)
+                        let rawFailCount = 0;
+                        sortedSubs.forEach(sub => {
+                            let marks = extractSubjectMarks(sub, sGrades[sub]);
+                            if (marks.saei < 50) rawFailCount++;
+                        });
+
+                        // هل يستحق القرار؟ (إذا كان عدد الرسوب الفعلي ضمن حدود الإكمال أو ناجح)
+                        let isEligibleForDecision = (rawFailCount <= maxFailLimit);
+
+                        let failCount = 0;
+                        let rows = "";
 
                         sortedSubs.forEach(sub => {
                             let marks = extractSubjectMarks(sub, sGrades[sub]);
@@ -193,9 +205,12 @@
 
                             let finalMark = saei;
                             let isHelped = false;
-                            if (finalMark < 50 && finalMark >= (50 - decisionVal)) {
-                                finalMark = 50;
-                                isHelped = true;
+
+                            if (isEligibleForDecision && decisionVal > 0) {
+                                if (finalMark < 50 && finalMark >= (50 - decisionVal)) {
+                                    finalMark = 50;
+                                    isHelped = true;
+                                }
                             }
 
                             if (finalMark < 50) failCount++;
@@ -204,7 +219,7 @@
 
                             let displayFinalText = "";
                             if (isHelped) {
-                                displayFinalText = `${saei} <span style="color:blue;">(50 ق)</span>`;
+                                displayFinalText = `${saei} <span style="color:blue; font-weight:bold;">(50 ق)</span>`;
                             } else if (finalMark < 50) {
                                 displayFinalText = `<span style="color:red; font-weight:bold;">${saei}</span>`;
                             } else {
@@ -223,7 +238,7 @@
 
                         let finalRes = "ناجح";
                         if (failCount > 0) {
-                            if (maxFailVal === "all" || failCount <= parseInt(maxFailVal)) {
+                            if (failCount <= maxFailLimit) {
                                 finalRes = `مكمل (${failCount} مواد)`;
                             } else {
                                 finalRes = "راسب";
@@ -239,7 +254,7 @@
                             <div class="student-meta">
                                 <div>اسم الطالب: ${sName}</div>
                                 <div>الصف: ${className} (${sectionName})</div>
-                                <div>النتيجة: <span style="color:${failCount===0?'green':'red'}">${finalRes}</span></div>
+                                <div>النتيجة: <span style="color:${failCount===0?'green':(failCount<=maxFailLimit?'orange':'red')}">${finalRes}</span></div>
                             </div>
                             <table>
                                 <thead>
@@ -277,6 +292,14 @@
                     studentsSnap.forEach(studentDoc => {
                         const sName = studentDoc.data().name;
                         const sGrades = studentGradesMap[sName] || {};
+                        
+                        let rawFailCount = 0;
+                        sortedSubs.forEach(sub => {
+                            let marks = extractSubjectMarks(sub, sGrades[sub]);
+                            if (marks.saei < 50) rawFailCount++;
+                        });
+
+                        let isEligibleForDecision = (rawFailCount <= maxFailLimit);
                         let failCount = 0;
                         let subCells = "";
                         
@@ -286,16 +309,19 @@
 
                             let finalMark = saei;
                             let isHelped = false;
-                            if (finalMark < 50 && finalMark >= (50 - decisionVal)) {
-                                finalMark = 50;
-                                isHelped = true;
+
+                            if (isEligibleForDecision && decisionVal > 0) {
+                                if (finalMark < 50 && finalMark >= (50 - decisionVal)) {
+                                    finalMark = 50;
+                                    isHelped = true;
+                                }
                             }
 
                             if (finalMark < 50) failCount++;
 
                             let cellText = "";
                             if (isHelped) {
-                                cellText = `${saei} <span style="color:blue;">(50 ق)</span>`;
+                                cellText = `${saei} <span style="color:blue; font-weight:bold;">(50 ق)</span>`;
                             } else if (finalMark < 50) {
                                 cellText = `<span style="color:red; font-weight:bold;">${saei}</span>`;
                             } else {
@@ -305,12 +331,12 @@
                             subCells += `<td>${cellText}</td>`;
                         });
 
-                        let finalRes = failCount === 0 ? "ناجح" : (failCount <= parseInt(maxFailVal) || maxFailVal === "all" ? `مكمل (${failCount})` : "راسب");
+                        let finalRes = failCount === 0 ? "ناجح" : (failCount <= maxFailLimit ? `مكمل (${failCount})` : "راسب");
 
                         tableRows += `<tr>
                             <td>${sName}</td>
                             ${subCells}
-                            <td style="font-weight:bold; color:${failCount===0?'green':'red'}">${finalRes}</td>
+                            <td style="font-weight:bold; color:${failCount===0?'green':(failCount<=maxFailLimit?'orange':'red')}">${finalRes}</td>
                         </tr>`;
                     });
 
