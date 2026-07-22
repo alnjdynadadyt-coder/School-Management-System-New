@@ -19,7 +19,7 @@
         .card-header h3 { margin: 0; color: #17a2b8; font-size: 18px; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11px; }
-        th, td { border: 1px solid #ddd; padding: 4px 6px; text-align: center; white-space: nowrap; }
+        th, td { border: 1px solid #ddd; padding: 5px 6px; text-align: center; white-space: nowrap; }
         th { background-color: #17a2b8; color: white; font-size: 11px; }
 
         .exempt { background-color: #d4edda !important; color: #155724; font-weight: bold; cursor: pointer; }
@@ -28,7 +28,7 @@
 
         /* نافذة الاستعراض الفردي */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
-        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 85%; max-width: 800px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 850px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; }
         .close-btn { float: left; font-size: 22px; font-weight: bold; cursor: pointer; color: #aaa; }
         .close-btn:hover { color: #000; }
 
@@ -41,10 +41,10 @@
             .controls, #backBtn, .btn-print, .modal { display: none !important; }
             .result-card { border: 1px solid #000; }
             
-            /* تخصيص طباعة النافذة الفردية فقط عند فتحها */
+            /* تخصيص طباعة النافذة الفردية لتأخذ الصفحة كاملة وبدون أجزاء مقطوعة */
             body.printing-modal .container { display: none !important; }
-            body.printing-modal .modal { display: flex !important; position: static !important; background: white !important; width: 100% !important; height: auto !important; }
-            body.printing-modal .modal-content { box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; }
+            body.printing-modal .modal { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; height: auto !important; background: white !important; z-index: 9999 !important; }
+            body.printing-modal .modal-content { box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 !important; max-height: none !important; }
             body.printing-modal .close-btn, body.printing-modal button { display: none !important; }
         }
     </style>
@@ -107,7 +107,7 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // الترتيب المطلوب بدقة للمواد
+        // الترتيب المطلوب بدقة وثبات للمواد في الجدول العام والجدول الفردي
         const targetSubjectOrder = ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "الحاسوب", "الاحياء", "الكيمياء", "الفيزياء", "الجرائم", "الرياضة", "الفنية"];
 
         function extractSubjectMarks(sub, subObj) {
@@ -187,7 +187,7 @@
                     }
                 });
 
-                // ترتيب المواد بناءً على الترتيب المطلوب تماماً
+                // توحيد وترتيب المواد بالنسق المطلوب تماماً
                 globalSubjects = [];
                 targetSubjectOrder.forEach(tSub => {
                     let found = Array.from(rawSubjectsSet).find(r => r.includes(tSub) || tSub.includes(r));
@@ -254,10 +254,11 @@
                         else if (lowestMark < minSub) statusText = "غير مشمول (درجة مادة)";
                     }
 
-                    // إخفاء المجموع والمعدل للطالب غير المشمول (إظهار -) بناءً على طلبك
-                    let displayTotal = statusClass.includes("exempt") ? `<td style="font-weight:bold; background:#eef9fa;">${totalSum}</td>` : `<td style="color:#aaa;">-</td>`;
-                    let displayAvg = statusClass.includes("exempt") ? `<td style="font-weight:bold; background:#f1f1f1;">${average.toFixed(2)}</td>` : `<td style="color:#aaa;">-</td>`;
-                    let rowClickAttr = statusClass.includes("exempt") ? `onclick="openStudentModal('${sName}')" title="انقر لعرض الاستعراض الفردي الشامل"` : "";
+                    // إخفاء المجموع والمعدل للطالب غير المشمول تماماً بوضع علامة شرطة (-)
+                    let isExempt = statusClass.includes("exempt");
+                    let displayTotal = isExempt ? `<td style="font-weight:bold; background:#eef9fa;">${totalSum}</td>` : `<td style="color:#aaa;">-</td>`;
+                    let displayAvg = isExempt ? `<td style="font-weight:bold; background:#f1f1f1;">${average.toFixed(2)}</td>` : `<td style="color:#aaa;">-</td>`;
+                    let rowClickAttr = isExempt ? `onclick="openStudentModal('${sName}')" title="انقر لعرض الاستعراض الفردي الشامل"` : "";
 
                     tableRows += `<tr ${rowClickAttr}>
                         <td>${count}</td>
@@ -302,7 +303,7 @@
             }
         }
 
-        // دالة عرض الاستعراض الفردي مع ترتيب المواد والطباعة المخصصة للطالب فقط
+        // دالة عرض الاستعراض الفردي بنفس ترتيب المواد المعتمد تماماً
         function openStudentModal(sName) {
             let sGrades = globalStudentGrades[sName] || {};
             let modalBody = document.getElementById('printableModalBody');
@@ -342,7 +343,7 @@
                 <span class="close-btn" onclick="closeModal()">&times;</span>
                 <div style="text-align:center; border-bottom: 2px solid #17a2b8; padding-bottom: 10px; margin-bottom: 15px;">
                     <h3 style="margin:0; color:#17a2b8;">🎓 الاستعراض الفردي الشامل للطالب المشمول بالإعفاء</h3>
-                    <p style="margin:5px 0; font-weight:bold; font-size:16px;">الطالب: ${sName} | الصف: ${currentClassName}</p>
+                    <p style="margin:5px 0; font-weight:bold; font-size:15px;">الطالب: ${sName} | الصف: ${currentClassName}</p>
                 </div>
                 <table>
                     <thead>
@@ -356,7 +357,7 @@
                     </thead>
                     <tbody>${detailsRows}</tbody>
                 </table>
-                <div style="margin-top: 15px; display: flex; justify-content: space-around; background: #f8f9fa; padding: 10px; border-radius: 8px; font-weight: bold;">
+                <div style="margin-top: 15px; display: flex; justify-content: space-around; background: #f8f9fa; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 13px;">
                     <div>المجموع الكلي: ${totalSum}</div>
                     <div>المعدل العام: ${avg}</div>
                     <div style="color: #155724;">الحالة: مشمول بالإعفاء العام 🌟</div>
