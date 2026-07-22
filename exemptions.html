@@ -2,395 +2,423 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>نظام استخراج الإعفاء العام - الصفوف غير المنتهية</title>
+    <title>نظام إدارة الإعفاء العام - الإصدار الجديد</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; color: #333; }
-        .container { max-width: 1300px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; background: #f8f9fa; padding: 20px; border-radius: 10px; border: 1px solid #ddd; }
-        select, input { padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%; font-size: 14px; }
-        .btn { padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; width: 100%; font-size: 16px; }
-        .btn-load { background: #17a2b8; }
-        .btn-print { background: #007bff; margin-top: 20px; display: none; }
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --danger-color: #c0392b;
+            --light-bg: #ecf0f1;
+        }
+
+        body { font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--light-bg); margin: 0; padding: 20px; color: var(--primary-color); }
+        .main-wrapper { max-width: 1350px; margin: auto; background: #fff; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
         
-        .result-card { border: 2px solid #17a2b8; padding: 15px; margin-top: 20px; border-radius: 10px; background: #fff; overflow-x: auto; }
-        .card-header { text-align: center; border-bottom: 2px solid #17a2b8; padding-bottom: 8px; margin-bottom: 12px; }
-        .card-header h3 { margin: 0; color: #17a2b8; font-size: 18px; }
+        .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+        .back-link { text-decoration: none; color: #7f8c8d; font-weight: bold; font-size: 15px; transition: 0.3s; }
+        .back-link:hover { color: var(--accent-color); }
+
+        .control-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 15px; background: #fdfefe; padding: 20px; border-radius: 12px; border: 1px solid #dfe6e9; margin-bottom: 25px; }
+        .control-group label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 13px; }
+        .control-group select, .control-group input { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 8px; font-size: 14px; outline: none; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11px; }
-        th, td { border: 1px solid #ddd; padding: 5px 6px; text-align: center; white-space: nowrap; }
-        th { background-color: #17a2b8; color: white; font-size: 11px; }
+        .btn-action { background: var(--accent-color); color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; transition: 0.2s; width: 100%; }
+        .btn-action:hover { background: #2980b9; }
 
-        .exempt { background-color: #d4edda !important; color: #155724; font-weight: bold; cursor: pointer; }
-        .exempt:hover { background-color: #c3e6cb !important; text-decoration: underline; }
-        .not-exempt { background-color: #f8d7da !important; color: #721c24; }
+        .sheet-container { margin-top: 20px; overflow-x: auto; border: 1px solid #bdc3c7; border-radius: 10px; }
+        .sheet-title { text-align: center; background: var(--primary-color); color: #fff; padding: 12px; font-size: 17px; font-weight: bold; }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }
+        th, td { border: 1px solid #dcdde1; padding: 8px 6px; white-space: nowrap; }
+        th { background-color: #34495e; color: #fff; font-weight: 600; }
+        
+        tr.student-row:hover { background-color: #f1f2f6; cursor: pointer; }
+        .status-badge-yes { background-color: #d4edda; color: #155724; font-weight: bold; }
+        .status-badge-no { background-color: #f8d7da; color: #721c24; }
 
-        /* نافذة الاستعراض الفردي */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
-        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 850px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; }
-        .close-btn { float: left; font-size: 22px; font-weight: bold; cursor: pointer; color: #aaa; }
-        .close-btn:hover { color: #000; }
+        /* نافذة الاستعراض الفردي العائمة */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-box { background: #fff; width: 90%; max-width: 800px; padding: 30px; border-radius: 14px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; position: relative; }
+        .close-modal { position: absolute; left: 20px; top: 15px; font-size: 26px; font-weight: bold; cursor: pointer; color: #e74c3c; }
 
-        .footer-note { margin-top: 20px; display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; border-top: 1px dashed #ccc; padding-top: 10px; }
-        #backBtn { display: inline-block; margin-bottom: 15px; color: #6c757d; text-decoration: none; font-weight: bold; }
+        .global-print-btn { background: #27ae60; margin-top: 20px; display: none; }
+        .global-print-btn:hover { background: #219653; }
 
-        /* إعدادات الطباعة الدقيقة لكي تطبع النافذة الفردية لوحدها فقط بدون تداخل مع الجدول العام */
+        /* إعدادات الطباعة الدقيقة (تعزل تماماً نافذة الفردي أو تطبع السجل الكلي بنظافة) */
         @media print {
-            body * { visibility: hidden !important; }
-            body.printing-modal .modal, 
-            body.printing-modal .modal * { visibility: visible !important; }
-            body.printing-modal .modal { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; background: white !important; z-index: 99999 !important; }
-            body.printing-modal .close-btn, 
-            body.printing-modal .btn { display: none !important; }
+            body { background: #fff; padding: 0; }
+            .top-nav, .control-panel, .global-print-btn, .close-modal { display: none !important; }
+            .main-wrapper { box-shadow: none; padding: 0; border: none; width: 100%; }
             
-            /* طباعة الجدول العام الطبيعي عند عدم تفعيل طباعة النافذة الفردية */
-            body:not(.printing-modal) .container * { visibility: visible !important; }
-            body:not(.printing-modal) .controls, 
-            body:not(.printing-modal) #backBtn, 
-            body:not(.printing-modal) .btn-print, 
-            body:not(.printing-modal) .modal { display: none !important; }
-            body:not(.printing-modal) .container { width: 100% !important; padding: 0 !important; box-shadow: none !important; border: none !important; }
+            /* إذا كانت طباعة فردية مفعلة */
+            body.print-mode-single .main-wrapper { display: none !important; }
+            body.print-mode-single .modal-overlay { display: flex !important; position: static !important; background: none !important; }
+            body.print-mode-single .modal-box { box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <a href="index.html" id="backBtn">⬅️ العودة للرئيسية</a>
-        <h2>🌟 سجل درجات السعي والمعدلات وحالات الإعفاء العام</h2>
-        
-        <div class="controls">
-            <div>
-                <label>الصف:</label>
-                <select id="classSelect">
-                    <option>الرابع العلمي</option>
-                    <option>الخامس العلمي</option>
-                    <option>الرابع الأدبي</option>
-                    <option>الخامس الأدبي</option>
-                </select>
-            </div>
-            <div>
-                <label>الشعبة:</label>
-                <select id="sectionSelect">
-                    <option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option>
-                </select>
-            </div>
-            <div>
-                <label>الحد الأدنى لمعدل الإعفاء:</label>
-                <input type="number" id="minAverage" value="85" min="50" max="100">
-            </div>
-            <div>
-                <label>أقل درجة مسموحة بالمادة:</label>
-                <input type="number" id="minSubjectMark" value="75" min="50" max="100">
-            </div>
-            <div style="grid-column: span 2; display: flex; align-items: flex-end;">
-                <button class="btn btn-load" onclick="processExemptions()">عرض السجل الكلي والنتائج</button>
-            </div>
-        </div>
 
-        <div id="resultsContainer"></div>
-        <button class="btn btn-print" id="printAllBtn" onclick="window.print()">🖨️ طباعة السجل</button>
+<div class="main-wrapper">
+    <div class="top-nav">
+        <a href="index.html" class="back-link">⬅️ العودة للرئيسية</a>
+        <h2 style="margin:0; font-size: 20px; color: var(--primary-color);">🌟 نظام استخراج الإعفاء العام (الإصدار المطور)</h2>
     </div>
 
-    <!-- نافذة الاستعراض الفردي الشامل -->
-    <div id="studentModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeModal()">&times;</span>
-            <div id="printableModalBody"></div>
+    <div class="control-panel">
+        <div class="control-group">
+            <label>اختر الصف الدراسي:</label>
+            <select id="boxClass">
+                <option>الرابع العلمي</option>
+                <option>الخامس العلمي</option>
+                <option>الرابع الأدبي</option>
+                <option>الخامس الأدبي</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>اختر الشعبة:</label>
+            <select id="boxSection">
+                <option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>الحد الأدنى للمعدل العام:</label>
+            <input type="number" id="boxMinAvg" value="85" min="50" max="100">
+        </div>
+        <div class="control-group">
+            <label>أقل درجة مسموحة بالمادة:</label>
+            <input type="number" id="boxMinSub" value="75" min="50" max="100">
+        </div>
+        <div class="control-group" style="grid-column: span 2; display: flex; align-items: flex-end;">
+            <button class="btn-action" onclick="initSystem()">⚡ توليد وعرض سجل النتائج</button>
         </div>
     </div>
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw",
-            authDomain: "school-2-2026.firebaseapp.com",
-            projectId: "school-2-2026",
-            storageBucket: "school-2-2026.firebasestorage.app",
-            messagingSenderId: "283472829932",
-            appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9"
-        };
-        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+    <div id="dynamicOutputArea"></div>
+    <button class="btn-action global-print-btn" id="printFullSheetBtn" onclick="window.print()">🖨️ طباعة السجل الكلي</button>
+</div>
 
-        // الترتيب المطلوب بدقة وثبات للمواد في الجدول العام والجدول الفردي
-        const targetSubjectOrder = ["الاسلامية", "العربي", "الانكليزي", "الرياضيات", "الحاسوب", "الاحياء", "الكيمياء", "الفيزياء", "الجرائم", "الرياضة", "الفنية"];
+<!-- نافذة التفاصيل الفردية للطالب -->
+<div class="modal-overlay" id="studentModalOverlay">
+    <div class="modal-box" id="studentModalContentBox">
+        <span class="close-modal" onclick="closeStudentModal()">&times;</span>
+        <div id="studentModalInnerHtml"></div>
+    </div>
+</div>
 
-        function extractSubjectMarks(sub, subObj) {
-            let f1 = '-', mid = '-', f2 = '-', saei = 0;
-            if (!subObj) return { f1, mid, f2, saei };
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw",
+        authDomain: "school-2-2026.firebaseapp.com",
+        projectId: "school-2-2026",
+        storageBucket: "school-2-2026.firebasestorage.app",
+        messagingSenderId: "283472829932",
+        appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9"
+    };
+    if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-            let isExtended = sub.includes("الانكليزي") || sub.includes("الإنكليزي") || sub.includes("الحاسوب");
+    // القائمة القياسية والموحدة لترتيب المواد في الجدولين العام والفردي
+    const FIXED_SUBJECT_ORDER = [
+        "الاسلامية", "العربي", "الانكليزي", "الرياضيات", 
+        "الحاسوب", "الاحياء", "الكيمياء", "الفيزياء", 
+        "الجرائم", "الرياضة", "الفنية"
+    ];
 
-            if (Array.isArray(subObj)) {
-                if (isExtended) {
-                    f1 = subObj[6] !== undefined && subObj[6] !== "" ? subObj[6] : '-';
-                    mid = subObj[7] !== undefined && subObj[7] !== "" ? subObj[7] : '-';
-                    f2 = subObj[14] !== undefined && subObj[14] !== "" ? subObj[14] : '-';
-                    saei = subObj[15] !== undefined && subObj[15] !== "" ? Number(subObj[15]) || 0 : 0;
-                } else {
-                    f1 = subObj[4] !== undefined && subObj[4] !== "" ? subObj[4] : (subObj[2] !== undefined ? subObj[2] : '-');
-                    mid = subObj[5] !== undefined && subObj[5] !== "" ? subObj[5] : '-';
-                    f2 = subObj[10] !== undefined && subObj[10] !== "" ? subObj[10] : '-';
-                    saei = subObj[11] !== undefined && subObj[11] !== "" ? Number(subObj[11]) || 0 : 0;
-                }
+    let cachedMasterData = {
+        students: [],
+        gradesMap: {},
+        subjectsList: [],
+        className: "",
+        sectionName: "",
+        minAvgLimit: 85,
+        minSubLimit: 75
+    };
+
+    // استخلاص الدرجات بدقة من بيانات الحقول المخزنة
+    function parseSubjectDetails(subName, rawData) {
+        let f1 = '-', mid = '-', f2 = '-', finalScore = 0;
+        if (!rawData) return { f1, mid, f2, finalScore };
+
+        let isExtendedSubject = subName.includes("الانكليزي") || subName.includes("الإنكليزي") || subName.includes("الحاسوب");
+
+        if (Array.isArray(rawData)) {
+            if (isExtendedSubject) {
+                f1 = rawData[6] ?? '-';
+                mid = rawData[7] ?? '-';
+                f2 = rawData[14] ?? '-';
+                finalScore = Number(rawData[15]) || 0;
             } else {
-                saei = Number(subObj) || 0;
+                f1 = rawData[4] ?? (rawData[2] ?? '-');
+                mid = rawData[5] ?? '-';
+                f2 = rawData[10] ?? '-';
+                finalScore = Number(rawData[11]) || 0;
             }
-            return { f1, mid, f2, saei };
+        } else {
+            finalScore = Number(rawData) || 0;
         }
+        return { f1, mid, f2, finalScore };
+    }
 
-        let globalStudentGrades = {};
-        let globalSubjects = [];
-        let currentClassName = "";
+    async function initSystem() {
+        const className = document.getElementById('boxClass').value;
+        const sectionName = document.getElementById('boxSection').value;
+        const minAvg = parseFloat(document.getElementById('boxMinAvg').value) || 85;
+        const minSub = parseFloat(document.getElementById('boxMinSub').value) || 75;
+        const outputArea = document.getElementById('dynamicOutputArea');
 
-        async function processExemptions() {
-            currentClassName = document.getElementById('classSelect').value;
-            const sectionName = document.getElementById('sectionSelect').value;
-            const minAvg = parseFloat(document.getElementById('minAverage').value) || 85;
-            const minSub = parseFloat(document.getElementById('minSubjectMark').value) || 75;
-            const container = document.getElementById('resultsContainer');
-            
-            container.innerHTML = "<p style='text-align:center;'>جاري جلب البيانات...</p>";
+        outputArea.innerHTML = "<p style='text-align:center; padding:20px; font-weight:bold; color:#7f8c8d;'>جاري سحب ومطابقة البيانات من الخادم...</p>";
+        document.getElementById('printFullSheetBtn').style.display = "none";
 
-            try {
-                const studentsSnap = await db.collection("students").where("class", "==", currentClassName).get();
-                let students = [];
-                studentsSnap.forEach(s => {
-                    let data = s.data();
-                    if (data.section == sectionName) {
-                        students.push(data.name);
-                    }
-                });
-
-                if(students.length === 0) {
-                    container.innerHTML = "<p style='text-align:center; color:red;'>لا يوجد طلاب مسجلين في هذا الصف والشعبة.</p>";
-                    document.getElementById('printAllBtn').style.display = "none";
-                    return;
-                }
-                students.sort((a, b) => a.localeCompare(b, 'ar'));
-
-                const allGradesSnap = await db.collection("grades").get();
-                globalStudentGrades = {};
-                let rawSubjectsSet = new Set();
-
-                allGradesSnap.forEach(doc => {
-                    const docId = doc.id;
-                    const data = doc.data();
-                    if (docId.includes(currentClassName) && docId.includes(sectionName)) {
-                        let subName = docId.split('_').slice(2).join('_') || data.subject || "";
-                        subName = subName.replace(/سعي/g, "").trim();
-                        if (!subName || subName === "مادة") return;
-
-                        rawSubjectsSet.add(subName);
-
-                        for (let key in data) {
-                            if (key !== "class" && key !== "section" && key !== "subject" && key !== "teacher") {
-                                if (!globalStudentGrades[key]) globalStudentGrades[key] = {};
-                                globalStudentGrades[key][subName] = data[key];
-                            }
-                        }
-                    }
-                });
-
-                // ترتيب المواد بناءً على مصفوفة الترتيب المعتمدة حصراً وبنفس الترتيب
-                globalSubjects = [];
-                targetSubjectOrder.forEach(tSub => {
-                    let found = Array.from(rawSubjectsSet).find(r => r.includes(tSub) || tSub.includes(r));
-                    if (found && !globalSubjects.includes(found)) globalSubjects.push(found);
-                });
-                rawSubjectsSet.forEach(r => {
-                    if (!globalSubjects.includes(r)) globalSubjects.push(r);
-                });
-
-                if (globalSubjects.length === 0) {
-                    container.innerHTML = `<div class="result-card"><p style='text-align:center; color:orange;'>لم يتم العثور على درجات مواد حقيقية.</p></div>`;
-                    document.getElementById('printAllBtn').style.display = "none";
-                    return;
-                }
-
-                let subHeaders = "";
-                globalSubjects.forEach(sub => {
-                    subHeaders += `<th>${sub}</th>`;
-                });
-
-                let tableRows = "";
-                let count = 0;
-
-                students.forEach(sName => {
-                    count++;
-                    let sGrades = globalStudentGrades[sName] || {};
-                    let totalSum = 0;
-                    let validSubjectsCount = 0;
-                    let lowestMark = 100;
-                    let isEligible = true;
-                    let subCells = "";
-
-                    globalSubjects.forEach(sub => {
-                        let gradeArr = sGrades[sub];
-                        if (!gradeArr) {
-                            let foundKey = Object.keys(sGrades).find(k => k.includes(sub));
-                            if (foundKey) gradeArr = sGrades[foundKey];
-                        }
-
-                        let marks = extractSubjectMarks(sub, gradeArr);
-                        let finalMark = marks.saei;
-                        
-                        if (gradeArr && finalMark > 0) {
-                            totalSum += finalMark;
-                            validSubjectsCount++;
-                            if (finalMark < lowestMark) lowestMark = finalMark;
-                            if (finalMark < minSub) isEligible = false;
-                        }
-
-                        let markColor = (finalMark < 50 && finalMark > 0) ? "color: red; font-weight: bold;" : "";
-                        subCells += `<td style="${markColor}">${finalMark > 0 ? finalMark : '-'}</td>`;
-                    });
-
-                    let average = validSubjectsCount > 0 ? (totalSum / validSubjectsCount) : 0;
-                    let statusClass = "not-exempt";
-                    let statusText = "غير مشمول";
-
-                    if (validSubjectsCount > 0 && isEligible && average >= minAvg) {
-                        statusClass = "exempt";
-                        statusText = "مشمول بالإعفاء (انقر للاستعراض)";
-                    } else {
-                        if (validSubjectsCount === 0) statusText = "لا توجد درجات";
-                        else if (average < minAvg && lowestMark >= minSub) statusText = "غير مشمول (المعدل)";
-                        else if (lowestMark < minSub) statusText = "غير مشمول (درجة مادة)";
-                    }
-
-                    // إخفاء المجموع والمعدل بوضع شرطة (-) تماماً إذا لم يكن الطالب مشمولاً بالإعفاء
-                    let isExempt = statusClass.includes("exempt");
-                    let displayTotal = isExempt ? `<td style="font-weight:bold; background:#eef9fa;">${totalSum}</td>` : `<td style="color:#aaa; font-weight:bold;">-</td>`;
-                    let displayAvg = isExempt ? `<td style="font-weight:bold; background:#f1f1f1;">${average.toFixed(2)}</td>` : `<td style="color:#aaa; font-weight:bold;">-</td>`;
-                    let rowClickAttr = isExempt ? `onclick="openStudentModal('${sName}')" title="انقر لعرض الاستعراض الفردي الشامل"` : "";
-
-                    tableRows += `<tr ${rowClickAttr}>
-                        <td>${count}</td>
-                        <td style="text-align:right; font-weight:bold;">${sName}</td>
-                        ${subCells}
-                        ${displayTotal}
-                        ${displayAvg}
-                        <td class="${statusClass}">${statusText}</td>
-                    </tr>`;
-                });
-
-                container.innerHTML = `
-                <div class="result-card">
-                    <div class="card-header">
-                        <h3>سجل درجات السعي والمعدلات - الصف: ${currentClassName} (${sectionName})</h3>
-                        <p>الحد الأدنى للإعفاء: معدل $\ge ${minAvg}$ | أقل درجة $\ge ${minSub}$ (انقر على اسم الطالب المشمول لاستعراض تفاصيله)</p>
-                    </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ت</th>
-                                <th>اسم الطالب</th>
-                                ${subHeaders}
-                                <th>المجموع</th>
-                                <th>المعدل</th>
-                                <th>الحالة</th>
-                            </tr>
-                        </thead>
-                        <tbody>${tableRows}</tbody>
-                    </table>
-                    <div class="footer-note">
-                        <div>توقيع إدارة المدرسة: ........................</div>
-                        <div>ختم المدرسة</div>
-                    </div>
-                </div>`;
-                
-                document.getElementById('printAllBtn').style.display = "block";
-
-            } catch (err) {
-                container.innerHTML = `<p style='text-align:center; color:red;'>حدث خطأ: ${err.message}</p>`;
-                document.getElementById('printAllBtn').style.display = "none";
-            }
-        }
-
-        // دالة عرض الاستعراض الفردي بنفس ترتيب المواد المعتمد تماماً وبدون أي اختلاف
-        function openStudentModal(sName) {
-            let sGrades = globalStudentGrades[sName] || {};
-            let modalBody = document.getElementById('printableModalBody');
-            
-            let detailsRows = "";
-            let totalSum = 0;
-            let count = 0;
-
-            globalSubjects.forEach(sub => {
-                let gradeArr = sGrades[sub];
-                if (!gradeArr) {
-                    let foundKey = Object.keys(sGrades).find(k => k.includes(sub));
-                    if (foundKey) gradeArr = sGrades[foundKey];
-                }
-
-                let marks = extractSubjectMarks(sub, gradeArr);
-                let f1 = marks.f1;
-                let mid = marks.mid;
-                let f2 = marks.f2;
-                let saei = marks.saei;
-
-                totalSum += saei;
-                count++;
-
-                detailsRows += `<tr>
-                    <td style="font-weight:bold; text-align:right;">${sub}</td>
-                    <td>${f1}</td>
-                    <td>${mid}</td>
-                    <td>${f2}</td>
-                    <td style="font-weight:bold; background:#eef9fa;">${saei > 0 ? saei : '-'}</td>
-                </tr>`;
+        try {
+            // 1. جلب الطلاب
+            const studentSnapshot = await db.collection("students").where("class", "==", className).get();
+            let studentNames = [];
+            studentSnapshot.forEach(doc => {
+                let data = doc.data();
+                if(data.section == sectionName) studentNames.push(data.name);
             });
 
-            let avg = count > 0 ? (totalSum / count).toFixed(2) : 0;
+            if(studentNames.length === 0) {
+                outputArea.innerHTML = `<p style='text-align:center; color:var(--danger-color); font-weight:bold;'>لا يوجد طلاب مسجلين في ${className} - الشعبة (${sectionName}).</p>`;
+                return;
+            }
+            studentNames.sort((a, b) => a.localeCompare(b, 'ar'));
 
-            modalBody.innerHTML = `
-                <span class="close-btn" onclick="closeModal()">&times;</span>
-                <div style="text-align:center; border-bottom: 2px solid #17a2b8; padding-bottom: 10px; margin-bottom: 15px;">
-                    <h3 style="margin:0; color:#17a2b8;">🎓 الاستعراض الفردي الشامل للطالب المشمول بالإعفاء</h3>
-                    <p style="margin:5px 0; font-weight:bold; font-size:15px;">الطالب: ${sName} | الصف: ${currentClassName}</p>
-                </div>
+            // 2. جلب الدرجات
+            const gradesSnapshot = await db.collection("grades").get();
+            let rawSubSet = new Set();
+            let gradesMap = {};
+
+            gradesSnapshot.forEach(doc => {
+                let docId = doc.id;
+                let data = doc.data();
+                if(docId.includes(className) && docId.includes(sectionName)) {
+                    let sub = docId.split('_').slice(2).join('_') || data.subject || "";
+                    sub = sub.replace(/سعي/g, "").trim();
+                    if(!sub || sub === "مادة") return;
+
+                    rawSubSet.add(sub);
+
+                    for(let key in data) {
+                        if(!["class", "section", "subject", "teacher"].includes(key)) {
+                            if(!gradesMap[key]) gradesMap[key] = {};
+                            gradesMap[key][sub] = data[key];
+                        }
+                    }
+                }
+            });
+
+            // 3. ترتيب المواد بناءً على المصفوفة القياسية الثابتة
+            let activeSubjects = [];
+            FIXED_SUBJECT_ORDER.forEach(target => {
+                let found = Array.from(rawSubSet).find(item => item.includes(target) || target.includes(item));
+                if(found && !activeSubjects.includes(found)) activeSubjects.push(found);
+            });
+            rawSubSet.forEach(item => {
+                if(!activeSubjects.includes(item)) activeSubjects.push(item);
+            });
+
+            if(activeSubjects.length === 0) {
+                outputArea.innerHTML = `<p style='text-align:center; color:var(--danger-color); font-weight:bold;'>لا توجد سجلات درجات مرصودة لهذه الشعبة حتى الآن.</p>`;
+                return;
+            }
+
+            // تخزين مؤقت للاستخدام في النوافذ الفردية
+            cachedMasterData = {
+                students: studentNames,
+                gradesMap: gradesMap,
+                subjectsList: activeSubjects,
+                className: className,
+                sectionName: sectionName,
+                minAvgLimit: minAvg,
+                minSubLimit: minSub
+            };
+
+            buildMasterTableUI();
+
+        } catch (error) {
+            outputArea.innerHTML = `<p style='text-align:center; color:var(--danger-color);'>حدث خطأ تقني: ${error.message}</p>`;
+        }
+    }
+
+    function buildMasterTableUI() {
+        const outputArea = document.getElementById('dynamicOutputArea');
+        let { students, gradesMap, subjectsList, className, sectionName, minAvgLimit, minSubLimit } = cachedMasterData;
+
+        let thsHtml = "";
+        subjectsList.forEach(sub => { thsHtml += `<th>${sub}</th>`; });
+
+        let rowsHtml = "";
+        let counter = 0;
+
+        students.forEach(student => {
+            counter++;
+            let sGrades = gradesMap[student] || {};
+            let sumMarks = 0;
+            let countValidSubs = 0;
+            let lowestScore = 100;
+            let isPassRules = true;
+            let cellsHtml = "";
+
+            subjectsList.forEach(sub => {
+                let rawVal = sGrades[sub];
+                if(!rawVal) {
+                    let altKey = Object.keys(sGrades).find(k => k.includes(sub));
+                    if(altKey) rawVal = sGrades[altKey];
+                }
+
+                let parsed = parseSubjectDetails(sub, rawVal);
+                let score = parsed.finalScore;
+
+                if(rawVal && score > 0) {
+                    sumMarks += score;
+                    countValidSubs++;
+                    if(score < lowestScore) lowestScore = score;
+                    if(score < minSubLimit) isPassRules = false;
+                }
+
+                let redText = (score < 50 && score > 0) ? "color: red; font-weight: bold;" : "";
+                cellsHtml += `<td style="${redText}">${score > 0 ? score : '-'}</td>`;
+            });
+
+            let averageVal = countValidSubs > 0 ? (sumMarks / countValidSubs) : 0;
+            let isQualified = (countValidSubs > 0 && isPassRules && averageVal >= minAvgLimit);
+
+            let statusClass = isQualified ? "status-badge-yes" : "status-badge-no";
+            let statusText = "";
+
+            if (isQualified) {
+                statusText = "مشمول بالإعفاء (انقر للاستعراض)";
+            } else {
+                if (countValidSubs === 0) statusText = "لا توجد درجات";
+                else if (averageVal < minAvgLimit && lowestScore >= minSubLimit) statusText = "غير مشمول (المعدل)";
+                else statusText = "غير مشمول (درجة مادة)";
+            }
+
+            // القاعدة الحاسمة: المجموع والمعدل لا يظهران أبداً إلا إذا كان الطالب مشمولاً تماماً
+            let totalColContent = isQualified ? `<td style="font-weight:bold; background:#e8f8f5;">${sumMarks}</td>` : `<td style="color:#b2babb; font-weight:bold;">-</td>`;
+            let avgColContent = isQualified ? `<td style="font-weight:bold; background:#e8f8f5;">${averageVal.toFixed(2)}</td>` : `<td style="color:#b2babb; font-weight:bold;">-</td>`;
+            let clickEventAttr = isQualified ? `onclick="openIndividualStudentModal('${student}')" title="انقر لعرض الاستعراض الفردي الشامل"` : "";
+
+            rowsHtml += `
+                <tr class="student-row" ${clickEventAttr}>
+                    <td>${counter}</td>
+                    <td style="text-align: right; font-weight: bold;">${student}</td>
+                    ${cellsHtml}
+                    ${totalColContent}
+                    ${avgColContent}
+                    <td class="${statusClass}">${statusText}</td>
+                </tr>
+            `;
+        });
+
+        outputArea.innerHTML = `
+            <div class="sheet-container">
+                <div class="sheet-title">سجل درجات السعي والمعدلات النهائية - ${className} (${sectionName})</div>
                 <table>
                     <thead>
                         <tr>
-                            <th>المادة</th>
-                            <th>الفصل الأول</th>
-                            <th>نصف السنة</th>
-                            <th>الفصل الثاني</th>
-                            <th>السعي السنوي</th>
+                            <th>ت</th>
+                            <th>اسم الطالب</th>
+                            ${thsHtml}
+                            <th>المجموع الكلي</th>
+                            <th>المعدل العام</th>
+                            <th>حالة الإعفاء</th>
                         </tr>
                     </thead>
-                    <tbody>${detailsRows}</tbody>
+                    <tbody>${rowsHtml}</tbody>
                 </table>
-                <div style="margin-top: 15px; display: flex; justify-content: space-around; background: #f8f9fa; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 13px;">
-                    <div>المجموع الكلي: ${totalSum}</div>
-                    <div>المعدل العام: ${avg}</div>
-                    <div style="color: #155724;">الحالة: مشمول بالإعفاء العام 🌟</div>
-                </div>
-                <div style="text-align: center; margin-top: 20px;">
-                    <button class="btn btn-load" style="width: auto; padding: 8px 20px;" onclick="printSingleStudent()">🖨️ طباعة النتيجة الفردية</button>
-                </div>
-            `;
+            </div>
+        `;
+        document.getElementById('printFullSheetBtn').style.display = "block";
+    }
 
-            document.getElementById('studentModal').style.display = "flex";
-        }
+    // دالة عرض النافذة الفردية للطالب مع نفس ترتيب المواد القياسي تماماً
+    function openIndividualStudentModal(studentName) {
+        let sGrades = cachedMasterData.gradesMap[studentName] || {};
+        let subjectsList = cachedMasterData.subjectsList;
+        let innerHtmlContainer = document.getElementById('studentModalInnerHtml');
 
-        function printSingleStudent() {
-            document.body.classList.add('printing-modal');
-            window.print();
-            document.body.classList.remove('printing-modal');
-        }
+        let rowsBuilder = "";
+        let totalSum = 0;
+        let count = 0;
 
-        function closeModal() {
-            document.getElementById('studentModal').style.display = "none";
-        }
-
-        window.onclick = function(event) {
-            let modal = document.getElementById('studentModal');
-            if (event.target == modal) {
-                modal.style.display = "none";
+        subjectsList.forEach(sub => {
+            let rawVal = sGrades[sub];
+            if(!rawVal) {
+                let altKey = Object.keys(sGrades).find(k => k.includes(sub));
+                if(altKey) rawVal = sGrades[altKey];
             }
+
+            let parsed = parseSubjectDetails(sub, rawVal);
+            totalSum += parsed.finalScore;
+            count++;
+
+            rowsBuilder += `
+                <tr>
+                    <td style="text-align:right; font-weight:bold;">${sub}</td>
+                    <td>${parsed.f1}</td>
+                    <td>${parsed.mid}</td>
+                    <td>${parsed.f2}</td>
+                    <td style="font-weight:bold; background:#f4f6f7;">${parsed.finalScore > 0 ? parsed.finalScore : '-'}</td>
+                </tr>
+            `;
+        });
+
+        let finalAverage = count > 0 ? (totalSum / count).toFixed(2) : 0;
+
+        innerHtmlContainer.innerHTML = `
+            <span class="close-modal" onclick="closeStudentModal()">&times;</span>
+            <div style="text-align:center; border-bottom: 2px solid var(--accent-color); padding-bottom: 12px; margin-bottom: 15px;">
+                <h3 style="margin:0; color:var(--accent-color);">🎓 الاستعراض الفردي الشامل للإعفاء العام</h3>
+                <p style="margin:6px 0; font-weight:bold; font-size:15px;">الطالب: ${studentName} | الصف: ${cachedMasterData.className}</p>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>المادة الدراسية</th>
+                        <th>الفصل الأول</th>
+                        <th>نصف السنة</th>
+                        <th>الفصل الثاني</th>
+                        <th>السعي السنوي</th>
+                    </tr>
+                </thead>
+                <tbody>${rowsBuilder}</tbody>
+            </table>
+            <div style="margin-top: 18px; display: flex; justify-content: space-around; background: #f8f9fa; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 13px;">
+                <div>المجموع الكلي: ${totalSum}</div>
+                <div>المعدل العام: ${finalAverage}</div>
+                <div style="color: var(--success-color);">الحالة: مشمول بالإعفاء العام 🌟</div>
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn-action" style="width: auto; padding: 10px 25px;" onclick="triggerSinglePrint()">🖨️ طباعة النتيجة الفردية فقط</button>
+            </div>
+        `;
+
+        document.getElementById('studentModalOverlay').style.display = 'flex';
+    }
+
+    function closeStudentModal() {
+        document.getElementById('studentModalOverlay').style.display = 'none';
+    }
+
+    function triggerSinglePrint() {
+        document.body.classList.add('print-mode-single');
+        window.print();
+        document.body.classList.remove('print-mode-single');
+    }
+
+    window.onclick = function(event) {
+        let overlay = document.getElementById('studentModalOverlay');
+        if (event.target === overlay) {
+            closeStudentModal();
         }
-    </script>
+    }
+</script>
+
 </body>
 </html>
