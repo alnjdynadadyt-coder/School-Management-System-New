@@ -8,10 +8,11 @@
     <style>
         :root {
             --primary-color: #2c3e50;
-            --accent-color: #3498db;
+            --accent-color: #2980b9;
             --success-color: #27ae60;
             --danger-color: #c0392b;
             --light-bg: #ecf0f1;
+            --gold-color: #d4ac0d;
         }
 
         body { font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--light-bg); margin: 0; padding: 20px; color: var(--primary-color); }
@@ -26,7 +27,7 @@
         .control-group select, .control-group input { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 8px; font-size: 14px; outline: none; }
         
         .btn-action { background: var(--accent-color); color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; transition: 0.2s; width: 100%; }
-        .btn-action:hover { background: #2980b9; }
+        .btn-action:hover { background: #1f618d; }
 
         .sheet-container { margin-top: 20px; overflow-x: auto; border: 1px solid #bdc3c7; border-radius: 10px; }
         .sheet-title { text-align: center; background: var(--primary-color); color: #fff; padding: 12px; font-size: 17px; font-weight: bold; }
@@ -40,29 +41,25 @@
         .status-badge-no { background-color: #f8d7da; color: #721c24; }
 
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center; }
-        .modal-box { background: #fff; width: 95%; max-width: 850px; padding: 35px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-height: 95vh; overflow-y: auto; position: relative; }
+        .modal-box { background: #fff; width: 95%; max-width: 750px; padding: 25px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-height: 95vh; overflow-y: auto; position: relative; }
         .close-modal { position: absolute; left: 20px; top: 15px; font-size: 26px; font-weight: bold; cursor: pointer; color: #e74c3c; }
 
         .global-print-btn { background: #27ae60; margin-top: 20px; display: none; }
         .global-print-btn:hover { background: #219653; }
 
-        /* إعدادات الطباعة المخصصة */
+        /* إعدادات الطباعة المخصصة للشهادة الفردية */
         @media print {
-            @page { size: A4 landscape; margin: 10mm; }
-            body { background: #fff; padding: 0; font-size: 10px; }
+            @page { size: A4 portrait; margin: 8mm; }
+            body { background: #fff; padding: 0; font-size: 11px; }
             .top-nav, .control-panel, .global-print-btn, .close-modal { display: none !important; }
-            .main-wrapper { box-shadow: none; padding: 0; border: none; width: 100%; margin: 0; }
+            .main-wrapper { display: none !important; }
             
-            body.print-mode-single {
-                @page { size: A4 portrait; margin: 12mm; }
-            }
-            body.print-mode-single .main-wrapper { display: none !important; }
             body.print-mode-single .modal-overlay { display: flex !important; position: static !important; background: none !important; }
-            body.print-mode-single .modal-box { box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 15px !important; border: 3px double #2c3e50 !important; border-radius: 10px !important; }
+            body.print-mode-single .modal-box { box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 5px !important; border: 3px double #2c3e50 !important; border-radius: 8px !important; margin: 0 !important; }
             body.print-mode-single .btn-action { display: none !important; }
             
-            table { font-size: 13px; }
-            th, td { padding: 9px 7px; }
+            table { font-size: 11px; width: 100% !important; }
+            th, td { padding: 5px 4px; }
         }
     </style>
 </head>
@@ -352,7 +349,7 @@
             let rawVal = sGrades[sub];
             if(!rawVal) {
                 let altKey = Object.keys(sGrades).find(k => k.includes(sub));
-                if(altKey) rawVal = sGrades[altKey];
+                if(altKey) rawVal = sGrales[altKey] || sGrades[altKey];
             }
 
             let parsed = parseSubjectDetails(sub, rawVal);
@@ -361,11 +358,11 @@
 
             rowsBuilder += `
                 <tr>
-                    <td style="text-align:right; font-weight:bold;">${sub}</td>
-                    <td>${parsed.f1}</td>
-                    <td>${parsed.mid}</td>
-                    <td>${parsed.f2}</td>
-                    <td style="font-weight:bold; background:#f4f6f7;">${parsed.finalScore > 0 ? parsed.finalScore : '-'}</td>
+                    <td style="text-align:right; font-weight:bold; color:#1b4f72;">📚 ${sub}</td>
+                    <td style="color: #566573;">${parsed.f1}</td>
+                    <td style="color: #566573;">${parsed.mid}</td>
+                    <td style="color: #566573;">${parsed.f2}</td>
+                    <td style="font-weight:bold; background:#ebf5fb; color:#154360; font-size:13px;">${parsed.finalScore > 0 ? parsed.finalScore : '-'}</td>
                 </tr>
             `;
         });
@@ -374,35 +371,44 @@
 
         innerHtmlContainer.innerHTML = `
             <span class="close-modal" onclick="closeStudentModal()">&times;</span>
-            <div style="text-align:center; border-bottom: 2px solid var(--accent-color); padding-bottom: 12px; margin-bottom: 15px;">
-                <h3 style="margin:0 0 5px 0; color:var(--primary-color); font-size: 19px;">🌟 شهادة التميز والاستحقاق للإعفاء العام 🌟</h3>
-                <h4 style="margin:0; color:var(--accent-color); font-size: 15px;">كشف درجات السعي السنوي الفردي</h4>
-                <p style="margin:8px 0 0 0; font-weight:bold; font-size:14px; color:#444;">الطالب المميز: ${studentName} &nbsp;|&nbsp; الصف: ${cachedMasterData.className} &nbsp;|&nbsp; الشعبة: (${cachedMasterData.sectionName})</p>
+            
+            <!-- 1. عبارة الشكر والتشجيع في المقدمة بألوان براقة -->
+            <div style="background: linear-gradient(135deg, #fef9e7, #fcf3cf); padding: 12px 15px; border-radius: 10px; border: 2px solid #f39c12; text-align: center; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(243, 156, 18, 0.15);">
+                <h3 style="margin: 0 0 5px 0; color: #b7950b; font-size: 16px;">✨ شهادة التميز والاستحقاق للإعفاء العام ✨</h3>
+                <p style="margin: 0; font-size: 12px; font-weight: bold; color: #7d6608; line-height: 1.5;">
+                    "إلى الطالب المتألق، مبارك لك هذا التميز والنجاح الباهر. جهودك المبذولة أثمرت تفوقاً تفتخر به المدرسة، مع تمنياتنا لك دوام التألق والابداع في مسيرتك العلمية." 🌸🎓
+                </p>
             </div>
+
+            <!-- 2. معلومات الطالب -->
+            <div style="text-align:center; background: #eaf2f8; padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #d4e6f1;">
+                <h4 style="margin:0; color:var(--accent-color); font-size: 14px;">كشف درجات السعي السنوي الفردي</h4>
+                <p style="margin:5px 0 0 0; font-weight:bold; font-size:13px; color:#2c3e50;">الطالب المميز: <span style="color:#1b4f72;">${studentName}</span> &nbsp;|&nbsp; الصف: ${cachedMasterData.className} &nbsp;|&nbsp; الشعبة: (${cachedMasterData.sectionName})</p>
+            </div>
+
+            <!-- 3. جدول الدرجات بتنسيق أنيق ومضغوط -->
             <table>
                 <thead>
                     <tr>
-                        <th>المادة الدراسية</th>
-                        <th>الفصل الأول</th>
-                        <th>نصف السنة</th>
-                        <th>الفصل الثاني</th>
-                        <th>السعي السنوي</th>
+                        <th style="background: #2e4053;">المادة الدراسية</th>
+                        <th style="background: #2e4053;">الفصل الأول</th>
+                        <th style="background: #2e4053;">نصف السنة</th>
+                        <th style="background: #2e4053;">الفصل الثاني</th>
+                        <th style="background: #1f618d;">السعي السنوي</th>
                     </tr>
                 </thead>
                 <tbody>${rowsBuilder}</tbody>
             </table>
-            <div style="margin-top: 15px; display: flex; justify-content: space-around; background: #f8f9fa; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 13px; border: 1px solid #e2e8f0;">
-                <div>المجموع الكلي: ${totalSum}</div>
-                <div>المعدل العام: ${finalAverage}</div>
+
+            <!-- 4. شريط النتائج والمعدل -->
+            <div style="margin-top: 12px; display: flex; justify-content: space-around; background: #f2f4f4; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 12px; border: 1px solid #d5dbdb;">
+                <div>المجموع الكلي: <span style="color:#117a65;">${totalSum}</span></div>
+                <div>المعدل العام: <span style="color:#117a65;">${finalAverage}</span></div>
                 <div style="color: var(--success-color);">الحالة: مشمول بالإعفاء العام ✨</div>
             </div>
-            <div style="margin-top: 15px; text-align: center; background: #eaf2f8; padding: 12px; border-radius: 8px; border-right: 4px solid var(--accent-color);">
-                <p style="margin: 0; font-size: 13px; font-weight: bold; color: #2c3e50; line-height: 1.6;">
-                    "إلى الطالب المتألق، مبارك لك هذا التميز والنجاح الباهر. جهودك المبذولة أثمرت تفوقاً تفتخر به المدرسة، مع تمنياتنا لك دوام التألق والابداع في مسيرتك العلمية." 🌸🎓
-                </p>
-            </div>
-            <div style="text-align: center; margin-top: 20px;">
-                <button class="btn-action" style="width: auto; padding: 10px 30px;" onclick="triggerSinglePrint()">🖨️ طباعة الشهادة الفردية المنسقة</button>
+
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn-action" style="width: auto; padding: 10px 25px; font-size: 13px;" onclick="triggerSinglePrint()">🖨️ طباعة الشهادة الفردية المنسقة</button>
             </div>
         `;
 
