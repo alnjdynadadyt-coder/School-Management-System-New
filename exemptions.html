@@ -42,8 +42,6 @@
             <div>
                 <label>الصف:</label>
                 <select id="classSelect">
-                    <option>الأول متوسط</option>
-                    <option>الثاني متوسط</option>
                     <option>الرابع العلمي</option>
                     <option>الخامس العلمي</option>
                     <option>الرابع الأدبي</option>
@@ -53,7 +51,7 @@
             <div>
                 <label>الشعبة:</label>
                 <select id="sectionSelect">
-                    <option>أ</option><option>ب</option><option>ج</option><option>د</option>
+                    <option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option>
                 </select>
             </div>
             <div>
@@ -85,21 +83,21 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        function extractMark(subObj) {
-            if (subObj === undefined || subObj === null) return 0;
-            // إذا كانت مصفوفة، نبحث عن الرقم الأكبر أو السعي الموجود داخلها
-            if (Array.isArray(subObj)) {
-                let validNumbers = subObj.map(item => Number(item)).filter(num => !isNaN(num) && num > 0);
-                if (validNumbers.length > 0) {
-                    // عادة السعي السنوي أو الدرجة النهائية تكون في مواقع محددة أو هي القيمة الأكبر المعقولة
-                    // نجرب الفهارس المعتادة أولاً (مثل 11 أو 15 أو أخر عنصر)، وإلا نأخذ أقصى رقم مقنع
-                    let targeted = subObj[15] !== undefined ? Number(subObj[15]) : (subObj[11] !== undefined ? Number(subObj[11]) : null);
-                    if (!isNaN(targeted) && targeted > 0) return targeted;
-                    return Math.max(...validNumbers);
-                }
-                return 0;
+        // تحويل القيمة النصية أو الغيابات إلى أرقام بنفس منطق نظام الدرجات
+        function getVal(v) { 
+            if (v === "غ" || v === "G" || v === "٠" || v === "0" || !v) return 0;
+            let clean = v.toString().replace(/[٠-٩]/g, d => "0123456789".indexOf(d));
+            return parseFloat(clean) || 0; 
+        }
+
+        // استخراج درجة السعي بدقة حسب هيكلة مصفوفة المادة (الفهرس 15 للإنكليزي/الحاسوب أو 11 لبقية المواد)
+        function extractFinalGrade(subName, arr) {
+            if (!Array.isArray(arr)) return 0;
+            if (subName.includes("الإنكليزي") || subName.includes("الحاسوب")) {
+                return getVal(arr[15]);
+            } else {
+                return getVal(arr[11]);
             }
-            return Number(subObj) || 0;
         }
 
         async function processExemptions() {
@@ -112,28 +110,46 @@
             container.innerHTML = "<p style='text-align:center;'>جاري جلب بيانات الطلاب واحتساب الإعفاء...</p>";
 
             try {
+                // 1. جلب الطلاب المطابقين للصف والشعبة
                 const studentsSnap = await db.collection("students")
                     .where("class", "==", className)
-                    .where("section", "==", sectionName)
                     .get();
 
-                if(studentsSnap.empty) {
+                let students = [];
+                studentsSnap.forEach(s => {
+                    let data = s.data();
+                    if (data.section == sectionName) {
+                        students.push(data.name);
+                    }
+                });
+
+                if(students.length === 0) {
                     container.innerHTML = "<p style='text-align:center; color:red;'>لا يوجد طلاب مسجلين في هذا الصف والشعبة.</p>";
                     document.getElementById('printAllBtn').style.display = "none";
                     return;
                 }
 
-                let studentGradesMap = {};
+                // 2. جلب جميع درجات المواد المخزنة في مجموعة grades
                 const allGradesSnap = await db.collection("grades").get();
                 
+                // هيكل لتخزين درجات كل طالب: studentGradesMap[studentName][subjectName] = array of grades
+                let studentGradesMap = {};
+                let subjectsList = new Set();
+
                 allGradesSnap.forEach(doc => {
-                    const data = doc.data();
-                    let rawSubName = doc.id.split('_').slice(2).join('_') || "مادة";
-                    
-                    for(let studentName in data) {
-                        if(studentName !== "class" && studentName !== "section" && studentName !== "subject" && studentName !== "teacher") {
-                            if(!studentGradesMap[studentName]) studentGradesMap[studentName] = {};
-                            studentGradesMap[studentName][rawSubName] = data[studentName];
+                    const docId = doc.id; // صيغة المعرف: className_sectionName_subjectName
+                    // نتحقق أن الوثيقة تخص نفس الصف والشعبة المختارين
+                    if (docId.startsWith(`${className}_${sectionName}_`)) {
+                        let subName = docId.split('_').slice(2).join('_');
+                        subjectsList.add(subName);
+                        const data = doc.data();
+
+                        for (let key in data) {
+                            if (key !== "class" && key !== "section" && key !== "subject" && key !== "teacher") {
+                                let studentName = key;
+                                if (!studentGradesMap[studentName]) studentGradesMap[studentName] = {};
+                                studentGradesMap[studentName][subName] = data[studentName];
+                            }
                         }
                     }
                 });
@@ -141,29 +157,35 @@
                 let exemptRows = "";
                 let count = 0;
 
-                studentsSnap.forEach(studentDoc => {
-                    const sName = studentDoc.data().name;
-                    const sGrades = studentGradesMap[sName] || {};
-                    
-                    let subjects = Object.keys(sGrades);
-                    if(subjects.length === 0) return;
+                // 3. تقييم كل طالب وحساب السعي العام
+                students.forEach(sName => {
+                    let sGrades = studentGradesMap[sName];
+                    if (!sGrades) return; // الطالب ليس لديه درجات مسجلة
 
                     let totalSum = 0;
+                    let subCount = 0;
                     let lowestMark = 100;
                     let isEligible = true;
 
-                    subjects.forEach(sub => {
-                        let mark = extractMark(sGrades[sub]);
-                        totalSum += mark;
-                        if(mark < lowestMark) lowestMark = mark;
-                        if(mark < minSub) {
-                            isEligible = false; 
+                    // فحص جميع المواد التي تم جلبها لهذا الصف والشعبة
+                    subjectsList.forEach(sub => {
+                        let gradeArr = sGrades[sub];
+                        let finalMark = gradeArr ? extractFinalGrade(sub, gradeArr) : 0;
+
+                        totalSum += finalMark;
+                        subCount++;
+
+                        if (finalMark < lowestMark) lowestMark = finalMark;
+                        if (finalMark < minSub) {
+                            isEligible = false; // توجد مادة تقل عن الحد الأدنى المسموح به للإعفاء
                         }
                     });
 
-                    let average = totalSum / subjects.length;
+                    if (subCount === 0) return;
+                    let average = totalSum / subCount;
 
-                    if(isEligible && average >= minAvg) {
+                    // شرط الإعفاء: ألا تقل أي مادة عن الحد الأدنى، والمعدل العام >= الحد الأدنى للمعدل
+                    if (isEligible && average >= minAvg) {
                         count++;
                         exemptRows += `<tr>
                             <td>${count}</td>
@@ -175,7 +197,7 @@
                 });
 
                 if(count === 0) {
-                    container.innerHTML = `<div class="result-card"><p style='text-align:center; color:orange;'>لا يوجد طلاب مشمولين بالإعفاء العام وفق الشروط المحددة (تأكد من مطابقة الصف والشعبة وسجل الدرجات).</p></div>`;
+                    container.innerHTML = `<div class="result-card"><p style='text-align:center; color:orange;'>لا يوجد طلاب مشمولين بالإعفاء العام وفق الشروط المحددة (تأكد من إكمال رصد درجات المواد لهذا الصف والشعبة).</p></div>`;
                     document.getElementById('printAllBtn').style.display = "none";
                     return;
                 }
