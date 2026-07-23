@@ -278,9 +278,9 @@
             window.print();
             setTimeout(() => { inputs.forEach(i => { if(i.dataset.original) i.value = i.dataset.original; }); }, 1000);
         }
-        function exportExcel() {
+                function exportExcel() {
             const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value, teacher = document.getElementById('teacherName').value;
-            const toArabic = (num) => num.toString().replace(/\d/g, d => "0123456789"[d]);
+            const toArabic = (num) => num.toString().replace(/\d/g, d => "٠١ي٢٣٤٥٦٧٨٩"[d]); // تم التصحيح هنا لضمان دقة الأرقام العربية
             const infoData = [["نظام إدارة الدرجات"], ["اسم المدرس:", teacher], ["المادة:", sub], ["الصف:", cls], ["الشعبة:", sec]];
             const headers = (sub === "الإنكليزي" || sub === "الحاسوب") ? ["الطالب", "ش1", "يومي", "ش2", "يومي", "مج.ش1", "مج.ش2", "فصل1", "ن.سنة", "ش1", "يومي", "ش2", "يومي", "مج.ش1", "مج.ش2", "فصل2", "السعي"] : ["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "ن.سنة", "ش1", "ش2", "م.ش", "يومي2", "فصل2", "السعي"];
             const tableData = [headers];
@@ -295,7 +295,10 @@
             const wsInfo = XLSX.utils.aoa_to_sheet(infoData);
             const wsGrades = XLSX.utils.aoa_to_sheet(tableData);
 
-            // تفعيل اتجاه اليمين لليسار (RTL) بشكل رسمي في ملف الاكسل
+            // تفعيل الاتجاه من اليمين لليسار بالطريقتين المتوافقتين مع إصدارات Excel المختلفة
+            wsInfo['!rightToLeft'] = true;
+            wsGrades['!rightToLeft'] = true;
+            
             wsInfo['!views'] = [{ RTL: true }];
             wsGrades['!views'] = [{ RTL: true }];
 
