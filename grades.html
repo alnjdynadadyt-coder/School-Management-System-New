@@ -279,7 +279,7 @@
             setTimeout(() => { inputs.forEach(i => { if(i.dataset.original) i.value = i.dataset.original; }); }, 1000);
         }
 
-        function exportExcel() {
+                function exportExcel() {
             const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value, teacher = document.getElementById('teacherName').value;
             const toArabic = (num) => num.toString().replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);
             const infoData = [["نظام إدارة الدرجات"], ["اسم المدرس:", teacher], ["المادة:", sub], ["الصف:", cls], ["الشعبة:", sec]];
@@ -295,6 +295,10 @@
             const wb = XLSX.utils.book_new();
             const wsInfo = XLSX.utils.aoa_to_sheet(infoData);
             const wsGrades = XLSX.utils.aoa_to_sheet(tableData);
+
+            // تفعيل اتجاه اليمين لليسار (RTL) لـ Excel بشكل رسمي
+            wsInfo['!views'] = [{ RTL: true }];
+            wsGrades['!views'] = [{ RTL: true }];
 
             function setRTLForSheet(ws) {
                 if (!ws['!ref']) return;
