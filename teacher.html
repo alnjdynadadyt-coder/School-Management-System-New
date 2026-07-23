@@ -85,7 +85,7 @@
             if (isAdmin) document.getElementById('backBtn').style.display = "inline-block";
             else if(!sessionStorage.getItem("teacherLoggedIn")) {
                 const pass = prompt("🔐 كلمة مرور المدرس:");
-                if (pass !== "Teacher123") { document.body.innerHTML = "<h1>❌ دخول مرفوض</h1>"; return; }
+                if (pass !== "123") { document.body.innerHTML = "<h1>❌ دخول مرفوض</h1>"; return; }
                 sessionStorage.setItem("teacherLoggedIn", "true");
             }
             document.getElementById('datePicker').valueAsDate = new Date();
