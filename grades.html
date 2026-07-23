@@ -43,7 +43,17 @@
 </head>
 <body>
     <div class="container">
-        <div id="mainContent">
+        <!-- شاشة تسجيل الدخول التي ستظهر للمدرس عند فتح الرابط الخارجي -->
+        <div id="loginArea" style="text-align: center; padding: 30px;">
+            <h3>تسجيل دخول المدرسين</h3>
+            <p style="color: #666; font-size: 13px;">يرجى إدخال اسم المستخدم وكلمة المرور الخاصة بك</p>
+            <input type="text" id="loginUser" placeholder="اسم المستخدم" style="padding: 10px; margin: 5px;"><br>
+            <input type="password" id="loginPass" placeholder="كلمة المرور" style="padding: 10px; margin: 5px;"><br>
+            <button class="btn" style="background:#007bff; margin-top: 10px;" onclick="checkAuth()">دخول</button>
+        </div>
+        
+        <!-- المحتوى الرئيسي مخفي لحين تسجيل الدخول أو يمكن للمدير تجاوزه إذا أردت -->
+        <div id="mainContent" style="display: none;">
             <button class="btn" style="background:#6c757d;" onclick="window.history.back()">🔙 العودة</button>
             <div class="controls">
                 <input type="text" id="teacherName" placeholder="اسم المدرس" required>
@@ -72,6 +82,50 @@
 
         let originalTeacherName = "";
 
+        // دالة التحقق من الصلاحيات وتسجيل الدخول للمدرس أو المدير
+        async function checkAuth() {
+            const user = document.getElementById('loginUser').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
+
+            if (user === "مدير" && pass === "123") {
+                document.getElementById('loginArea').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                document.getElementById('teacherName').value = "مدير";
+                return;
+            }
+
+            try {
+                const snapshot = await db.collection("teachers_permissions").where("name", "==", user).where("password", "==", pass).get();
+                if (!snapshot.empty) {
+                    document.getElementById('loginArea').style.display = 'none';
+                    document.getElementById('mainContent').style.display = 'block';
+                    document.getElementById('teacherName').value = user;
+                    document.getElementById('teacherName').readOnly = true;
+
+                    const gClass = document.getElementById('gClass');
+                    const gSection = document.getElementById('gSection');
+                    const subjectInput = document.getElementById('subject');
+                    gClass.innerHTML = ""; gSection.innerHTML = "";
+                    let classes = new Set(); let sections = new Set(); let subjects = new Set();
+
+                    snapshot.forEach(doc => {
+                        let data = doc.data();
+                        classes.add(data.class);
+                        sections.add(data.section);
+                        subjects.add(data.subject);
+                    });
+                    classes.forEach(c => gClass.innerHTML += `<option value="${c}">${c}</option>`);
+                    sections.forEach(s => gSection.innerHTML += `<option value="${s}">${s}</option>`);
+                    subjectInput.value = Array.from(subjects).join(", ");
+                    subjectInput.readOnly = true;
+                } else { 
+                    alert("اسم المستخدم أو كلمة المرور غير صحيحة!"); 
+                }
+            } catch (error) { 
+                alert("خطأ في الاتصال: " + error.message); 
+            }
+        }
+
         function validateInputs() {
             if(!document.getElementById('subject').value) { alert("يرجى إدخال المادة أولاً!"); return false; } return true;
         }
@@ -81,9 +135,16 @@
             const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
             const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
             
+            // إذا كان الدخول للمدير، نتحقق بكلمة مرور الحفظ، وإذا كان مدرس يتم الحفظ باسمه مباشرة
+            const currentUser = document.getElementById('teacherName').value;
+            if (currentUser === "مدير") {
+                const pass = prompt("أدخل كلمة المرور للتعديل:"); 
+                if (pass !== "123") { alert("كلمة مرور خاطئة!"); return; } 
+            }
+
             const rows = document.querySelectorAll('#gradesBody tr');
-            let teacherToSave = document.getElementById('teacherName').value;
-            if (!teacherToSave && originalTeacherName) {
+            let teacherToSave = currentUser;
+            if (teacherToSave === "مدير" && originalTeacherName && originalTeacherName !== "مدير") {
                 teacherToSave = originalTeacherName;
             }
 
@@ -145,6 +206,7 @@
             const head = document.getElementById('headArea');
             const body = document.getElementById('gradesBody'); body.innerHTML = "";
             const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value;
+            const currentUser = document.getElementById('teacherName').value;
 
             if (sub === "الإنكليزي" || sub === "الحاسوب") {
                 head.innerHTML = `<tr><th>الطالب</th><th colspan="7" class="c-f1">الفصل الأول</th><th class="c-mid">ن.سنة</th><th colspan="7" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr><tr><th></th><th>ش1</th><th>يومي</th><th>ش2</th><th>يومي</th><th>مج.ش1</th><th>مج.ش2</th><th>فصل1</th><th>ن.سنة</th><th>ش1</th><th>يومي</th><th>ش2</th><th>يومي</th><th>مج.ش1</th><th>مج.ش2</th><th>فصل2</th><th>السعي</th></tr>`;
@@ -167,7 +229,9 @@
                         const data = doc.data(); 
                         if (data.teacher) {
                             originalTeacherName = data.teacher;
-                            document.getElementById('teacherName').value = data.teacher;
+                            if(currentUser === "مدير") {
+                                document.getElementById('teacherName').value = data.teacher;
+                            }
                         } else {
                             originalTeacherName = "";
                         }
@@ -178,13 +242,16 @@
                                 const inputs = row.querySelectorAll('input'); 
                                 data[name].forEach((val, i) => { 
                                     inputs[i].value = val; 
+                                    if(val !== "" && currentUser !== "مدير") {
+                                        inputs[i].readOnly = true;
+                                        inputs[i].style.backgroundColor = "#e0e0e0";
+                                    }
                                     checkFail(inputs[i], i); 
                                 }); 
                             }
                         });
                     } else {
                         originalTeacherName = "";
-                        document.getElementById('teacherName').value = "";
                     }
                 });
             });
