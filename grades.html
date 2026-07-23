@@ -291,16 +291,36 @@
         tableData.push(rowData); 
     });
 
-        const wb = XLSX.utils.book_new();
-    // تفعيل اتجاه اليمين لليسار على مستوى الملف ككل
-    wb.Workbook = { Views: [{ RTL: true }] };
+    const wb = XLSX.utils.book_new();
+
     const wsInfo = XLSX.utils.aoa_to_sheet(infoData);
-    wsInfo["!views"] = [{ rightToLeft: true }];
-    XLSX.utils.book_append_sheet(wb, wsInfo, "معلومات");
     const wsGrades = XLSX.utils.aoa_to_sheet(tableData);
-    wsGrades["!views"] = [{ rightToLeft: true }];
+
+    // دالة أمان داخلية لتطبيق المحاذاة لليمين على كل خلية في الورقة
+    function setRTLForSheet(ws) {
+        if (!ws['!ref']) return;
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
+                if (!ws[cellAddress]) continue;
+                if (!ws[cellAddress].s) ws[cellAddress].s = {};
+                // ضبط المحاذاة الأفقية لليمين
+                ws[cellAddress].s.alignment = { horizontal: "right", vertical: "center" };
+            }
+        }
+    }
+
+    // تطبيق الدالة على الورقتين
+    setRTLForSheet(wsInfo);
+    setRTLForSheet(wsGrades);
+
+    XLSX.utils.book_append_sheet(wb, wsInfo, "معلومات");
     XLSX.utils.book_append_sheet(wb, wsGrades, "الدرجات");
+
     XLSX.writeFile(wb, `الدرجات_${cls}_${sec}_${sub}.xlsx`);
+}
+
         }
 
     </script>
