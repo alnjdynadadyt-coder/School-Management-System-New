@@ -253,16 +253,31 @@
         }
 
         function exportExcel() {
-            const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value, teacher = document.getElementById('teacherName').value;
-            const toArabic = (num) => num.toString().replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);
-            const infoData = [["نظام إدارة الدرجات"], ["اسم المدرس:", teacher], ["المادة:", sub], ["الصف:", cls], ["الشعبة:", sec]];
-            const headers = (sub === "الإنكليزي" || sub === "الحاسوب") ? ["الطالب", "ش1", "يومي", "ش2", "يومي", "مج.ش1", "مج.ش2", "فصل1", "ن.سنة", "ش1", "يومي", "ش2", "يومي", "مج.ش1", "مج.ش2", "فصل2", "السعي"] : ["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "ن.سنة", "ش1", "ش2", "م.ش", "يومي2", "فصل2", "السعي"];
-            const tableData = [headers];
-            document.querySelectorAll('#gradesBody tr').forEach(row => { const rowData = [row.cells[0].innerText]; row.querySelectorAll('input').forEach(i => rowData.push(toArabic(i.value))); tableData.push(rowData); });
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(infoData), "معلومات");
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(tableData), "الدرجات");
-            XLSX.writeFile(wb, `الدرجات_${cls}_${sec}_${sub}.xlsx`);
+    const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value, teacher = document.getElementById('teacherName').value;
+    const toArabic = (num) => num.toString().replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);
+    const infoData = [["نظام إدارة الدرجات"], ["اسم المدرس:", teacher], ["المادة:", sub], ["الصف:", cls], ["الشعبة:", sec]];
+    const headers = (sub === "الإنكليزي" || sub === "الحاسوب") ? ["الطالب", "ش1", "يومي", "ش2", "يومي", "مج.ش1", "مج.ش2", "فصل1", "ن.سنة", "ش1", "يومي", "ش2", "يومي", "مج.ش1", "مج.ش2", "فصل2", "السعي"] : ["الطالب", "ش1", "ش2", "م.ش", "يومي1", "فصل1", "ن.سنة", "ش1", "ش2", "م.ش", "يومي2", "فصل2", "السعي"];
+    const tableData = [headers];
+    
+    document.querySelectorAll('#gradesBody tr').forEach(row => { 
+        const rowData = [row.cells[0].innerText]; 
+        row.querySelectorAll('input').forEach(i => rowData.push(toArabic(i.value))); 
+        tableData.push(rowData); 
+    });
+
+    const wb = XLSX.utils.book_new();
+
+    const wsInfo = XLSX.utils.aoa_to_sheet(infoData);
+    wsInfo["!views"] = [{ rightToLeft: true }];
+    XLSX.utils.book_append_sheet(wb, wsInfo, "معلومات");
+
+    const wsGrades = XLSX.utils.aoa_to_sheet(tableData);
+    wsGrades["!views"] = [{ rightToLeft: true }];
+    XLSX.utils.book_append_sheet(wb, wsGrades, "الدرجات");
+
+    XLSX.writeFile(wb, `الدرجات_${cls}_${sec}_${sub}.xlsx`);
+}
+
         }
     </script>
 </body>
