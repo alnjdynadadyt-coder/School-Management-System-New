@@ -266,22 +266,16 @@
     });
 
         const wb = XLSX.utils.book_new();
-
     // تفعيل اتجاه اليمين لليسار على مستوى الملف ككل
     wb.Workbook = { Views: [{ RTL: true }] };
-
     const wsInfo = XLSX.utils.aoa_to_sheet(infoData);
     wsInfo["!views"] = [{ rightToLeft: true }];
     XLSX.utils.book_append_sheet(wb, wsInfo, "معلومات");
-
     const wsGrades = XLSX.utils.aoa_to_sheet(tableData);
     wsGrades["!views"] = [{ rightToLeft: true }];
     XLSX.utils.book_append_sheet(wb, wsGrades, "الدرجات");
-
     XLSX.writeFile(wb, `الدرجات_${cls}_${sec}_${sub}.xlsx`);
 }
-
-        }
     </script>
 </body>
 </html>
