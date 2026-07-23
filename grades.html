@@ -265,7 +265,10 @@
         tableData.push(rowData); 
     });
 
-    const wb = XLSX.utils.book_new();
+        const wb = XLSX.utils.book_new();
+
+    // تفعيل اتجاه اليمين لليسار على مستوى الملف ككل
+    wb.Workbook = { Views: [{ RTL: true }] };
 
     const wsInfo = XLSX.utils.aoa_to_sheet(infoData);
     wsInfo["!views"] = [{ rightToLeft: true }];
