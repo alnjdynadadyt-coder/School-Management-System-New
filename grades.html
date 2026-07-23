@@ -278,8 +278,7 @@
             window.print();
             setTimeout(() => { inputs.forEach(i => { if(i.dataset.original) i.value = i.dataset.original; }); }, 1000);
         }
-
-                function exportExcel() {
+        function exportExcel() {
     const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value, teacher = document.getElementById('teacherName').value;
     const toArabic = (num) => num.toString().replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);
     const infoData = [["نظام إدارة الدرجات"], ["اسم المدرس:", teacher], ["المادة:", sub], ["الصف:", cls], ["الشعبة:", sec]];
@@ -302,6 +301,7 @@
     wsGrades["!views"] = [{ rightToLeft: true }];
     XLSX.utils.book_append_sheet(wb, wsGrades, "الدرجات");
     XLSX.writeFile(wb, `الدرجات_${cls}_${sec}_${sub}.xlsx`);
+        }
 }
     </script>
 </body>
