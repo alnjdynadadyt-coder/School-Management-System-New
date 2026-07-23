@@ -43,7 +43,7 @@
 </head>
 <body>
     <div class="container">
-        <!-- شاشة تسجيل الدخول التي ستظهر للمدرس عند فتح الرابط الخارجي -->
+        <!-- شاشة تسجيل الدخول للمدرس عند فتح الرابط الخارجي -->
         <div id="loginArea" style="text-align: center; padding: 30px;">
             <h3>تسجيل دخول المدرسين</h3>
             <p style="color: #666; font-size: 13px;">يرجى إدخال اسم المستخدم وكلمة المرور الخاصة بك</p>
@@ -52,7 +52,7 @@
             <button class="btn" style="background:#007bff; margin-top: 10px;" onclick="checkAuth()">دخول</button>
         </div>
         
-        <!-- المحتوى الرئيسي مخفي لحين تسجيل الدخول أو يمكن للمدير تجاوزه إذا أردت -->
+        <!-- المحتوى الرئيسي -->
         <div id="mainContent" style="display: none;">
             <button class="btn" style="background:#6c757d;" onclick="window.history.back()">🔙 العودة</button>
             <div class="controls">
@@ -82,21 +82,34 @@
 
         let originalTeacherName = "";
 
-        // دالة التحقق من الصلاحيات وتسجيل الدخول للمدرس أو المدير
+        // التحقق التلقائي عند فتح الصفحة: فحص الرابط أو ذاكرة الجلسة لدخول المدير تلقائياً
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('admin') === 'true' || sessionStorage.getItem('isAdmin') === 'true') {
+                loginAsAdmin();
+            }
+        };
+
+        function loginAsAdmin() {
+            sessionStorage.setItem('isAdmin', 'true');
+            document.getElementById('loginArea').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('teacherName').value = "مدير";
+        }
+
         async function checkAuth() {
             const user = document.getElementById('loginUser').value.trim();
             const pass = document.getElementById('loginPass').value.trim();
 
             if (user === "مدير" && pass === "123") {
-                document.getElementById('loginArea').style.display = 'none';
-                document.getElementById('mainContent').style.display = 'block';
-                document.getElementById('teacherName').value = "مدير";
+                loginAsAdmin();
                 return;
             }
 
             try {
                 const snapshot = await db.collection("teachers_permissions").where("name", "==", user).where("password", "==", pass).get();
                 if (!snapshot.empty) {
+                    sessionStorage.removeItem('isAdmin');
                     document.getElementById('loginArea').style.display = 'none';
                     document.getElementById('mainContent').style.display = 'block';
                     document.getElementById('teacherName').value = user;
@@ -132,16 +145,18 @@
 
         async function saveGrades() {
             if(!validateInputs()) return;
+
+            // طلب كلمة المرور إجبارياً للجميع عند الحفظ لمنع أي خطأ أو عبث
+            const pass = prompt("أدخل كلمة المرور (123) لتأكيد الحفظ:"); 
+            if (pass !== "123") { 
+                alert("كلمة المرور غير صحيحة! تم إلغاء عملية الحفظ."); 
+                return; 
+            } 
+
             const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
             const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
             
-            // إذا كان الدخول للمدير، نتحقق بكلمة مرور الحفظ، وإذا كان مدرس يتم الحفظ باسمه مباشرة
             const currentUser = document.getElementById('teacherName').value;
-            if (currentUser === "مدير") {
-                const pass = prompt("أدخل كلمة المرور للتعديل:"); 
-                if (pass !== "123") { alert("كلمة مرور خاطئة!"); return; } 
-            }
-
             const rows = document.querySelectorAll('#gradesBody tr');
             let teacherToSave = currentUser;
             if (teacherToSave === "مدير" && originalTeacherName && originalTeacherName !== "مدير") {
