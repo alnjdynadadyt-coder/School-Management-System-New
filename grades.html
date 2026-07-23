@@ -43,16 +43,15 @@
 </head>
 <body>
     <div class="container">
-        <!-- شاشة تسجيل الدخول التي ستظهر للمدرس عند فتح الرابط الخارجي -->
-        <div id="loginArea" style="text-align: center; padding: 30px;">
-            <h3>تسجيل دخول المدرسين</h3>
-            <p style="color: #666; font-size: 13px;">يرجى إدخال اسم المستخدم وكلمة المرور الخاصة بك</p>
+        <!-- شاشة تسجيل الدخول -->
+        <div id="loginArea" style="text-align: center; padding: 20px;">
+            <h3>تسجيل الدخول</h3>
             <input type="text" id="loginUser" placeholder="اسم المستخدم" style="padding: 10px; margin: 5px;"><br>
             <input type="password" id="loginPass" placeholder="كلمة المرور" style="padding: 10px; margin: 5px;"><br>
             <button class="btn" style="background:#007bff; margin-top: 10px;" onclick="checkAuth()">دخول</button>
         </div>
         
-        <!-- المحتوى الرئيسي مخفي لحين تسجيل الدخول أو يمكن للمدير تجاوزه إذا أردت -->
+        <!-- المحتوى الرئيسي -->
         <div id="mainContent" style="display: none;">
             <button class="btn" style="background:#6c757d;" onclick="window.history.back()">🔙 العودة</button>
             <div class="controls">
@@ -80,12 +79,11 @@
         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        let originalTeacherName = "";
+        let originalTeacherName = ""; 
 
-        // دالة التحقق من الصلاحيات وتسجيل الدخول للمدرس أو المدير
         async function checkAuth() {
-            const user = document.getElementById('loginUser').value.trim();
-            const pass = document.getElementById('loginPass').value.trim();
+            const user = document.getElementById('loginUser').value;
+            const pass = document.getElementById('loginPass').value;
 
             if (user === "مدير" && pass === "123") {
                 document.getElementById('loginArea').style.display = 'none';
@@ -118,12 +116,8 @@
                     sections.forEach(s => gSection.innerHTML += `<option value="${s}">${s}</option>`);
                     subjectInput.value = Array.from(subjects).join(", ");
                     subjectInput.readOnly = true;
-                } else { 
-                    alert("اسم المستخدم أو كلمة المرور غير صحيحة!"); 
-                }
-            } catch (error) { 
-                alert("خطأ في الاتصال: " + error.message); 
-            }
+                } else { alert("اسم المستخدم أو كلمة المرور غير صحيحة!"); }
+            } catch (error) { alert("خطأ: " + error.message); }
         }
 
         function validateInputs() {
@@ -132,18 +126,19 @@
 
         async function saveGrades() {
             if(!validateInputs()) return;
+
+            // طلب كلمة المرور (123) إجبارياً عند الحفظ والتعديل للتأكد من صحة التغييرات ومنع السهو
+            const pass = prompt("أدخل كلمة المرور (123) لتأكيد الحفظ والتعديل:"); 
+            if (pass !== "123") { 
+                alert("كلمة المرور غير صحيحة! تم إلغاء عملية الحفظ."); 
+                return; 
+            }
+
             const cls = document.getElementById('gClass').value, sec = document.getElementById('gSection').value, sub = document.getElementById('subject').value;
             const docRef = db.collection("grades").doc(`${cls}_${sec}_${sub}`);
             
-            // إذا كان الدخول للمدير، نتحقق بكلمة مرور الحفظ، وإذا كان مدرس يتم الحفظ باسمه مباشرة
-            const currentUser = document.getElementById('teacherName').value;
-            if (currentUser === "مدير") {
-                const pass = prompt("أدخل كلمة المرور للتعديل:"); 
-                if (pass !== "123") { alert("كلمة مرور خاطئة!"); return; } 
-            }
-
             const rows = document.querySelectorAll('#gradesBody tr');
-            let teacherToSave = currentUser;
+            let teacherToSave = document.getElementById('teacherName').value;
             if (teacherToSave === "مدير" && originalTeacherName && originalTeacherName !== "مدير") {
                 teacherToSave = originalTeacherName;
             }
@@ -213,7 +208,6 @@
             } else {
                 head.innerHTML = `<tr><th>الطالب</th><th colspan="5" class="c-f1">الفصل الأول</th><th class="c-mid">نصف السنة</th><th colspan="5" class="c-f2">الفصل الثاني</th><th class="c-final">السعي</th></tr><tr><th></th><th class="c-f1">ش1</th><th class="c-f1">ش2</th><th class="c-f1">م.ش</th><th class="c-f1">يومي1</th><th class="c-f1">فصل1</th><th class="c-mid">ن.سنة</th><th class="c-f2">ش1</th><th class="c-f2">ش2</th><th class="c-f2">م.ش</th><th class="c-f2">يومي2</th><th class="c-f2">فصل2</th><th class="c-final">النتيجة</th></tr>`;
             }
-
             db.collection("students").where("class", "==", cls).get().then(snap => {
                 let students = []; snap.forEach(s => { if(s.data().section == sec) students.push(s.data()); });
                 students.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
@@ -223,19 +217,15 @@
                     classes.forEach((c, idx) => { row += `<td class="${c}"><input type="text" style="width: 32px !important; text-align: center;" oninput="calculate(this.parentElement.parentElement); checkFail(this, ${idx})"></td>`; });
                     body.innerHTML += row + "</tr>";
                 });
-
                 db.collection("grades").doc(`${cls}_${sec}_${sub}`).get().then(doc => {
                     if (doc.exists) {
                         const data = doc.data(); 
                         if (data.teacher) {
                             originalTeacherName = data.teacher;
-                            if(currentUser === "مدير") {
-                                document.getElementById('teacherName').value = data.teacher;
-                            }
-                        } else {
-                            originalTeacherName = "";
                         }
-                        
+                        if (currentUser !== "مدير" && data.teacher) {
+                            document.getElementById('teacherName').value = data.teacher;
+                        }
                         document.querySelectorAll('#gradesBody tr').forEach(row => {
                             const name = row.cells[0].innerText;
                             if (data[name]) { 
@@ -250,8 +240,6 @@
                                 }); 
                             }
                         });
-                    } else {
-                        originalTeacherName = "";
                     }
                 });
             });
@@ -278,26 +266,12 @@
             });
 
             const wb = XLSX.utils.book_new();
+            wb.Workbook = { Views: [{ RTL: true }] };
             const wsInfo = XLSX.utils.aoa_to_sheet(infoData);
-            const wsGrades = XLSX.utils.aoa_to_sheet(tableData);
-
-            function setRTLForSheet(ws) {
-                if (!ws['!ref']) return;
-                const range = XLSX.utils.decode_range(ws['!ref']);
-                for (let R = range.s.r; R <= range.e.r; ++R) {
-                    for (let C = range.s.c; C <= range.e.c; ++C) {
-                        const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
-                        if (!ws[cellAddress]) continue;
-                        if (!ws[cellAddress].s) ws[cellAddress].s = {};
-                        ws[cellAddress].s.alignment = { horizontal: "right", vertical: "center" };
-                    }
-                }
-            }
-
-            setRTLForSheet(wsInfo);
-            setRTLForSheet(wsGrades);
-
+            wsInfo["!views"] = [{ rightToLeft: true }];
             XLSX.utils.book_append_sheet(wb, wsInfo, "معلومات");
+            const wsGrades = XLSX.utils.aoa_to_sheet(tableData);
+            wsGrades["!views"] = [{ rightToLeft: true }];
             XLSX.utils.book_append_sheet(wb, wsGrades, "الدرجات");
             XLSX.writeFile(wb, `الدرجات_${cls}_${sec}_${sub}.xlsx`);
         }
