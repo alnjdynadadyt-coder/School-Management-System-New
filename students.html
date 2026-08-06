@@ -204,7 +204,7 @@
 
         window.secureAction = (id, type, n, b, idn, ph, mn, not, c, s) => {
             const pass = prompt("🔐 أدخل كلمة المرور للإجراء:");
-            if (pass === "123") { 
+            if (pass === "1234") { 
                 if (type === 'delete') {
                     db.collection("students").doc(id).delete();
                 } else if (type === 'edit') {
@@ -300,3 +300,4 @@
     </script>
 </body>
 </html>
+ 
