@@ -123,8 +123,6 @@
         
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        
-        // متغير عام لتتبع ما إذا كنا نقوم بالتعديل حالياً
         let editingId = null;
 
         window.saveStudent = () => {
@@ -142,7 +140,6 @@
                 section: document.getElementById('section').value 
             };
             
-            // التحقق الدقيق من حالة التعديل
             if (editingId !== null && editingId !== "") {
                 db.collection("students").doc(editingId).update(data)
                     .then(() => { 
@@ -192,7 +189,6 @@
             body.innerHTML = "";
             
             students.forEach(d => {
-                // نمرر docId بشكل سليم إلى دوائر الأمان
                 body.innerHTML += `<tr>
                     <td>${d.name || ''}</td>
                     <td>${d.birth || ''}</td>
@@ -213,7 +209,11 @@
 
         window.secureAction = (id, type, n, b, idn, ph, mn, not, c, s) => {
             const pass = prompt("🔐 أدخل كلمة المرور للإجراء (1234):");
-            if (pass === "1234") { 
+            
+            // تنظيف النص المدخل من المسافات الزائدة أو الفراغات بالخطأ
+            const cleanPass = pass ? pass.trim() : "";
+
+            if (cleanPass === "1234") { 
                 if (type === 'delete') {
                     if(confirm("هل أنت متأكد من حذف هذا الطالب؟")) {
                         db.collection("students").doc(id).delete().then(() => {
@@ -221,7 +221,7 @@
                         });
                     }
                 } else if (type === 'edit') {
-                    editingId = id; // تثبيت معرف المستند المراد تعديله حصرياً
+                    editingId = id;
                     document.getElementById('name').value = decodeURIComponent(n);
                     document.getElementById('birth').value = b;
                     document.getElementById('idNum').value = decodeURIComponent(idn);
@@ -317,4 +317,3 @@
     </script>
 </body>
 </html>
- 
