@@ -7,42 +7,75 @@
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
         .container { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         input, select { padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 8px; }
-        button { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; color: white; background: #28a745; }
+        button { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; color: white; background: #28a745; margin: 2px; }
+        .btn-print { background: #17a2b8; }
+        .btn-word { background: #007bff; }
+        .btn-excel { background: #28a745; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        
+        /* إعدادات خاصة عند الطباعة لضمان إخفاء حقل الإجراءات والشعبة المجاورة لها */
+        @media print {
+            body * { visibility: hidden; }
+            #printSection, #printSection * { visibility: visible; }
+            #printSection { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <div class="container">
-        <a href="index.html" style="text-decoration:none;">⬅️ العودة للرئيسية</a>
-        <h3>إضافة/تعديل طالب</h3>
+        <a href="index.html" style="text-decoration:none;" class="no-print">⬅️ العودة للرئيسية</a>
+        <h3 class="no-print">إضافة/تعديل طالب</h3>
         
-        <input type="text" id="name" placeholder="الاسم الرباعي">
-        <select id="birth"><script>for(let i=2000; i<=2035; i++) document.write(`<option>${i}</option>`);</script></select>
-        <input type="text" id="idNum" placeholder="رقم القيد">
-        <select id="class">
-            <option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option>
-            <option>الرابع الادبي</option><option>الخامس الادبي</option><option>السادس الادبي</option>
-        </select>
-        <select id="section"><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option></select>
-        <button id="saveBtn" onclick="saveStudent()">💾 حفظ</button>
+        <div class="no-print">
+            <input type="text" id="name" placeholder="الاسم الرباعي">
+            <select id="birth"><script>for(let i=2000; i<=2035; i++) document.write(`<option>${i}</option>`);</script></select>
+            <input type="text" id="idNum" placeholder="رقم القيد">
+            <select id="class">
+                <option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option>
+                <option>الرابع الادبي</option><option>الخامس الادبي</option><option>السادس الادبي</option>
+            </select>
+            <select id="section"><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option></select>
+            <button id="saveBtn" onclick="saveStudent()">💾 حفظ</button>
+        </div>
 
-        <hr>
-        <h3>بحث وفلترة</h3>
-        <input type="text" id="searchBar" onkeyup="filterData()" placeholder="🔍 ابحث بالاسم...">
-        <select id="fClass" onchange="filterData()"><option value="">كل الصفوف</option><option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option><option>الرابع الادبي</option><option>الخامس الادبي</option><option>السادس الادبي</option></select>
-        <select id="fSection" onchange="filterData()"><option value="">كل الشعب</option><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option></select>
+        <hr class="no-print">
+        <h3 class="no-print">بحث وفلترة وتصدير</h3>
+        <div class="no-print">
+            <input type="text" id="searchBar" onkeyup="filterData()" placeholder="🔍 ابحث بالاسم...">
+            <select id="fClass" onchange="filterData()"><option value="">كل الصفوف</option><option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option><option>الرابع الادبي</option><option>الخامس الادبي</option><option>السادس الادبي</option></select>
+            <select id="fSection" onchange="filterData()"><option value="">كل الشعب</option><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option></select>
+            
+            <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
+            <button class="btn-word" onclick="exportToWord()">📄 تصدير Word</button>
+            <button class="btn-excel" onclick="exportToExcel()">📊 تصدير Excel</button>
+        </div>
 
-        <table id="studentsTable">
-            <thead><tr><th>الاسم</th><th>التولد</th><th>القيد</th><th>الصف</th><th>الشعبة</th><th>إجراءات</th></tr></thead>
-            <tbody id="studentBody"></tbody>
-        </table>
+        <div id="printSection">
+            <div id="printHeader" style="text-align:center; margin-bottom:15px; display:none;">
+                <h2>قائمة الطلاب</h2>
+                <h4 id="headerInfo"></h4>
+            </div>
+            <table id="studentsTable">
+                <thead>
+                    <tr>
+                        <th>الاسم</th>
+                        <th>التولد</th>
+                        <th>القيد</th>
+                        <th class="no-print">الصف</th>
+                        <th class="no-print">الشعبة</th>
+                        <th class="no-print">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="studentBody"></tbody>
+            </table>
+        </div>
     </div>
 
     <script>
-        // إعدادات الربط للمشروع الجديد (School 2 2026)
         const firebaseConfig = {
             apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw",
             authDomain: "school-2-2026.firebaseapp.com",
@@ -70,37 +103,51 @@
             };
             
             if (editingId) {
-                db.collection("students").doc(editingId).update(data).then(() => { alert("✅ تم التعديل"); resetForm(); loadStudents(); });
+                db.collection("students").doc(editingId).update(data).then(() => { alert("✅ تم التعديل"); resetForm(); });
             } else {
-                db.collection("students").add(data).then(() => { alert("✅ تم الحفظ"); resetForm(); loadStudents(); });
+                db.collection("students").add(data).then(() => { alert("✅ تم الحفظ"); resetForm(); });
             }
         };
 
         window.resetForm = () => {
             editingId = null;
             document.getElementById('name').value = "";
-            document.getElementById('saveBtn').innerText = "💾 حفظ";
+            document.getElementById('saveBtn').innerText = "💾 حفظ؛";
         };
 
-        window.loadStudents = () => {
-            db.collection("students").get().then(snap => {
-                const body = document.getElementById('studentBody'); body.innerHTML = "";
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    body.innerHTML += `<tr><td>${d.name || ''}</td><td>${d.birth || ''}</td><td>${d.id || ''}</td><td>${d.class || ''}</td><td>${d.section || ''}</td>
-                        <td>
-                            <button onclick="secureAction('${doc.id}', 'edit', '${d.name}', '${d.birth}', '${d.id}', '${d.class}', '${d.section}')">✏️</button>
-                            <button style="background:red" onclick="secureAction('${doc.id}', 'delete')">🗑️</button>
-                        </td></tr>`;
-                });
+        // الاستماع الفوري للتحديثات والترتيب الأبجدي التلقائي
+        db.collection("students").onSnapshot(snap => {
+            let students = [];
+            snap.forEach(doc => {
+                students.push({ id: doc.id, ...doc.data() });
             });
-        };
+            
+            // الترتيب الأبجدي للأسماء باللغة العربية
+            students.sort((a, b) => (a.name || "").localeCompare(b.name || "", 'ar'));
+
+            const body = document.getElementById('studentBody'); 
+            body.innerHTML = "";
+            
+            students.forEach(d => {
+                body.innerHTML += `<tr>
+                    <td>${d.name || ''}</td>
+                    <td>${d.birth || ''}</td>
+                    <td>${d.id || ''}</td>
+                    <td class="no-print">${d.class || ''}</td>
+                    <td class="no-print">${d.section || ''}</td>
+                    <td class="no-print">
+                        <button onclick="secureAction('${d.id}', 'edit', '${d.name}', '${d.birth}', '${d.id}', '${d.class}', '${d.section}')">✏️</button>
+                        <button style="background:red" onclick="secureAction('${d.id}', 'delete')">🗑️</button>
+                    </td>
+                </tr>`;
+            });
+        });
 
         window.secureAction = (id, type, n, b, idn, c, s) => {
             const pass = prompt("🔐 أدخل كلمة المرور للإجراء:");
             if (pass === "1234") { 
                 if (type === 'delete') {
-                    db.collection("students").doc(id).delete().then(loadStudents);
+                    db.collection("students").doc(id).delete();
                 } else if (type === 'edit') {
                     editingId = id;
                     document.getElementById('name').value = n;
@@ -118,6 +165,17 @@
             const nameF = document.getElementById('searchBar').value.toLowerCase();
             const classF = document.getElementById('fClass').value;
             const secF = document.getElementById('fSection').value;
+            
+            // تحديث الترويسة الظاهرة عند الطباعة لتحديد الصف والشعبة المختارة في الأعلى
+            const headerInfo = document.getElementById('headerInfo');
+            const printHeader = document.getElementById('printHeader');
+            if (classF || secF) {
+                printHeader.style.display = "block";
+                headerInfo.innerText = `الصف: ${classF || 'الكل'} - الشعبة: ${secF || 'الكل'}`;
+            } else {
+                printHeader.style.display = "none";
+            }
+
             const rows = document.querySelectorAll('#studentBody tr');
             rows.forEach(row => {
                 const nameTxt = row.cells[0].innerText.toLowerCase();
@@ -126,7 +184,20 @@
                 row.style.display = (nameTxt.includes(nameF) && (classF === "" || classTxt === classF) && (secF === "" || secTxt === secF)) ? "" : "none";
             });
         };
-        loadStudents();
+
+        window.exportToWord = () => {
+            const html = document.getElementById('printSection').innerHTML;
+            const blob = new Blob(['\ufeff' + `<html><head><meta charset='utf-8'></head><body>${html}</body></html>`], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'students-list.doc'; a.click();
+        };
+
+        window.exportToExcel = () => {
+            const html = document.getElementById('studentsTable').outerHTML.replace(/class="no-print"/g, 'style="display:none;"');
+            const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'students-list.xls'; a.click();
+        };
     </script>
 </body>
 </html>
