@@ -31,9 +31,9 @@
 <body>
     <div class="container">
         <a href="index.html" style="text-decoration:none;" class="no-print">⬅️ العودة للرئيسية</a>
-        <h3 class="no-print" id="formTitle">إضافة طالب جديد</h3>
+        <h3 class="no-print" id="formTitle" style="color: #007bff;">إضافة طالب جديد</h3>
         
-        <div class="no-print">
+        <div class="no-print" style="background: #f8f9fa; padding: 10px; border-radius: 10px;">
             <input type="text" id="name" placeholder="الاسم الرباعي">
             <select id="birth"><script>for(let i=2000; i<=2035; i++) document.write(`<option>${i}</option>`);</script></select>
             <input type="text" id="idNum" placeholder="رقم القيد">
@@ -123,6 +123,8 @@
         
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        
+        // متغير عام لتتبع ما إذا كنا نقوم بالتعديل حالياً
         let editingId = null;
 
         window.saveStudent = () => {
@@ -140,16 +142,21 @@
                 section: document.getElementById('section').value 
             };
             
-            if (editingId) {
-                db.collection("students").doc(editingId).update(data).then(() => { 
-                    alert("✅ تم تعديل البيانات بنجاح"); 
-                    resetForm(); 
-                }).catch(err => alert("خطأ في التعديل: " + err.message));
+            // التحقق الدقيق من حالة التعديل
+            if (editingId !== null && editingId !== "") {
+                db.collection("students").doc(editingId).update(data)
+                    .then(() => { 
+                        alert("✅ تم تعديل وتحديث بيانات الطالب بنجاح"); 
+                        resetForm(); 
+                    })
+                    .catch(err => alert("خطأ في التعديل: " + err.message));
             } else {
-                db.collection("students").add(data).then(() => { 
-                    alert("✅ تم حفظ الطالب بنجاح"); 
-                    resetForm(); 
-                }).catch(err => alert("خطأ في الحفظ: " + err.message));
+                db.collection("students").add(data)
+                    .then(() => { 
+                        alert("✅ تم حفظ طالب جديد بنجاح"); 
+                        resetForm(); 
+                    })
+                    .catch(err => alert("خطأ في الحفظ: " + err.message));
             }
         };
 
@@ -162,6 +169,7 @@
             document.getElementById('notes').value = "";
             document.getElementById('saveBtn').innerText = "💾 حفظ";
             document.getElementById('formTitle').innerText = "إضافة طالب جديد";
+            document.getElementById('formTitle').style.color = "#007bff";
         };
 
         window.updateTableStyle = () => {
@@ -177,13 +185,14 @@
 
         db.collection("students").onSnapshot(snap => {
             let students = [];
-            snap.forEach(doc => { students.push({ id: doc.id, ...doc.data() }); });
+            snap.forEach(doc => { students.push({ docId: doc.id, ...doc.data() }); });
             students.sort((a, b) => (a.name || "").localeCompare(b.name || "", 'ar'));
 
             const body = document.getElementById('studentBody'); 
             body.innerHTML = "";
             
             students.forEach(d => {
+                // نمرر docId بشكل سليم إلى دوائر الأمان
                 body.innerHTML += `<tr>
                     <td>${d.name || ''}</td>
                     <td>${d.birth || ''}</td>
@@ -194,8 +203,8 @@
                     <td class="no-print">${d.class || ''}</td>
                     <td class="no-print">${d.section || ''}</td>
                     <td class="no-print">
-                        <button onclick="secureAction('${d.id}', 'edit', '${d.name}', '${d.birth}', '${d.id}', '${d.phone}', '${d.motherName}', '${d.notes}', '${d.class}', '${d.section}')">✏️</button>
-                        <button style="background:red" onclick="secureAction('${d.id}', 'delete')">🗑️</button>
+                        <button onclick="secureAction('${d.docId}', 'edit', '${encodeURIComponent(d.name || '')}', '${d.birth || ''}', '${encodeURIComponent(d.id || '')}', '${encodeURIComponent(d.phone || '')}', '${encodeURIComponent(d.motherName || '')}', '${encodeURIComponent(d.notes || '')}', '${encodeURIComponent(d.class || '')}', '${encodeURIComponent(d.section || '')}')">✏️</button>
+                        <button style="background:red" onclick="secureAction('${d.docId}', 'delete')">🗑️</button>
                     </td>
                 </tr>`;
             });
@@ -203,25 +212,34 @@
         });
 
         window.secureAction = (id, type, n, b, idn, ph, mn, not, c, s) => {
-            const pass = prompt("🔐 أدخل كلمة المرور للإجراء:");
+            const pass = prompt("🔐 أدخل كلمة المرور للإجراء (1234):");
             if (pass === "1234") { 
                 if (type === 'delete') {
-                    db.collection("students").doc(id).delete();
+                    if(confirm("هل أنت متأكد من حذف هذا الطالب؟")) {
+                        db.collection("students").doc(id).delete().then(() => {
+                            if (editingId === id) resetForm();
+                        });
+                    }
                 } else if (type === 'edit') {
-                    editingId = id;
-                    document.getElementById('name').value = n;
+                    editingId = id; // تثبيت معرف المستند المراد تعديله حصرياً
+                    document.getElementById('name').value = decodeURIComponent(n);
                     document.getElementById('birth').value = b;
-                    document.getElementById('idNum').value = idn;
-                    document.getElementById('phone').value = ph;
-                    document.getElementById('motherName').value = mn;
-                    document.getElementById('notes').value = not;
-                    document.getElementById('class').value = c;
-                    document.getElementById('section').value = s;
+                    document.getElementById('idNum').value = decodeURIComponent(idn);
+                    document.getElementById('phone').value = decodeURIComponent(ph);
+                    document.getElementById('motherName').value = decodeURIComponent(mn);
+                    document.getElementById('notes').value = decodeURIComponent(not);
+                    document.getElementById('class').value = decodeURIComponent(c);
+                    document.getElementById('section').value = decodeURIComponent(s);
+                    
                     document.getElementById('saveBtn').innerText = "🔄 تحديث البيانات";
-                    document.getElementById('formTitle').innerText = "تعديل بيانات الطالب: " + n;
+                    const titleEl = document.getElementById('formTitle');
+                    titleEl.innerText = "تعديل بيانات الطالب: " + decodeURIComponent(n);
+                    titleEl.style.color = "#28a745";
                     window.scrollTo(0,0);
                 }
-            } else { alert("❌ كلمة مرور خاطئة!"); }
+            } else if (pass !== null) { 
+                alert("❌ كلمة مرور خاطئة!"); 
+            }
         };
 
         window.filterData = () => {
@@ -256,7 +274,6 @@
             const a = document.createElement('a'); a.href = url; a.download = 'students-list.doc'; a.click();
         };
 
-        // تصدير Excel مع ضبط الاتجاه من اليمين لليسار (RTL) بشكل قاطع
         window.exportToExcel = () => {
             let tableClone = document.getElementById('studentsTable').cloneNode(true);
             
@@ -272,9 +289,9 @@
             rows.forEach(r => {
                 let cells = r.querySelectorAll('th, td');
                 if(cells.length >= 9) {
-                    cells[8].remove(); // إزالة إجراءات
-                    cells.remove(); // إزالة شعبة
-                    cells[6].remove(); // إزالة صف
+                    cells[8].remove(); 
+                    cells[7].remove(); 
+                    cells[6].remove(); 
                 }
             });
 
