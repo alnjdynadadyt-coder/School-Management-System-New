@@ -6,15 +6,19 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
         .container { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        input, select { padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 8px; }
-        button { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; color: white; background: #28a745; margin: 2px; }
+        input, select { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 8px; }
+        button { padding: 9px 15px; border: none; border-radius: 8px; cursor: pointer; color: white; background: #28a745; margin: 2px; }
         .btn-print { background: #17a2b8; }
         .btn-word { background: #007bff; }
         .btn-excel { background: #28a745; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
         
-        /* إعدادات خاصة عند الطباعة لضمان إخفاء حقل الإجراءات والشعبة المجاورة لها */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; text-align: center; }
+        
+        /* التحكم بالحدود (الإطار) ديناميكياً */
+        table.with-border th, table.with-border td { border: 1px solid #333; }
+        table.no-border th, table.no-border td { border: none; border-bottom: 1px solid #ddd; }
+
         @media print {
             body * { visibility: hidden; }
             #printSection, #printSection * { visibility: visible; }
@@ -34,6 +38,9 @@
             <input type="text" id="name" placeholder="الاسم الرباعي">
             <select id="birth"><script>for(let i=2000; i<=2035; i++) document.write(`<option>${i}</option>`);</script></select>
             <input type="text" id="idNum" placeholder="رقم القيد">
+            <input type="text" id="phone" placeholder="رقم الهاتف">
+            <input type="text" id="motherName" placeholder="اسم الأم">
+            <input type="text" id="notes" placeholder="الملاحظات">
             <select id="class">
                 <option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option>
                 <option>الرابع الادبي</option><option>الخامس الادبي</option><option>السادس الادبي</option>
@@ -43,6 +50,31 @@
         </div>
 
         <hr class="no-print">
+        <h3 class="no-print">إعدادات الطباعة والخطوط</h3>
+        <div class="no-print" style="background:#f9f9f9; padding:10px; border-radius:8px; margin-bottom:10px;">
+            <label>نوع الخط:</label>
+            <select id="fontFamily" onchange="updateTableStyle()">
+                <option value="'Segoe UI', sans-serif">الافتراضي (Segoe UI)</option>
+                <option value="'Traditional Arabic', serif">تخاطب (Traditional Arabic)</option>
+                <option value="'Amiri', serif">أميري (Amiri)</option>
+                <option value="Arial, sans-serif">أريال (Arial)</option>
+            </select>
+
+            <label>حجم الخط:</label>
+            <select id="fontSize" onchange="updateTableStyle()">
+                <option value="14px">متوسط (14px)</option>
+                <option value="12px">صغير (12px)</option>
+                <option value="16px">كبير (16px)</option>
+                <option value="18px">كبير جداً (18px)</option>
+            </select>
+
+            <label>إطار الصفحة:</label>
+            <select id="borderStyle" onchange="updateTableStyle()">
+                <option value="with-border">مع إطار كامل</option>
+                <option value="no-border">بدون إطار (خط سفلي فقط)</option>
+            </select>
+        </div>
+
         <h3 class="no-print">بحث وفلترة وتصدير</h3>
         <div class="no-print">
             <input type="text" id="searchBar" onkeyup="filterData()" placeholder="🔍 ابحث بالاسم...">
@@ -59,12 +91,15 @@
                 <h2>قائمة الطلاب</h2>
                 <h4 id="headerInfo"></h4>
             </div>
-            <table id="studentsTable">
+            <table id="studentsTable" class="with-border">
                 <thead>
                     <tr>
                         <th>الاسم</th>
                         <th>التولد</th>
                         <th>القيد</th>
+                        <th>رقم الهاتف</th>
+                        <th>اسم الأم</th>
+                        <th>الملاحظات</th>
                         <th class="no-print">الصف</th>
                         <th class="no-print">الشعبة</th>
                         <th class="no-print">إجراءات</th>
@@ -82,7 +117,7 @@
             projectId: "school-2-2026",
             storageBucket: "school-2-2026.firebasestorage.app",
             messagingSenderId: "283472829932",
-            appId: "1:283472829932:web:1ca7b0cb663c6f4aff74c9",
+            appId: "1:388164568964:web:f917cc3284c1265fd4ffd1",
             measurementId: "G-74F1K1HBE4"
         };
         
@@ -98,6 +133,9 @@
                 name: name, 
                 birth: document.getElementById('birth').value, 
                 id: document.getElementById('idNum').value, 
+                phone: document.getElementById('phone').value,
+                motherName: document.getElementById('motherName').value,
+                notes: document.getElementById('notes').value,
                 class: document.getElementById('class').value, 
                 section: document.getElementById('section').value 
             };
@@ -112,17 +150,26 @@
         window.resetForm = () => {
             editingId = null;
             document.getElementById('name').value = "";
-            document.getElementById('saveBtn').innerText = "💾 حفظ؛";
+            document.getElementById('phone').value = "";
+            document.getElementById('motherName').value = "";
+            document.getElementById('notes').value = "";
+            document.getElementById('saveBtn').innerText = "💾 حفظ";
         };
 
-        // الاستماع الفوري للتحديثات والترتيب الأبجدي التلقائي
+        window.updateTableStyle = () => {
+            const font = document.getElementById('fontFamily').value;
+            const size = document.getElementById('fontSize').value;
+            const border = document.getElementById('borderStyle').value;
+            
+            const tbl = document.getElementById('studentsTable');
+            tbl.style.fontFamily = font;
+            tbl.style.fontSize = size;
+            tbl.className = border;
+        };
+
         db.collection("students").onSnapshot(snap => {
             let students = [];
-            snap.forEach(doc => {
-                students.push({ id: doc.id, ...doc.data() });
-            });
-            
-            // الترتيب الأبجدي للأسماء باللغة العربية
+            snap.forEach(doc => { students.push({ id: doc.id, ...doc.data() }); });
             students.sort((a, b) => (a.name || "").localeCompare(b.name || "", 'ar'));
 
             const body = document.getElementById('studentBody'); 
@@ -133,17 +180,21 @@
                     <td>${d.name || ''}</td>
                     <td>${d.birth || ''}</td>
                     <td>${d.id || ''}</td>
+                    <td>${d.phone || ''}</td>
+                    <td>${d.motherName || ''}</td>
+                    <td>${d.notes || ''}</td>
                     <td class="no-print">${d.class || ''}</td>
                     <td class="no-print">${d.section || ''}</td>
                     <td class="no-print">
-                        <button onclick="secureAction('${d.id}', 'edit', '${d.name}', '${d.birth}', '${d.id}', '${d.class}', '${d.section}')">✏️</button>
+                        <button onclick="secureAction('${d.id}', 'edit', '${d.name}', '${d.birth}', '${d.id}', '${d.phone}', '${d.motherName}', '${d.notes}', '${d.class}', '${d.section}')">✏️</button>
                         <button style="background:red" onclick="secureAction('${d.id}', 'delete')">🗑️</button>
                     </td>
                 </tr>`;
             });
+            filterData();
         });
 
-        window.secureAction = (id, type, n, b, idn, c, s) => {
+        window.secureAction = (id, type, n, b, idn, ph, mn, not, c, s) => {
             const pass = prompt("🔐 أدخل كلمة المرور للإجراء:");
             if (pass === "1234") { 
                 if (type === 'delete') {
@@ -153,6 +204,9 @@
                     document.getElementById('name').value = n;
                     document.getElementById('birth').value = b;
                     document.getElementById('idNum').value = idn;
+                    document.getElementById('phone').value = ph;
+                    document.getElementById('motherName').value = mn;
+                    document.getElementById('notes').value = not;
                     document.getElementById('class').value = c;
                     document.getElementById('section').value = s;
                     document.getElementById('saveBtn').innerText = "🔄 تحديث";
@@ -166,7 +220,6 @@
             const classF = document.getElementById('fClass').value;
             const secF = document.getElementById('fSection').value;
             
-            // تحديث الترويسة الظاهرة عند الطباعة لتحديد الصف والشعبة المختارة في الأعلى
             const headerInfo = document.getElementById('headerInfo');
             const printHeader = document.getElementById('printHeader');
             if (classF || secF) {
@@ -179,9 +232,11 @@
             const rows = document.querySelectorAll('#studentBody tr');
             rows.forEach(row => {
                 const nameTxt = row.cells[0].innerText.toLowerCase();
-                const classTxt = row.cells[3].innerText;
-                const secTxt = row.cells[4].innerText;
-                row.style.display = (nameTxt.includes(nameF) && (classF === "" || classTxt === classF) && (secF === "" || secTxt === secF)) ? "" : "none";
+                const classTxt = row.cells[6].innerText;
+                const secTxt = row.cells[7].innerText;
+                const match = (nameTxt.includes(nameF) && (classF === "" || classTxt === classF) && (secF === "" || secTxt === secF));
+                row.setAttribute('data-filtered', match ? 'yes' : 'no');
+                row.style.display = match ? "" : "none";
             });
         };
 
@@ -192,11 +247,34 @@
             const a = document.createElement('a'); a.href = url; a.download = 'students-list.doc'; a.click();
         };
 
+        // تصدير Excel يلتزم بالفلتر ويخفي الإجراءات ويكون من اليمين لليسار
         window.exportToExcel = () => {
-            const html = document.getElementById('studentsTable').outerHTML.replace(/class="no-print"/g, 'style="display:none;"');
+            let tableClone = document.getElementById('studentsTable').cloneNode(true);
+            
+            // إزالة الأعمدة غير المفلترة أو المخفية بناءً على العرض الحالي
+            let rows = tableClone.querySelectorAll('tr');
+            let originalRows = document.querySelectorAll('#studentBody tr');
+            
+            for (let i = 0; i < originalRows.length; i++) {
+                if (originalRows[i].getAttribute('data-filtered') === 'no') {
+                    rows[i + 1].remove(); // إزالة الصفوف غير المطابقة للفلتر
+                }
+            }
+
+            // إزالة أعمدة الإجراءات والصف والشعبة الإضافية من النسخة المصدرة
+            rows.forEach(r => {
+                let cells = r.querySelectorAll('th, td');
+                if(cells.length >= 9) {
+                    cells[8].remove(); // إزالة إجراءات
+                    cells[7].remove(); // إزالة شعبة
+                    cells[6].remove(); // إزالة صف
+                }
+            });
+
+            const html = `<html dir="rtl"><head><meta charset='utf-8'></head><body>${tableClone.outerHTML}</body></html>`;
             const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = 'students-list.xls'; a.click();
+            const a = document.createElement('a'); a.href = url; a.download = 'filtered-students.xls'; a.click();
         };
     </script>
 </body>
