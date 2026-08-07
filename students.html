@@ -1,1 +1,319 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إدارة الطلاب الاحترافية</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+        .container { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input, select { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 8px; }
+        button { padding: 9px 15px; border: none; border-radius: 8px; cursor: pointer; color: white; background: #28a745; margin: 2px; }
+        .btn-print { background: #17a2b8; }
+        .btn-word { background: #007bff; }
+        .btn-excel { background: #28a745; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; text-align: center; }
+        
+        table.with-border th, table.with-border td { border: 1px solid #333; }
+        table.no-border th, table.no-border td { border: none; border-bottom: 1px solid #ddd; }
 
+        @media print {
+            body * { visibility: hidden; }
+            #printSection, #printSection * { visibility: visible; }
+            #printSection { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" style="text-decoration:none;" class="no-print">⬅️ العودة للرئيسية</a>
+        <h3 class="no-print" id="formTitle" style="color: #007bff;">إضافة طالب جديد</h3>
+        
+        <div class="no-print" style="background: #f8f9fa; padding: 10px; border-radius: 10px;">
+            <input type="text" id="name" placeholder="الاسم الرباعي">
+            <select id="birth"><script>for(let i=2000; i<=2035; i++) document.write(`<option>${i}</option>`);</script></select>
+            <input type="text" id="idNum" placeholder="رقم القيد">
+            <input type="text" id="phone" placeholder="رقم الهاتف">
+            <input type="text" id="motherName" placeholder="اسم الأم">
+            <input type="text" id="notes" placeholder="الملاحظات">
+            <select id="class">
+                <option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option>
+                <option>الرابع الادبي</option><option>الخامس الادبي</option><option>السادس الادبي</option>
+            </select>
+            <select id="section"><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option></select>
+            <button id="saveBtn" onclick="saveStudent()">💾 حفظ</button>
+            <button onclick="resetForm()" style="background:#6c757d;">🔄 إلغاء</button>
+        </div>
+
+        <hr class="no-print">
+        <h3 class="no-print">إعدادات الطباعة والخطوط</h3>
+        <div class="no-print" style="background:#f9f9f9; padding:10px; border-radius:8px; margin-bottom:10px;">
+            <label>نوع الخط:</label>
+            <select id="fontFamily" onchange="updateTableStyle()">
+                <option value="'Segoe UI', sans-serif">الافتراضي (Segoe UI)</option>
+                <option value="'Traditional Arabic', serif">تخاطب (Traditional Arabic)</option>
+                <option value="'Amiri', serif">أميري (Amiri)</option>
+                <option value="Arial, sans-serif">أريال (Arial)</option>
+            </select>
+
+            <label>حجم الخط:</label>
+            <select id="fontSize" onchange="updateTableStyle()">
+                <option value="14px">متوسط (14px)</option>
+                <option value="12px">صغير (12px)</option>
+                <option value="16px">كبير (16px)</option>
+                <option value="18px">كبير جداً (18px)</option>
+            </select>
+
+            <label>إطار الصفحة:</label>
+            <select id="borderStyle" onchange="updateTableStyle()">
+                <option value="with-border">مع إطار كامل</option>
+                <option value="no-border">بدون إطار (خط سفلي فقط)</option>
+            </select>
+        </div>
+
+        <h3 class="no-print">بحث وفلترة وتصدير</h3>
+        <div class="no-print">
+            <input type="text" id="searchBar" onkeyup="filterData()" placeholder="🔍 ابحث بالاسم...">
+            <select id="fClass" onchange="filterData()"><option value="">كل الصفوف</option><option>الرابع العلمي</option><option>الخامس العلمي</option><option>السادس العلمي</option><option>الرابع الادبي</option><option>الخامس الادبي</option><option>السادس الادبي</option></select>
+            <select id="fSection" onchange="filterData()"><option value="">كل الشعب</option><option>أ</option><option>ب</option><option>ج</option><option>د</option><option>هـ</option><option>و</option><option>ز</option></select>
+            
+            <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
+            <button class="btn-word" onclick="exportToWord()">📄 تصدير Word</button>
+            <button class="btn-excel" onclick="exportToExcel()">📊 تصدير Excel</button>
+        </div>
+
+        <div id="printSection">
+            <div id="printHeader" style="text-align:center; margin-bottom:15px; display:none;">
+                <h2>قائمة الطلاب</h2>
+                <h4 id="headerInfo"></h4>
+            </div>
+            <table id="studentsTable" class="with-border">
+                <thead>
+                    <tr>
+                        <th>الاسم</th>
+                        <th>التولد</th>
+                        <th>القيد</th>
+                        <th>رقم الهاتف</th>
+                        <th>اسم الأم</th>
+                        <th>الملاحظات</th>
+                        <th class="no-print">الصف</th>
+                        <th class="no-print">الشعبة</th>
+                        <th class="no-print">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="studentBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCd3OM5lfSqrXMuPylaR_bgjHoKo006Stw",
+            authDomain: "school-2-2026.firebaseapp.com",
+            projectId: "school-2-2026",
+            storageBucket: "school-2-2026.firebasestorage.app",
+            messagingSenderId: "283472829932",
+            appId: "1:388164568964:web:f917cc3284c1265fd4ffd1",
+            measurementId: "G-74F1K1HBE4"
+        };
+        
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        let editingId = null;
+
+        window.saveStudent = () => {
+            const name = document.getElementById('name').value;
+            if (!name) { alert("⚠️ يرجى إدخال اسم الطالب!"); return; }
+
+            const data = { 
+                name: name, 
+                birth: document.getElementById('birth').value, 
+                id: document.getElementById('idNum').value, 
+                phone: document.getElementById('phone').value,
+                motherName: document.getElementById('motherName').value,
+                notes: document.getElementById('notes').value,
+                class: document.getElementById('class').value, 
+                section: document.getElementById('section').value 
+            };
+            
+            if (editingId !== null && editingId !== "") {
+                db.collection("students").doc(editingId).update(data)
+                    .then(() => { 
+                        alert("✅ تم تعديل وتحديث بيانات الطالب بنجاح"); 
+                        resetForm(); 
+                    })
+                    .catch(err => alert("خطأ في التعديل: " + err.message));
+            } else {
+                db.collection("students").add(data)
+                    .then(() => { 
+                        alert("✅ تم حفظ طالب جديد بنجاح"); 
+                        resetForm(); 
+                    })
+                    .catch(err => alert("خطأ في الحفظ: " + err.message));
+            }
+        };
+
+        window.resetForm = () => {
+            editingId = null;
+            document.getElementById('name').value = "";
+            document.getElementById('idNum').value = "";
+            document.getElementById('phone').value = "";
+            document.getElementById('motherName').value = "";
+            document.getElementById('notes').value = "";
+            document.getElementById('saveBtn').innerText = "💾 حفظ";
+            document.getElementById('formTitle').innerText = "إضافة طالب جديد";
+            document.getElementById('formTitle').style.color = "#007bff";
+        };
+
+        window.updateTableStyle = () => {
+            const font = document.getElementById('fontFamily').value;
+            const size = document.getElementById('fontSize').value;
+            const border = document.getElementById('borderStyle').value;
+            
+            const tbl = document.getElementById('studentsTable');
+            tbl.style.fontFamily = font;
+            tbl.style.fontSize = size;
+            tbl.className = border;
+        };
+
+        db.collection("students").onSnapshot(snap => {
+            let students = [];
+            snap.forEach(doc => { students.push({ docId: doc.id, ...doc.data() }); });
+            students.sort((a, b) => (a.name || "").localeCompare(b.name || "", 'ar'));
+
+            const body = document.getElementById('studentBody'); 
+            body.innerHTML = "";
+            
+            students.forEach(d => {
+                body.innerHTML += `<tr>
+                    <td>${d.name || ''}</td>
+                    <td>${d.birth || ''}</td>
+                    <td>${d.id || ''}</td>
+                    <td>${d.phone || ''}</td>
+                    <td>${d.motherName || ''}</td>
+                    <td>${d.notes || ''}</td>
+                    <td class="no-print">${d.class || ''}</td>
+                    <td class="no-print">${d.section || ''}</td>
+                    <td class="no-print">
+                        <button onclick="secureAction('${d.docId}', 'edit', '${encodeURIComponent(d.name || '')}', '${d.birth || ''}', '${encodeURIComponent(d.id || '')}', '${encodeURIComponent(d.phone || '')}', '${encodeURIComponent(d.motherName || '')}', '${encodeURIComponent(d.notes || '')}', '${encodeURIComponent(d.class || '')}', '${encodeURIComponent(d.section || '')}')">✏️</button>
+                        <button style="background:red" onclick="secureAction('${d.docId}', 'delete')">🗑️</button>
+                    </td>
+                </tr>`;
+            });
+            filterData();
+        });
+
+        window.secureAction = (id, type, n, b, idn, ph, mn, not, c, s) => {
+            const pass = prompt("🔐 أدخل كلمة المرور للإجراء (1234):");
+            
+            // تنظيف النص المدخل من المسافات الزائدة أو الفراغات بالخطأ
+            const cleanPass = pass ? pass.trim() : "";
+
+            if (cleanPass === "1234") { 
+                if (type === 'delete') {
+                    if(confirm("هل أنت متأكد من حذف هذا الطالب؟")) {
+                        db.collection("students").doc(id).delete().then(() => {
+                            if (editingId === id) resetForm();
+                        });
+                    }
+                } else if (type === 'edit') {
+                    editingId = id;
+                    document.getElementById('name').value = decodeURIComponent(n);
+                    document.getElementById('birth').value = b;
+                    document.getElementById('idNum').value = decodeURIComponent(idn);
+                    document.getElementById('phone').value = decodeURIComponent(ph);
+                    document.getElementById('motherName').value = decodeURIComponent(mn);
+                    document.getElementById('notes').value = decodeURIComponent(not);
+                    document.getElementById('class').value = decodeURIComponent(c);
+                    document.getElementById('section').value = decodeURIComponent(s);
+                    
+                    document.getElementById('saveBtn').innerText = "🔄 تحديث البيانات";
+                    const titleEl = document.getElementById('formTitle');
+                    titleEl.innerText = "تعديل بيانات الطالب: " + decodeURIComponent(n);
+                    titleEl.style.color = "#28a745";
+                    window.scrollTo(0,0);
+                }
+            } else if (pass !== null) { 
+                alert("❌ كلمة مرور خاطئة!"); 
+            }
+        };
+
+        window.filterData = () => {
+            const nameF = document.getElementById('searchBar').value.toLowerCase();
+            const classF = document.getElementById('fClass').value;
+            const secF = document.getElementById('fSection').value;
+            
+            const headerInfo = document.getElementById('headerInfo');
+            const printHeader = document.getElementById('printHeader');
+            if (classF || secF) {
+                printHeader.style.display = "block";
+                headerInfo.innerText = `الصف: ${classF || 'الكل'} - الشعبة: ${secF || 'الكل'}`;
+            } else {
+                printHeader.style.display = "none";
+            }
+
+            const rows = document.querySelectorAll('#studentBody tr');
+            rows.forEach(row => {
+                const nameTxt = row.cells[0].innerText.toLowerCase();
+                const classTxt = row.cells[6].innerText;
+                const secTxt = row.cells[7].innerText;
+                const match = (nameTxt.includes(nameF) && (classF === "" || classTxt === classF) && (secF === "" || secTxt === secF));
+                row.setAttribute('data-filtered', match ? 'yes' : 'no');
+                row.style.display = match ? "" : "none";
+            });
+        };
+
+        window.exportToWord = () => {
+            const html = document.getElementById('printSection').innerHTML;
+            const blob = new Blob(['\ufeff' + `<html><head><meta charset='utf-8'></head><body>${html}</body></html>`], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'students-list.doc'; a.click();
+        };
+
+        window.exportToExcel = () => {
+            let tableClone = document.getElementById('studentsTable').cloneNode(true);
+            
+            let rows = tableClone.querySelectorAll('tr');
+            let originalRows = document.querySelectorAll('#studentBody tr');
+            
+            for (let i = 0; i < originalRows.length; i++) {
+                if (originalRows[i].getAttribute('data-filtered') === 'no') {
+                    rows[i + 1].remove();
+                }
+            }
+
+            rows.forEach(r => {
+                let cells = r.querySelectorAll('th, td');
+                if(cells.length >= 9) {
+                    cells[8].remove(); 
+                    cells[7].remove(); 
+                    cells[6].remove(); 
+                }
+            });
+
+            const html = `
+                <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+                <head>
+                    <meta charset='utf-8'>
+                    <style>
+                        body { direction: rtl; text-align: right; }
+                        table { direction: rtl; }
+                        th, td { text-align: center; border: 0.5px solid #000; padding: 5px; }
+                    </style>
+                </head>
+                <body>
+                    ${tableClone.outerHTML}
+                </body>
+                </html>
+            `;
+            const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'filtered-students.xls'; a.click();
+        };
+    </script>
+</body>
+</html>
